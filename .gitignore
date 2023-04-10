@@ -39,4 +39,4 @@ demo/generated/
 CMakeFiles/
 _deps/
 Makefile
-cmake_install.cmake
+antlr4-runtime/

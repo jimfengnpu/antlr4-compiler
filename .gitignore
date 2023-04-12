@@ -6,14 +6,12 @@
 *.lo
 *.o
 *.obj
-*.jar
 
 # Precompiled Headers
 *.gch
 *.pch
 
 # Compiled Dynamic libraries
-*.so
 *.dylib
 *.dll
 
@@ -24,7 +22,6 @@
 # Compiled Static libraries
 *.lai
 *.la
-*.a
 *.lib
 
 # Executables
@@ -34,9 +31,6 @@
 
 .vscode/
 build/
-dist/
-demo/generated/
 CMakeFiles/
 _deps/
-Makefile
-antlr4-runtime/
+

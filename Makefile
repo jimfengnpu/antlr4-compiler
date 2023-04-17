@@ -1,13 +1,26 @@
-all:clean gen_code
-	-mkdir build
-	@cd build && cmake ../src && make
+GRAMMAR_DIR = src/frontend/grammar
+GRAMMAR_RULE = ${GRAMMAR_DIR}/SysY.g4
+START_RULE = prog
+ANTLR_GEN_DIR = src/frontend
+TARGET_FILE = build/compiler
 
-.PHONY:clean
+all:clean  ${TARGET_FILE}
+	
 clean:
 	-rm -r build
 
-gen_code:
-	@antlr4 src/frontend/grammar*.g4 -Dlanguage=Cpp -Xexact-output-dir -o src/frontend
+${TARGET_FILE}:gen_code
+	-mkdir build
+	@cd build && cmake .. && make -j4
 
-run:all
-	@./build/jimfeng-compiler
+gen_code:
+	antlr4 ${GRAMMAR_RULE} -Dlanguage=Cpp -Xexact-output-dir -o ${ANTLR_GEN_DIR}
+
+gen_graph:
+	antlr4-parse ${GRAMMAR_RULE} ${START_RULE} -gui 
+
+run:${TARGET_FILE}
+	./${TARGET_FILE}
+
+
+.PHONY:all clean run 

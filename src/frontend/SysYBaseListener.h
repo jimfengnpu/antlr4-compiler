@@ -16,11 +16,41 @@
 class  SysYBaseListener : public SysYListener {
 public:
 
-  virtual void enterProg(SysYParser::ProgContext * /*ctx*/) override { }
-  virtual void exitProg(SysYParser::ProgContext * /*ctx*/) override { }
+  virtual void enterCompUnit(SysYParser::CompUnitContext * /*ctx*/) override { }
+  virtual void exitCompUnit(SysYParser::CompUnitContext * /*ctx*/) override { }
 
-  virtual void enterExpr(SysYParser::ExprContext * /*ctx*/) override { }
-  virtual void exitExpr(SysYParser::ExprContext * /*ctx*/) override { }
+  virtual void enterDecl(SysYParser::DeclContext * /*ctx*/) override { }
+  virtual void exitDecl(SysYParser::DeclContext * /*ctx*/) override { }
+
+  virtual void enterComDecl(SysYParser::ComDeclContext * /*ctx*/) override { }
+  virtual void exitComDecl(SysYParser::ComDeclContext * /*ctx*/) override { }
+
+  virtual void enterBType(SysYParser::BTypeContext * /*ctx*/) override { }
+  virtual void exitBType(SysYParser::BTypeContext * /*ctx*/) override { }
+
+  virtual void enterComDef(SysYParser::ComDefContext * /*ctx*/) override { }
+  virtual void exitComDef(SysYParser::ComDefContext * /*ctx*/) override { }
+
+  virtual void enterInitVal(SysYParser::InitValContext * /*ctx*/) override { }
+  virtual void exitInitVal(SysYParser::InitValContext * /*ctx*/) override { }
+
+  virtual void enterExp(SysYParser::ExpContext * /*ctx*/) override { }
+  virtual void exitExp(SysYParser::ExpContext * /*ctx*/) override { }
+
+  virtual void enterAddExp(SysYParser::AddExpContext * /*ctx*/) override { }
+  virtual void exitAddExp(SysYParser::AddExpContext * /*ctx*/) override { }
+
+  virtual void enterMulExp(SysYParser::MulExpContext * /*ctx*/) override { }
+  virtual void exitMulExp(SysYParser::MulExpContext * /*ctx*/) override { }
+
+  virtual void enterUnaryExp(SysYParser::UnaryExpContext * /*ctx*/) override { }
+  virtual void exitUnaryExp(SysYParser::UnaryExpContext * /*ctx*/) override { }
+
+  virtual void enterPriExp(SysYParser::PriExpContext * /*ctx*/) override { }
+  virtual void exitPriExp(SysYParser::PriExpContext * /*ctx*/) override { }
+
+  virtual void enterLVal(SysYParser::LValContext * /*ctx*/) override { }
+  virtual void exitLVal(SysYParser::LValContext * /*ctx*/) override { }
 
 
   virtual void enterEveryRule(antlr4::ParserRuleContext * /*ctx*/) override { }

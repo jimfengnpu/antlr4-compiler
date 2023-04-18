@@ -35,9 +35,6 @@ public:
   virtual void enterExp(SysYParser::ExpContext *ctx) = 0;
   virtual void exitExp(SysYParser::ExpContext *ctx) = 0;
 
-  virtual void enterAddExp(SysYParser::AddExpContext *ctx) = 0;
-  virtual void exitAddExp(SysYParser::AddExpContext *ctx) = 0;
-
   virtual void enterMulExp(SysYParser::MulExpContext *ctx) = 0;
   virtual void exitMulExp(SysYParser::MulExpContext *ctx) = 0;
 

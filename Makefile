@@ -1,7 +1,7 @@
 GRAMMAR_DIR = src/frontend/grammar
 GRAMMAR_RULE = ${GRAMMAR_DIR}/SysY.g4
 START_RULE = main
-ANTLR_GEN_DIR = src/frontend
+ANTLR_GEN_DIR = src/frontend/generated
 TARGET_FILE = build/compiler
 
 all:clean  ${TARGET_FILE}

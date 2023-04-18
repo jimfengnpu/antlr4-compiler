@@ -13,9 +13,8 @@ comDef: Ident ('[' exp ']')* ( '=' initVal);
 initVal: exp
         |'{' initVal (',' initVal)* '}'
         ;
-exp: addExp;
-addExp: mulExp (('+'|'-') addExp)?;
-mulExp: unaryExp (('*'| '/' | '%') mulExp)?;
+exp: mulExp (('+'|'-') mulExp)*;
+mulExp: unaryExp (('*'| '/' | '%') unaryExp)*;
 unaryExp: priExp;
 priExp: '(' exp ')'
         | lVal

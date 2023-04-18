@@ -37,9 +37,6 @@ public:
   virtual void enterExp(SysYParser::ExpContext * /*ctx*/) override { }
   virtual void exitExp(SysYParser::ExpContext * /*ctx*/) override { }
 
-  virtual void enterAddExp(SysYParser::AddExpContext * /*ctx*/) override { }
-  virtual void exitAddExp(SysYParser::AddExpContext * /*ctx*/) override { }
-
   virtual void enterMulExp(SysYParser::MulExpContext * /*ctx*/) override { }
   virtual void exitMulExp(SysYParser::MulExpContext * /*ctx*/) override { }
 

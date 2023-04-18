@@ -20,8 +20,8 @@ public:
 
   enum {
     RuleCompUnit = 0, RuleDecl = 1, RuleComDecl = 2, RuleBType = 3, RuleComDef = 4, 
-    RuleInitVal = 5, RuleExp = 6, RuleAddExp = 7, RuleMulExp = 8, RuleUnaryExp = 9, 
-    RulePriExp = 10, RuleLVal = 11
+    RuleInitVal = 5, RuleExp = 6, RuleMulExp = 7, RuleUnaryExp = 8, RulePriExp = 9, 
+    RuleLVal = 10
   };
 
   explicit SysYParser(antlr4::TokenStream *input);
@@ -48,7 +48,6 @@ public:
   class ComDefContext;
   class InitValContext;
   class ExpContext;
-  class AddExpContext;
   class MulExpContext;
   class UnaryExpContext;
   class PriExpContext;
@@ -143,7 +142,8 @@ public:
   public:
     ExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    AddExpContext *addExp();
+    std::vector<MulExpContext *> mulExp();
+    MulExpContext* mulExp(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -152,26 +152,12 @@ public:
 
   ExpContext* exp();
 
-  class  AddExpContext : public antlr4::ParserRuleContext {
-  public:
-    AddExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    MulExpContext *mulExp();
-    AddExpContext *addExp();
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  AddExpContext* addExp();
-
   class  MulExpContext : public antlr4::ParserRuleContext {
   public:
     MulExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    UnaryExpContext *unaryExp();
-    MulExpContext *mulExp();
+    std::vector<UnaryExpContext *> unaryExp();
+    UnaryExpContext* unaryExp(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;

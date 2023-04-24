@@ -33,9 +33,7 @@ public:
 
     virtual std::any visitDef(SysYParser::DefContext *context) = 0;
 
-    virtual std::any visitFuncParams(SysYParser::FuncParamsContext *context) = 0;
-
-    virtual std::any visitFuncParam(SysYParser::FuncParamContext *context) = 0;
+    virtual std::any visitFuncFParam(SysYParser::FuncFParamContext *context) = 0;
 
     virtual std::any visitBlock(SysYParser::BlockContext *context) = 0;
 

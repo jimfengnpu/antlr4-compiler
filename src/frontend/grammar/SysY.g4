@@ -4,16 +4,15 @@ options{
 }
 compUnit: (varDecl | constDecl | funcDef)+;
 
-// decl: (varDecl | constDecl);
 constDecl: ConstPrefix bType def ( ',' def)* ';';
 varDecl:  bType def ( ',' def)* ';';
 
-funcDef: funcType Ident '('(params+=funcParam (',' params+=funcParam)*)?')' block;
+funcDef: funcType Ident '('(params+=funcFParam (',' params+=funcFParam)*)?')' block;
 funcType: VoidType | IntType | FloatType;
 bType: IntType | FloatType;
 
 def: Ident (arrAccess)* ( '=' initVal)?;
-funcParam: bType Ident ('['']' (arrAccess)*)?;
+funcFParam: bType Ident ('['']' (arrAccess)*)?;
 block: '{' (varDecl | constDecl | stmt)* '}';
 stmt: lVal '=' exp ';' # assignStmt
     | (exp)? ';' # expStmt
@@ -37,8 +36,9 @@ cond:exp
 
 exp: IntConstant
     | FloatConstant
-    | '(' exp ')'
     | lVal
+    | Ident '(' (exp (',' exp)* )? ')'
+    | '(' exp ')'
     | op=('+'|'-'| '!') exp
     | exp op=('*' | '/' | '%') exp
     | exp op=('+' | '-') exp

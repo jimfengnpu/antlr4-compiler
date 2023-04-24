@@ -43,6 +43,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitFuncParams(SysYParser::FuncParamsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFuncParam(SysYParser::FuncParamContext *ctx) override {
     return visitChildren(ctx);
   }

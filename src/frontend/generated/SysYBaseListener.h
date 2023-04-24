@@ -37,6 +37,9 @@ public:
   virtual void enterDef(SysYParser::DefContext * /*ctx*/) override { }
   virtual void exitDef(SysYParser::DefContext * /*ctx*/) override { }
 
+  virtual void enterFuncParams(SysYParser::FuncParamsContext * /*ctx*/) override { }
+  virtual void exitFuncParams(SysYParser::FuncParamsContext * /*ctx*/) override { }
+
   virtual void enterFuncParam(SysYParser::FuncParamContext * /*ctx*/) override { }
   virtual void exitFuncParam(SysYParser::FuncParamContext * /*ctx*/) override { }
 

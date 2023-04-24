@@ -2,33 +2,68 @@ grammar SysY;
 options{
     language=Cpp;
 }
-compUnit: (decl)+;
+compUnit: (varDecl | constDecl | funcDef)+;
 
-decl: (comDecl);
+// decl: (varDecl | constDecl);
+constDecl: ConstPrefix bType def ( ',' def)* ';';
+varDecl:  bType def ( ',' def)* ';';
 
-comDecl:  bType comDef ( ',' comDef)* ';';
-bType: 'int' | 'float';
-comDef: Ident ('[' exp ']')* ( '=' initVal);
+funcDef: funcType Ident '('(params+=funcParam (',' params+=funcParam)*)?')' block;
+funcType: VoidType | IntType | FloatType;
+bType: IntType | FloatType;
+
+def: Ident (arrAccess)* ( '=' initVal)?;
+funcParam: bType Ident ('['']' (arrAccess)*)?;
+block: '{' (varDecl | constDecl | stmt)* '}';
+stmt: lVal '=' exp ';' # assignStmt
+    | (exp)? ';' # expStmt
+    | block # blockStmt
+    | IF '(' cond ')' stmt (ELSE stmt)? # condStmt
+    | WHILE '(' cond ')' stmt # loopStmt
+    | BREAK ';' # breakStmt
+    | CONTINUE ';' # contStmt
+    | RETURN (exp)? ';' # returnStmt
+    ;
 
 initVal: exp
         |'{' initVal (',' initVal)* '}'
         ;
-exp: mulExp (('+'|'-') mulExp)*;
-mulExp: unaryExp (('*'| '/' | '%') unaryExp)*;
-unaryExp: priExp;
-priExp: '(' exp ')'
-        | lVal
-        | IntConstant 
-        | FloatConstant
-        ;
-lVal: Ident ('[' exp ']')*;
+cond:exp
+    |cond comp=('<'|'>'|'<='|'>=') cond
+    |cond comp=('=='|'!=') cond
+    |cond comp='&&' cond
+    |cond comp='||' cond
+    ;
 
+exp: IntConstant
+    | FloatConstant
+    | '(' exp ')'
+    | lVal
+    | op=('+'|'-'| '!') exp
+    | exp op=('*' | '/' | '%') exp
+    | exp op=('+' | '-') exp
+    ;
+
+
+lVal: Ident (arrAccess)*;
+arrAccess: '[' exp ']';
 
 
 WS: [ \t\r\n]+->channel(HIDDEN);
 COMMENT:('//' ~[\r\n]* 
         | '/*' .*? '*/')->skip
         ;
+VoidType: 'void';
+IntType:'int';
+FloatType: 'float';
+ConstPrefix: 'const';
+IF: 'if';
+ELSE: 'else';
+WHILE: 'while';
+BREAK: 'break';
+CONTINUE: 'continue';
+RETURN: 'return';
+
 IntConstant: NonZeroDigit Digit*
             | '0' OctalDigit*
             | '0' [xX] HexadecimalDigit+;

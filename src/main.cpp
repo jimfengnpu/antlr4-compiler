@@ -1,7 +1,7 @@
 #include "antlr4-runtime.h"
 #include "frontend/generated/SysYLexer.h"
 #include "frontend/generated/SysYParser.h"
-#include "frontend/SysYAST.h"
+#include "frontend/ASTVisitor.h"
 #include "iostream"
 
 using namespace antlr4;
@@ -25,8 +25,10 @@ int main(int argc, char** argv) {
     
     SysYParser parser(&tokens);
     tree::ParseTree* tree = parser.compUnit();
-    tree = SysYAST::BuildAST(tree);
-    auto s = tree->toStringTree(&parser, true);
+    auto s = tree->toStringTree(&parser);
+    std::cout << "Original Parse Tree: " << s << std::endl;
+    // tree = BuildAST(tree);
+    // s = tree->toStringTree(&parser, true);
     // std::cout << "Parse Tree: " << s << std::endl;
 
     return 0;

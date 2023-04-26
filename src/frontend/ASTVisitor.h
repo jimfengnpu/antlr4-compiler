@@ -1,11 +1,11 @@
 #pragma once
 #include "generated/SysYBaseVisitor.h"
-#include <list>
+#include "SysYIR.h"
 
 
 class ASTVisitor: SysYBaseVisitor{
 // public:
-    
+
     ASTVisitor() {
         
     }

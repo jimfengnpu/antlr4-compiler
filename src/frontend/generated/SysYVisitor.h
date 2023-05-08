@@ -1,4 +1,7 @@
 
+#include "../../common/SysYIR.h"
+
+
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
@@ -21,9 +24,7 @@ public:
    */
     virtual std::any visitCompUnit(SysYParser::CompUnitContext *context) = 0;
 
-    virtual std::any visitConstDecl(SysYParser::ConstDeclContext *context) = 0;
-
-    virtual std::any visitVarDecl(SysYParser::VarDeclContext *context) = 0;
+    virtual std::any visitDecl(SysYParser::DeclContext *context) = 0;
 
     virtual std::any visitFuncDef(SysYParser::FuncDefContext *context) = 0;
 
@@ -34,6 +35,8 @@ public:
     virtual std::any visitDef(SysYParser::DefContext *context) = 0;
 
     virtual std::any visitFuncFParam(SysYParser::FuncFParamContext *context) = 0;
+
+    virtual std::any visitFuncArrParam(SysYParser::FuncArrParamContext *context) = 0;
 
     virtual std::any visitBlock(SysYParser::BlockContext *context) = 0;
 

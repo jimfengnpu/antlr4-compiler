@@ -22,7 +22,7 @@ gen_graph:
 	antlr4-parse ${GRAMMAR_RULE} ${START_RULE} -gui test_input.c
 
 run: ${TARGET_FILE}
-	./${TARGET_FILE}
+	./${TARGET_FILE} test_input.c
 
 
 .PHONY:all clean run 

@@ -1,4 +1,7 @@
 
+#include "../../common/SysYIR.h"
+
+
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
@@ -17,11 +20,8 @@ public:
   virtual void enterCompUnit(SysYParser::CompUnitContext *ctx) = 0;
   virtual void exitCompUnit(SysYParser::CompUnitContext *ctx) = 0;
 
-  virtual void enterConstDecl(SysYParser::ConstDeclContext *ctx) = 0;
-  virtual void exitConstDecl(SysYParser::ConstDeclContext *ctx) = 0;
-
-  virtual void enterVarDecl(SysYParser::VarDeclContext *ctx) = 0;
-  virtual void exitVarDecl(SysYParser::VarDeclContext *ctx) = 0;
+  virtual void enterDecl(SysYParser::DeclContext *ctx) = 0;
+  virtual void exitDecl(SysYParser::DeclContext *ctx) = 0;
 
   virtual void enterFuncDef(SysYParser::FuncDefContext *ctx) = 0;
   virtual void exitFuncDef(SysYParser::FuncDefContext *ctx) = 0;
@@ -37,6 +37,9 @@ public:
 
   virtual void enterFuncFParam(SysYParser::FuncFParamContext *ctx) = 0;
   virtual void exitFuncFParam(SysYParser::FuncFParamContext *ctx) = 0;
+
+  virtual void enterFuncArrParam(SysYParser::FuncArrParamContext *ctx) = 0;
+  virtual void exitFuncArrParam(SysYParser::FuncArrParamContext *ctx) = 0;
 
   virtual void enterBlock(SysYParser::BlockContext *ctx) = 0;
   virtual void exitBlock(SysYParser::BlockContext *ctx) = 0;

@@ -1,4 +1,7 @@
 
+#include "../../common/SysYIR.h"
+
+
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
@@ -19,11 +22,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitConstDecl(SysYParser::ConstDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitVarDecl(SysYParser::VarDeclContext *ctx) override {
+  virtual std::any visitDecl(SysYParser::DeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -44,6 +43,10 @@ public:
   }
 
   virtual std::any visitFuncFParam(SysYParser::FuncFParamContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFuncArrParam(SysYParser::FuncArrParamContext *ctx) override {
     return visitChildren(ctx);
   }
 

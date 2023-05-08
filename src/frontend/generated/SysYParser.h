@@ -1,4 +1,7 @@
 
+#include "../../common/SysYIR.h"
+
+
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
@@ -22,8 +25,8 @@ public:
   };
 
   enum {
-    RuleCompUnit = 0, RuleConstDecl = 1, RuleVarDecl = 2, RuleFuncDef = 3, 
-    RuleFuncType = 4, RuleBType = 5, RuleDef = 6, RuleFuncFParam = 7, RuleBlock = 8, 
+    RuleCompUnit = 0, RuleDecl = 1, RuleFuncDef = 2, RuleFuncType = 3, RuleBType = 4, 
+    RuleDef = 5, RuleFuncFParam = 6, RuleFuncArrParam = 7, RuleBlock = 8, 
     RuleStmt = 9, RuleInitVal = 10, RuleCond = 11, RuleExp = 12, RuleLVal = 13, 
     RuleArrAccess = 14
   };
@@ -46,13 +49,13 @@ public:
 
 
   class CompUnitContext;
-  class ConstDeclContext;
-  class VarDeclContext;
+  class DeclContext;
   class FuncDefContext;
   class FuncTypeContext;
   class BTypeContext;
   class DefContext;
   class FuncFParamContext;
+  class FuncArrParamContext;
   class BlockContext;
   class StmtContext;
   class InitValContext;
@@ -65,10 +68,8 @@ public:
   public:
     CompUnitContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<VarDeclContext *> varDecl();
-    VarDeclContext* varDecl(size_t i);
-    std::vector<ConstDeclContext *> constDecl();
-    ConstDeclContext* constDecl(size_t i);
+    std::vector<DeclContext *> decl();
+    DeclContext* decl(size_t i);
     std::vector<FuncDefContext *> funcDef();
     FuncDefContext* funcDef(size_t i);
 
@@ -81,14 +82,15 @@ public:
 
   CompUnitContext* compUnit();
 
-  class  ConstDeclContext : public antlr4::ParserRuleContext {
+  class  DeclContext : public antlr4::ParserRuleContext {
   public:
-    ConstDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    int type;bool is_const;
+    DeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    BTypeContext *bType();
+    std::vector<DefContext *> def();
+    DefContext* def(size_t i);
     antlr4::tree::TerminalNode *ConstPrefix();
-    BTypeContext *bType();
-    std::vector<DefContext *> def();
-    DefContext* def(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -97,29 +99,11 @@ public:
    
   };
 
-  ConstDeclContext* constDecl();
-
-  class  VarDeclContext : public antlr4::ParserRuleContext {
-  public:
-    VarDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    BTypeContext *bType();
-    std::vector<DefContext *> def();
-    DefContext* def(size_t i);
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  VarDeclContext* varDecl();
+  DeclContext* decl();
 
   class  FuncDefContext : public antlr4::ParserRuleContext {
   public:
-    SysYParser::FuncFParamContext *funcFParamContext = nullptr;
-    std::vector<FuncFParamContext *> params;
+    int return_type;
     FuncDefContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     FuncTypeContext *funcType();
@@ -172,6 +156,7 @@ public:
 
   class  DefContext : public antlr4::ParserRuleContext {
   public:
+    pIRObj obj;
     DefContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Ident();
@@ -194,8 +179,7 @@ public:
     virtual size_t getRuleIndex() const override;
     BTypeContext *bType();
     antlr4::tree::TerminalNode *Ident();
-    std::vector<ArrAccessContext *> arrAccess();
-    ArrAccessContext* arrAccess(size_t i);
+    FuncArrParamContext *funcArrParam();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -206,14 +190,28 @@ public:
 
   FuncFParamContext* funcFParam();
 
+  class  FuncArrParamContext : public antlr4::ParserRuleContext {
+  public:
+    FuncArrParamContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<ArrAccessContext *> arrAccess();
+    ArrAccessContext* arrAccess(size_t i);
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  FuncArrParamContext* funcArrParam();
+
   class  BlockContext : public antlr4::ParserRuleContext {
   public:
     BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<VarDeclContext *> varDecl();
-    VarDeclContext* varDecl(size_t i);
-    std::vector<ConstDeclContext *> constDecl();
-    ConstDeclContext* constDecl(size_t i);
+    std::vector<DeclContext *> decl();
+    DeclContext* decl(size_t i);
     std::vector<StmtContext *> stmt();
     StmtContext* stmt(size_t i);
 
@@ -339,6 +337,7 @@ public:
 
   class  InitValContext : public antlr4::ParserRuleContext {
   public:
+    pIRObj obj;
     InitValContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     ExpContext *exp();
@@ -356,6 +355,7 @@ public:
 
   class  CondContext : public antlr4::ParserRuleContext {
   public:
+    pCondBlocks branchs;
     antlr4::Token *comp = nullptr;
     CondContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
@@ -374,6 +374,7 @@ public:
   CondContext* cond(int precedence);
   class  ExpContext : public antlr4::ParserRuleContext {
   public:
+    pIRObj obj;
     antlr4::Token *op = nullptr;
     ExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;

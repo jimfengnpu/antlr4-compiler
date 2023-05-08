@@ -1,4 +1,7 @@
 
+#include "../../common/SysYIR.h"
+
+
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
@@ -19,11 +22,8 @@ public:
   virtual void enterCompUnit(SysYParser::CompUnitContext * /*ctx*/) override { }
   virtual void exitCompUnit(SysYParser::CompUnitContext * /*ctx*/) override { }
 
-  virtual void enterConstDecl(SysYParser::ConstDeclContext * /*ctx*/) override { }
-  virtual void exitConstDecl(SysYParser::ConstDeclContext * /*ctx*/) override { }
-
-  virtual void enterVarDecl(SysYParser::VarDeclContext * /*ctx*/) override { }
-  virtual void exitVarDecl(SysYParser::VarDeclContext * /*ctx*/) override { }
+  virtual void enterDecl(SysYParser::DeclContext * /*ctx*/) override { }
+  virtual void exitDecl(SysYParser::DeclContext * /*ctx*/) override { }
 
   virtual void enterFuncDef(SysYParser::FuncDefContext * /*ctx*/) override { }
   virtual void exitFuncDef(SysYParser::FuncDefContext * /*ctx*/) override { }
@@ -39,6 +39,9 @@ public:
 
   virtual void enterFuncFParam(SysYParser::FuncFParamContext * /*ctx*/) override { }
   virtual void exitFuncFParam(SysYParser::FuncFParamContext * /*ctx*/) override { }
+
+  virtual void enterFuncArrParam(SysYParser::FuncArrParamContext * /*ctx*/) override { }
+  virtual void exitFuncArrParam(SysYParser::FuncArrParamContext * /*ctx*/) override { }
 
   virtual void enterBlock(SysYParser::BlockContext * /*ctx*/) override { }
   virtual void exitBlock(SysYParser::BlockContext * /*ctx*/) override { }

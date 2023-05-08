@@ -2,20 +2,23 @@ grammar SysY;
 options{
     language=Cpp;
 }
-compUnit: (varDecl | constDecl | funcDef)+;
+@header{
+#include "../../common/SysYIR.h"
+}
+compUnit: (decl | funcDef)+;
 
-constDecl: ConstPrefix bType def ( ',' def)* ';';
-varDecl:  bType def ( ',' def)* ';';
+decl locals[int type;bool is_const]: ConstPrefix? bType def ( ',' def)* ';';
 
-funcDef: funcType Ident '('(params+=funcFParam (',' params+=funcFParam)*)?')' block;
+funcDef locals[int return_type]: funcType Ident '('(funcFParam (',' funcFParam)*)?')' block;
 funcType: VoidType | IntType | FloatType;
 bType: IntType | FloatType;
 
-def: Ident (arrAccess)* ( '=' initVal)?;
-funcFParam: bType Ident ('['']' (arrAccess)*)?;
-block: '{' (varDecl | constDecl | stmt)* '}';
+def locals[pIRObj obj]: Ident (arrAccess)* ( '=' initVal)?;
+funcFParam: bType Ident (funcArrParam)?;
+funcArrParam: '['']' (arrAccess)*;
+block: '{' (decl | stmt)* '}';
 stmt: lVal '=' exp ';' # assignStmt
-    | (exp)? ';' # expStmt
+    | exp? ';' # expStmt
     | block # blockStmt
     | IF '(' cond ')' stmt (ELSE stmt)? # condStmt
     | WHILE '(' cond ')' stmt # loopStmt
@@ -24,17 +27,17 @@ stmt: lVal '=' exp ';' # assignStmt
     | RETURN (exp)? ';' # returnStmt
     ;
 
-initVal: exp
+initVal locals[pIRObj obj]: exp
         |'{' initVal (',' initVal)* '}'
         ;
-cond:exp
+cond locals[pCondBlocks branchs]:exp
     |cond comp=('<'|'>'|'<='|'>=') cond
     |cond comp=('=='|'!=') cond
     |cond comp='&&' cond
     |cond comp='||' cond
     ;
 
-exp: IntConstant
+exp locals[pIRObj obj]: IntConstant
     | FloatConstant
     | lVal
     | Ident '(' (exp (',' exp)* )? ')'

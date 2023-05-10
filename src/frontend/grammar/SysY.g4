@@ -13,7 +13,7 @@ funcDef locals[int return_type]: funcType Ident '('(funcFParam (',' funcFParam)*
 funcType: VoidType | IntType | FloatType;
 bType: IntType | FloatType;
 
-def locals[pIRObj obj]: Ident (arrAccess)* ( '=' initVal)?;
+def locals[pIRIntObj obj]: Ident (arrAccess)* ( '=' initVal)?;
 funcFParam: bType Ident (funcArrParam)?;
 funcArrParam: '['']' (arrAccess)*;
 block: '{' (decl | stmt)* '}';
@@ -27,7 +27,7 @@ stmt: lVal '=' exp ';' # assignStmt
     | RETURN (exp)? ';' # returnStmt
     ;
 
-initVal locals[pIRObj obj]: exp
+initVal : exp
         |'{' initVal (',' initVal)* '}'
         ;
 cond locals[pCondBlocks branchs]:exp
@@ -37,7 +37,7 @@ cond locals[pCondBlocks branchs]:exp
     |cond comp='||' cond
     ;
 
-exp locals[pIRObj obj]: IntConstant
+exp locals[pIRIntValObj obj]: IntConstant
     | FloatConstant
     | lVal
     | Ident '(' (exp (',' exp)* )? ')'

@@ -29,6 +29,9 @@ int main(int argc, char** argv) {
     std::cout << "Parse Tree: " << endl << s << std::endl;
     ASTVisitor visitor;
     bool exist_main =  any_cast<bool>(visitor.visit(tree));
+    for(auto b: visitor.blocks){
+        cout << b.get();
+    }
     // tree = BuildAST(tree);
     // s = tree->toStringTree(&parser, true);
     // std::cout << "Parse Tree: " << s << std::endl;

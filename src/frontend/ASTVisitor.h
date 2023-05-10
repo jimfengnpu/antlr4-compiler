@@ -10,8 +10,8 @@ public:
     std::vector<pBlock> blocks;
     pBlock cur_block;
     // ASTVisitor() = default;
-    pBlock creatNewBlock(pBlock from) {
-        pBlock block = make_shared<IRBlock>();
+    pBlock creatNewBlock(string name="", pBlock from=nullptr) {
+        pBlock block = make_shared<IRBlock>(name);
         if(from != nullptr) {
             block->from = from;
             from->next = block;
@@ -29,5 +29,7 @@ public:
     virtual std::any visitDecl(SysYParser::DeclContext* ctx)override;
     virtual std::any visitDef(SysYParser::DefContext* ctx)override;
     virtual std::any visitBType(SysYParser::BTypeContext* ctx)override;
-    virtual std::any visitInitVal(SysYParser::InitValContext* ctx, pIRObj Obj, int childSize, int start);
+    virtual std::any visitInitVal(SysYParser::InitValContext* ctx, pIRIntObj Obj);
+    virtual std::any visitExp(SysYParser::ExpContext* ctx)override;
+    virtual void initArrVal(SysYParser::InitValContext* ctx, pIRIntArrObj obj, int size, int level, int start);
 };

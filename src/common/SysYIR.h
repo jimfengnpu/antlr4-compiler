@@ -52,6 +52,7 @@ public:
         val.print(os);
         return os;
     }
+    
 };
 
 class IRIntObj : public IRObj

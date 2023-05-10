@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     ASTVisitor visitor;
     bool exist_main =  any_cast<bool>(visitor.visit(tree));
     for(auto b: visitor.blocks){
-        cout << b.get();
+        cout << *b.get();
     }
     // tree = BuildAST(tree);
     // s = tree->toStringTree(&parser, true);

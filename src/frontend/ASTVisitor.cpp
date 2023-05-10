@@ -30,7 +30,6 @@ std::any ASTVisitor::visitBType(SysYParser::BTypeContext* ctx) {
 void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRIntArrObj obj, int size, int level, int start){
     cout<<"arrInit "<<size<<" "<<start<<endl;
     for(auto initVal: ctx->initVal()) {
-        cout<< cur_block.get() <<endl;
         if(auto exp = initVal->exp()){
             pIRIntValObj expVal = any_cast<pIRIntValObj>(visitExp(exp));
             pIRIntValObj arrMemVal = make_shared<IRIntValObj>(obj, start);

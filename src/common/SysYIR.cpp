@@ -18,7 +18,7 @@ void IRIntValObj::print(std::ostream& os) const{
         os << value;
     }else{
         if(fa){
-            os << fa.get();
+            os << *fa.get();
             os << "[" << offset <<"]";
         }
         IRObj::print(os);
@@ -32,16 +32,16 @@ void IRIntArrObj::print(std::ostream& os) const{
 
 void SysYIR::print(std::ostream& os) const{
     os << IRTypeName(type);
-    os << " " << target << "," << opt1;
+    os << " " << *target.get() << "," << *opt1.get();
     if(opt2 != nullptr){
-        os << "," << opt2;
+        os << "," << *opt2.get();
     }
 }
 
 void IRBlock::print(std::ostream& os) const{
     os << name << ":\n";
     for(auto &ir: structions) {
-        os << "\t" << ir.get() << std::endl;
+        os << "\t" << *ir.get() << std::endl;
     }
 }
 

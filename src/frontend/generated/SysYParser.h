@@ -1,13 +1,13 @@
 
-#include "../../common/SysYIR.h"
-
-
 // Generated from src/frontend/grammar/SysY.g4 by ANTLR 4.12.0
 
 #pragma once
 
 
 #include "antlr4-runtime.h"
+
+
+#include "../../common/SysYIR.h"
 
 
 
@@ -84,7 +84,7 @@ public:
 
   class  DeclContext : public antlr4::ParserRuleContext {
   public:
-    int type;bool is_const;
+    int type;bool isConst;
     DeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     BTypeContext *bType();
@@ -103,7 +103,7 @@ public:
 
   class  FuncDefContext : public antlr4::ParserRuleContext {
   public:
-    int return_type;
+    int returnType;
     FuncDefContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     FuncTypeContext *funcType();
@@ -208,6 +208,8 @@ public:
 
   class  BlockContext : public antlr4::ParserRuleContext {
   public:
+    SymbolTable symbolTable;
+    BlockContext* upperBlock;
     BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     std::vector<DeclContext *> decl();
@@ -356,9 +358,11 @@ public:
   public:
     pCondBlocks branchs;
     antlr4::Token *comp = nullptr;
+    antlr4::Token *lop = nullptr;
     CondContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    ExpContext *exp();
+    std::vector<ExpContext *> exp();
+    ExpContext* exp(size_t i);
     std::vector<CondContext *> cond();
     CondContext* cond(size_t i);
 

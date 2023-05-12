@@ -13,40 +13,30 @@ using namespace std;
 #define IR_INT 1
 #define IR_FLOAT 2
 
-struct IRBlock;
-typedef shared_ptr<IRBlock> pBlock;
-typedef std::pair<pBlock, pBlock> pCondBlocks;
-class IRIntArrObj;
-typedef shared_ptr<IRIntArrObj> pIRIntArrObj;
+#define IR_NORMAL 0
+#define IR_BRANCH 1
+#define IR_LOOP 2
+// class IRObj;
+// class IRIntObj;
+class IRIntValObj;
+// class IRIntArrObj;
+
+// class IRBlock;
+// // class IRFunc;
+// class BlockContext;
+
+
 class IRObj
 {
 public:
-    string name; // for BB => func name
-    int val_type;
-    bool is_ident;
-    bool is_val;
-    static int tmp_id;
-    static int tmp_block_id;
+    string name; 
+    // for val/arr: ident | .t + index in CFG_val
+    // for CFG: function name ident
+    // for BB: entry: == func name else:.func name + .M/.B/.L + index in CFG_master/branch/loop
+    
+    bool isIdent;
     IRObj() {}
-    IRObj(bool is_val, int val_type, string name)
-    {
-        this->val_type = val_type;
-        this->is_val = is_val;
-        this->is_ident = !(name.empty());
-        if (is_ident)
-        {
-            this->name = name;
-        }
-        else
-        {
-            if (is_val)
-            {
-                this->name = string(".t").append(to_string(++tmp_id));
-            }
-            else
-                this->name = string(".L").append(to_string(++tmp_block_id));
-        }
-    }
+    IRObj( bool isIndent, string name): isIdent(isIndent), name(name){}
     virtual void print(ostream& os) const;
     friend ostream& operator <<(ostream& os, const IRObj& val){
         val.print(os);
@@ -54,64 +44,64 @@ public:
     }
     
 };
+typedef shared_ptr<IRObj> pIRObj;
 
 class IRIntObj : public IRObj
 {
 public:
-    bool is_const;
-    IRIntObj()
-    {
-        is_val = true;
-        val_type = IR_INT;
-    }
-    IRIntObj(bool is_const, string name) : is_const(is_const), IRObj(true, IR_INT, name){
-    }
+    bool isConst;
+    IRIntObj() {}
+    IRIntObj(bool isConst, string name) : 
+        isConst(isConst), IRObj(!name.empty(), name){}
     virtual void print(ostream& os) const override{};
 };
-
-class IRIntValObj : public IRIntObj
-{
-public:
-    int value;
-    pIRIntArrObj fa;
-    int offset;
-    IRIntValObj() {}
-    IRIntValObj(bool is_const, int value, string name = string("")) : value(value), IRIntObj(is_const, name)
-    {
-        fa = nullptr;
-    }
-    IRIntValObj(pIRIntArrObj arr, int offset) : IRIntObj(), fa(arr), offset(offset)
-    {
-    }
-    virtual void print(ostream& os) const override;
-};
 typedef shared_ptr<IRIntObj> pIRIntObj;
-typedef shared_ptr<IRIntValObj> pIRIntValObj;
+
 
 class IRIntArrObj : public IRIntObj
 {
 public:
-    map<int, pIRIntValObj> value;
+    map<int, shared_ptr<IRIntValObj>  >value;
     vector<int> dims; // int[2][3] => vector(2, 3)
     int size;
-    IRIntArrObj(bool is_const, vector<int> dims, string name = string("")) : IRIntObj(is_const, name), dims(dims)
+    IRIntArrObj(bool isConst, vector<int> dims, string name) : IRIntObj(isConst, name), dims(dims)
     {
         size = 1;
         for (auto d : dims)
         {
             size *= d;
         }
-        value = map<int, pIRIntValObj>();
+        value = map<int, shared_ptr<IRIntValObj> >();
     }
     virtual void print(ostream& os) const override;
 };
+typedef shared_ptr<IRIntArrObj> pIRIntArrObj;
 
-typedef shared_ptr<IRObj> pIRObj;
+class IRIntValObj : public IRIntObj
+{
+public:
+    int value;
+    shared_ptr<IRIntArrObj> fa;
+    int offset;
+    IRIntValObj() {}
+    IRIntValObj(bool isConst, int value, string name) : value(value), IRIntObj(isConst, name)
+    {
+        fa = nullptr;
+    }
+    IRIntValObj(shared_ptr<IRIntArrObj> arrParent, int offset, string name) : 
+        fa(arrParent), offset(offset){
+            IRIntObj((fa.get())->isConst , "");
+        }
+    virtual void print(ostream& os) const override;
+};
+typedef shared_ptr<IRIntValObj> pIRIntValObj;
+
 #define ENUM_TO_STRING(x) \
     case x:               \
         return #x + 8;
 enum class IRType : int
 {
+    NOP = 0,
     ASSIGN = 1,
     ADD = 2,
     SUB = 3,
@@ -128,11 +118,23 @@ enum class IRType : int
     LT = 14,
     GE = 15,
     LE = 16,
-    IFT = 17,
-    JMP = 18,
-    CALL = 19,
-    PUSH = 20,
-    IDX = 21,
+    ARR = 17,
+    CALL = 18,
+    PARAM = 19
+};
+static map<string, IRType> opfinder[2]={
+    {
+        {"+", IRType::NOP},
+        {"-", IRType::NEG},
+        {"!", IRType::NOT}
+    },
+    {
+        {"+", IRType::ADD},
+        {"-", IRType::SUB},
+        {"*", IRType::MUL},
+        {"/", IRType::DIV},
+        {"%", IRType::MOD}
+    }
 };
 static string IRTypeName(IRType type)
 {
@@ -154,49 +156,103 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::LT)
         ENUM_TO_STRING(IRType::GE)
         ENUM_TO_STRING(IRType::LE)
-        ENUM_TO_STRING(IRType::IFT)
-        ENUM_TO_STRING(IRType::JMP)
+        ENUM_TO_STRING(IRType::ARR)
         ENUM_TO_STRING(IRType::CALL)
-        ENUM_TO_STRING(IRType::PUSH)
+        ENUM_TO_STRING(IRType::PARAM)
     default:
         return "unknown";
     }
 }
 
-class SysYIR:public IRObj
+class SysYIR: public IRObj
 {
-
-public:
     IRType type;
     pIRObj target;
     pIRObj opt1;
     pIRObj opt2;
+public:
     SysYIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
 };
 
-class SymbolTable
-{
-public:
-    vector<pIRObj> symbol_stack;
-    SymbolTable() = default;
-    ~SymbolTable() = default;
-    pIRObj findSymbol(string name);
-};
-
+class IRBlock;
+typedef shared_ptr<IRBlock> pBlock;
 class IRBlock : public IRObj
-{ // 从语义上说应该是BB,但是对于{}的作用域，他的范围是比BB要小的，这里的定义是作用域的最小单位，同时需要满足BB的性质
+{ //Basic Block
+    vector<pBlock> from;
+    vector<unique_ptr<SysYIR> > structions;
+    pBlock nextNormal;
+    pBlock nextBranch;
+    pIRIntValObj branchVal;
 public:
-    pBlock from;
-    vector<unique_ptr<SysYIR>> structions;
-    pBlock next;
-    IRBlock(string name, int type = IR_VOID) : IRObj(false, type, name)
-    {
-    }
+    int blockType; // 0 normal 1 branch 2 loop
+
+    IRBlock(int blockType, string name="", int type = IR_VOID):IRObj(type, name), blockType(blockType)
+    {}
     void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
     {
         structions.push_back(make_unique<SysYIR>(type, t, op1, op2));
     }
+    void finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRIntValObj branch_val=nullptr) {
+        nextNormal = next_normal;
+        nextBranch = next_branch;
+        branchVal = branch_val;
+    }
     virtual void print(ostream& os) const override;
 };
+typedef pair<pBlock, pBlock> pCondBlocks;
+
+
+class SymbolTable
+{
+    map<string, pIRObj> symbols;
+public:
+    SymbolTable() = default;
+    SymbolTable(const SymbolTable& table){
+        symbols = table.symbols;
+    }
+    ~SymbolTable() = default;
+    void registerSymbol(pIRObj obj) {
+        symbols.insert({obj.get()->name, obj});
+    }
+    pIRObj findSymbol(string name) {
+        return symbols[name];
+    }
+};
+
+class IRFunc: public IRObj
+{
+    int tmpValId = 0;
+    int masterId = 0;
+    int loopId = 0;
+    int branchId = 0;
+public:
+    vector<pIRIntObj> params;
+    vector<pBlock> blocks;
+    SymbolTable* symbolTable;
+    int returnType;
+    pIRIntObj returnVal;
+    IRFunc(int returnType, string name, vector<pIRIntObj> params, SymbolTable* table):
+        IRObj(true, name), returnType(returnType), symbolTable(table), params(params) {
+            for(auto arg: this->params) {
+                symbolTable->registerSymbol(arg);
+            }
+    }
+    ~IRFunc() = default;
+    string getDefaultName(pIRIntObj obj) {
+        return ".t" + to_string(++tmpValId);
+    }
+    string getDefaultName(pBlock obj) {
+        switch (obj.get()->blockType)
+        {
+        case IR_LOOP:
+            return ".L" + to_string(++loopId);
+        case IR_BRANCH:
+            return ".B" + to_string(++branchId);
+        default:
+            return ".M" + to_string(++masterId);
+        }
+    }
+};
+typedef unique_ptr<IRFunc> pIRFunc;

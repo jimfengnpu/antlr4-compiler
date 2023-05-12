@@ -8,13 +8,16 @@ std::any ASTVisitor::visitChildren(antlr4::tree::ParseTree *ctx) {
 }
 
 std::any ASTVisitor::visitCompUnit(SysYParser::CompUnitContext * ctx) {
-    cur_block = creatNewBlock("global");
     visitChildren(ctx);
-    return false;
+    return nullptr != globalSymbolTable.findSymbol("main");
+}
+
+std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
+
 }
 
 std::any ASTVisitor::visitDecl(SysYParser::DeclContext* ctx) {
-    ctx->is_const = !(ctx->ConstPrefix() == nullptr);
+    ctx->isConst = !(ctx->ConstPrefix() == nullptr);
     ctx->type =  any_cast<int>(visit(ctx->bType()));
     for(auto defCtx: ctx->def()) {
         visit(defCtx);
@@ -23,7 +26,7 @@ std::any ASTVisitor::visitDecl(SysYParser::DeclContext* ctx) {
 }
 
 std::any ASTVisitor::visitBType(SysYParser::BTypeContext* ctx) {
-    if(!(ctx->FloatType() == nullptr))return IR_FLOAT;
+    // if(ctx->FloatType() != nullptr)return IR_FLOAT;
     return IR_INT;
 }
 
@@ -32,9 +35,13 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRIntArrObj obj, i
     for(auto initVal: ctx->initVal()) {
         if(auto exp = initVal->exp()){
             pIRIntValObj expVal = any_cast<pIRIntValObj>(visitExp(exp));
-            pIRIntValObj arrMemVal = make_shared<IRIntValObj>(obj, start);
+            pIRIntValObj arrMemVal = newMember<IRIntValObj>(obj, start, "");
             obj.get()->value[start] = arrMemVal;
-            cur_block->insertIR(IRType::ASSIGN, arrMemVal, expVal, nullptr);
+            if(nullptr != curBlock){
+                curBlock->insertIR(IRType::ASSIGN, arrMemVal, expVal, nullptr);
+            }else{
+                arrMemVal.get()->value = expVal.get()->value;
+            }
             start ++;
         }else{
             int childSize = size/(obj.get()->dims[level]);
@@ -47,8 +54,12 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRIntArrObj obj, i
 std::any ASTVisitor::visitInitVal(SysYParser::InitValContext* ctx, pIRIntObj obj) {
     cout<< "enter initVal"<<endl;
     if(auto valObj = dynamic_pointer_cast<IRIntValObj>(obj)){
-        cur_block.get()->insertIR(IRType::ASSIGN, valObj, 
-            any_cast<pIRIntValObj>(visitExp(ctx->exp())), nullptr);
+        pIRIntValObj expVal = any_cast<pIRIntValObj>(visitExp(ctx->exp()));
+        if(nullptr != curBlock){
+            curBlock.get()->insertIR(IRType::ASSIGN, valObj, expVal, nullptr);
+        }else {
+            valObj.get()->value = expVal.get()->value;
+        }
         return ctx->exp()->obj;
     }else{
         auto arrObj = dynamic_pointer_cast<IRIntArrObj>(obj);
@@ -64,7 +75,7 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
     SysYParser::DeclContext* declCtx = (SysYParser::DeclContext*)ctx->parent;
     auto arrVec = ctx->arrAccess();
     if(arrVec.empty()){
-        ctx->obj = make_shared<IRIntValObj>(declCtx->is_const, 0, identity);
+        ctx->obj = newMember<IRIntValObj>(declCtx->isConst, 0, identity);
     }else{
         vector<int> dims;
         for(int i=0; i<arrVec.size(); i++) {
@@ -72,7 +83,7 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
             int s = val.get()->value;
             dims.push_back(s);
         }
-        ctx->obj = make_shared<IRIntArrObj>(declCtx->is_const,dims,identity);
+        ctx->obj = newMember<IRIntArrObj>(declCtx->isConst, dims, identity);
     }
     if(ctx->initVal()) {
         visitInitVal(ctx->initVal(), ctx->obj);
@@ -83,10 +94,54 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
 }
 
 std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
+    cout << "enter exp"<<endl;
     if(auto v = ctx->IntConstant()){
-        ctx->obj = make_shared<IRIntValObj>(true,  stoi(v->getText()));
+        int base = 10;
+        int start = 0;
+        size_t idx = 0;
+        string text = v->getText();
+        if(text[0] == '0' && text.size() > 1){base = 8;start = 1;}
+        else if(text[0] == '0' && (text[1] == 'x' || text[1] == 'X')){base = 16;start = 2;}
+        cout<< text.substr(start)<< " " << base <<endl;
+        ctx->obj = newMember<IRIntValObj>(true,  stoi(text.substr(start), &idx, base), "");
     }else if(auto v = ctx->lVal()){
-
+        string name = v->Ident()->getText();
+        auto symbol_obj = globalSymbolTable.findSymbol(name);
+        if(symbol_obj == nullptr)throw runtime_error("undefined symbol:" + name);
+    }else{
+        bool is_const = true;
+        for(auto exp: ctx->exp()){
+            visit(exp);
+            is_const = is_const && (exp->obj.get()->isConst);
+        }
+        if(ctx->op != nullptr) {
+            string op = ctx->op->getText();
+            int num_op = ctx->children.size();
+            IRType type = opfinder[num_op][op];
+            if(is_const){
+                int value = 0;
+                switch(type){
+                    case IRType::ADD:
+                        value = ctx->exp(0)->obj.get()->value + ctx->exp(1)->obj.get()->value;break;
+                    case IRType::SUB:
+                        value = ctx->exp(0)->obj.get()->value - ctx->exp(1)->obj.get()->value;break;
+                    case IRType::MUL:
+                        value = ctx->exp(0)->obj.get()->value * ctx->exp(1)->obj.get()->value;break;
+                    case IRType::DIV:
+                        if(ctx->exp(1)->obj.get()->value == 0)throw runtime_error("divided by zero");
+                        value = ctx->exp(0)->obj.get()->value / ctx->exp(1)->obj.get()->value;break;
+                    case IRType::MOD:
+                        if(ctx->exp(1)->obj.get()->value == 0)throw runtime_error("divided by zero");
+                        value = ctx->exp(0)->obj.get()->value % ctx->exp(1)->obj.get()->value;break;
+                }
+            }else{
+                ctx->obj = newMember<IRIntValObj>(false, 0, "");
+                curBlock.get()->insertIR(type, ctx->obj, ctx->exp(0)->obj, ctx->exp(1)->obj);
+            }
+        }else {
+            ctx->obj = ctx->exp(0)->obj;
+        }
     }
+    cout << "exit exp"<<endl;
     return ctx->obj;
 }

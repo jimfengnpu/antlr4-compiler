@@ -2,21 +2,22 @@ grammar SysY;
 options{
     language=Cpp;
 }
-@header{
+@parser::postinclude{
 #include "../../common/SysYIR.h"
 }
 compUnit: (decl | funcDef)+;
 
-decl locals[int type;bool is_const]: ConstPrefix? bType def ( ',' def)* ';';
+decl locals[int type;bool isConst]: ConstPrefix? bType def ( ',' def)* ';';
 
-funcDef locals[int return_type]: funcType Ident '('(funcFParam (',' funcFParam)*)?')' block;
+funcDef locals[int returnType]: funcType Ident '('(funcFParam (',' funcFParam)*)?')' block;
 funcType: VoidType | IntType | FloatType;
 bType: IntType | FloatType;
 
-def locals[pIRIntObj obj]: Ident (arrAccess)* ( '=' initVal)?;
+def locals[pIRIntObj obj]: Ident (arrAccess)* ( '=' initVal)?
+                        ;
 funcFParam: bType Ident (funcArrParam)?;
 funcArrParam: '['']' (arrAccess)*;
-block: '{' (decl | stmt)* '}';
+block locals[SymbolTable symbolTable, BlockContext* upperBlock]: '{' (decl | stmt)* '}';
 stmt: lVal '=' exp ';' # assignStmt
     | exp? ';' # expStmt
     | block # blockStmt
@@ -28,13 +29,13 @@ stmt: lVal '=' exp ';' # assignStmt
     ;
 
 initVal : exp
-        |'{' initVal (',' initVal)* '}'
+        |'{' initVal? (',' initVal)* '}'
         ;
 cond locals[pCondBlocks branchs]:exp
-    |cond comp=('<'|'>'|'<='|'>=') cond
-    |cond comp=('=='|'!=') cond
-    |cond comp='&&' cond
-    |cond comp='||' cond
+    |exp comp=('<'|'>'|'<='|'>=') exp
+    |exp comp=('=='|'!=') exp
+    |cond lop='&&' cond
+    |cond lop='||' cond
     ;
 
 exp locals[pIRIntValObj obj]: IntConstant

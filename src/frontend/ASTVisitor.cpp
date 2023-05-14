@@ -13,7 +13,40 @@ std::any ASTVisitor::visitCompUnit(SysYParser::CompUnitContext * ctx) {
 }
 
 std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
+    ctx->returnType =  any_cast<int>(visit(ctx->funcType()));
+    std::string identity = ctx->Ident()->getText();
+    vector<pIRIntObj> params;
+    for(auto fParam: ctx->funcFParam()) {
+        params.push_back(any_cast<pIRIntObj>(visit(fParam)));
+    }
+    SysYParser::BlockContext *blockCtx = ctx->block();
+    
+    pBlock funcBlock = creatFunction(identity, ctx->block(), 
+        ctx->returnType, params);
+    visit(blockCtx);
+    return nullptr;
+}
 
+std::any ASTVisitor::visitFuncType(SysYParser::FuncTypeContext* ctx) {
+    if(ctx->IntType() != nullptr)return IR_INT;
+    return IR_VOID;
+}
+
+std::any ASTVisitor::visitFuncFParam(SysYParser::FuncFParamContext* ctx) {
+    int fParamType = any_cast<int>(visit(ctx->bType()));
+    std::string identity = ctx->Ident()->getText();
+    pIRIntObj fParamVal;
+    if(auto arrParam = ctx->funcArrParam()) {
+        vector<int> dim = {1};
+        for(auto arrAccess: arrParam->arrAccess()) {
+            pIRIntValObj val = any_cast<pIRIntValObj>(visit(arrAccess->exp()));
+            dim.push_back(val.get()->value);
+        }
+        fParamVal = make_shared<IRIntArrObj>(false, dim, identity);
+    }else {
+        fParamVal = make_shared<IRIntValObj>(false, 0, identity);
+    }
+    return fParamVal;
 }
 
 std::any ASTVisitor::visitDecl(SysYParser::DeclContext* ctx) {
@@ -35,7 +68,7 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRIntArrObj obj, i
     for(auto initVal: ctx->initVal()) {
         if(auto exp = initVal->exp()){
             pIRIntValObj expVal = any_cast<pIRIntValObj>(visitExp(exp));
-            pIRIntValObj arrMemVal = newMember<IRIntValObj>(obj, start, "");
+            pIRIntValObj arrMemVal = newObj<IRIntValObj>(obj, start, "");
             obj.get()->value[start] = arrMemVal;
             if(nullptr != curBlock){
                 curBlock->insertIR(IRType::ASSIGN, arrMemVal, expVal, nullptr);
@@ -67,15 +100,16 @@ std::any ASTVisitor::visitInitVal(SysYParser::InitValContext* ctx, pIRIntObj obj
         return nullptr;
     }
     // cout<< "end initVal"<<endl;
+    return nullptr;
 }
 
 std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
-    cout << "enter def"<<endl;
+    // cout << "enter def"<<endl;
     std::string identity = ctx->Ident()->getText();
     SysYParser::DeclContext* declCtx = (SysYParser::DeclContext*)ctx->parent;
     auto arrVec = ctx->arrAccess();
     if(arrVec.empty()){
-        ctx->obj = newMember<IRIntValObj>(declCtx->isConst, 0, identity);
+        ctx->obj = newObj<IRIntValObj>(declCtx->isConst, 0, identity);
     }else{
         vector<int> dims;
         for(int i=0; i<arrVec.size(); i++) {
@@ -83,18 +117,18 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
             int s = val.get()->value;
             dims.push_back(s);
         }
-        ctx->obj = newMember<IRIntArrObj>(declCtx->isConst, dims, identity);
+        ctx->obj = newObj<IRIntArrObj>(declCtx->isConst, dims, identity);
     }
     if(ctx->initVal()) {
         visitInitVal(ctx->initVal(), ctx->obj);
     }
     registerIndent(ctx->obj);
-    cout<< "exit def" <<endl;
+    // cout<< "exit def" <<endl;
     return nullptr;
 }
 
 std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
-    cout << "enter exp"<<endl;
+    // cout << "enter exp"<<endl;
     if(auto v = ctx->IntConstant()){
         int base = 10;
         int start = 0;
@@ -103,7 +137,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
         if(text[0] == '0' && text.size() > 1){base = 8;start = 1;}
         else if(text[0] == '0' && (text[1] == 'x' || text[1] == 'X')){base = 16;start = 2;}
         cout<< text.substr(start)<< " " << base <<endl;
-        ctx->obj = newMember<IRIntValObj>(true,  stoi(text.substr(start), &idx, base), "");
+        ctx->obj = newObj<IRIntValObj>(true,  stoi(text.substr(start), &idx, base), "");
     }else if(auto v = ctx->lVal()){
         string name = v->Ident()->getText();
         auto symbol_obj = globalSymbolTable.findSymbol(name);
@@ -135,13 +169,22 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
                         value = ctx->exp(0)->obj.get()->value % ctx->exp(1)->obj.get()->value;break;
                 }
             }else{
-                ctx->obj = newMember<IRIntValObj>(false, 0, "");
+                ctx->obj = newObj<IRIntValObj>(false, 0, "");
                 curBlock.get()->insertIR(type, ctx->obj, ctx->exp(0)->obj, ctx->exp(1)->obj);
             }
         }else {
             ctx->obj = ctx->exp(0)->obj;
         }
     }
-    cout << "exit exp"<<endl;
+    // cout << "exit exp"<<endl;
     return ctx->obj;
 }
+
+std::any ASTVisitor::visitBlock(SysYParser::BlockContext* ctx) {
+    visitChildren(ctx);
+    return nullptr;
+}
+
+// std::any ASTVisitor::visitAssignStmt(SysYParser::AssignStmtContext* ctx) {
+
+// }

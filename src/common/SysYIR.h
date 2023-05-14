@@ -206,8 +206,8 @@ typedef pair<pBlock, pBlock> pCondBlocks;
 
 class SymbolTable
 {
-    map<string, pIRObj> symbols;
 public:
+    map<string, pIRObj> symbols;
     SymbolTable() = default;
     SymbolTable(const SymbolTable& table){
         symbols = table.symbols;

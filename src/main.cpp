@@ -29,8 +29,14 @@ int main(int argc, char** argv) {
     std::cout << "Parse Tree: " << endl << s << std::endl;
     ASTVisitor visitor;
     bool exist_main =  any_cast<bool>(visitor.visit(tree));
+    cout<< ".data"<<endl;
+    for(auto sym: visitor.globalSymbolTable.symbols) {
+        cout << *(sym.second.get()) <<endl;
+    }
     for(auto &f : visitor.functions){
-        cout << *f;
+        for(auto blk: f->blocks) {
+            cout << *blk.get();
+        }
     }
     // tree = BuildAST(tree);
     // s = tree->toStringTree(&parser, true);

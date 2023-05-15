@@ -13,7 +13,7 @@ funcDef locals[int returnType]: funcType Ident '('(funcFParam (',' funcFParam)*)
 funcType: VoidType | IntType | FloatType;
 bType: IntType | FloatType;
 
-def locals[pIRIntObj obj]: Ident (arrAccess)* ( '=' initVal)?
+def locals[pIRValObj obj]: Ident (arrAccess)* ( '=' initVal)?
                         ;
 funcFParam: bType Ident (funcArrParam)?;
 funcArrParam: '['']' (arrAccess)*;
@@ -38,7 +38,7 @@ cond locals[pCondBlocks branchs]:exp
     |cond lop='||' cond
     ;
 
-exp locals[pIRIntValObj obj]: IntConstant
+exp locals[pIRValObj obj]: IntConstant
     | FloatConstant
     | lVal
     | Ident '(' (exp (',' exp)* )? ')'

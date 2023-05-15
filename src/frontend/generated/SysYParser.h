@@ -156,7 +156,7 @@ public:
 
   class  DefContext : public antlr4::ParserRuleContext {
   public:
-    pIRIntObj obj;
+    pIRValObj obj;
     DefContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Ident();
@@ -377,7 +377,7 @@ public:
   CondContext* cond(int precedence);
   class  ExpContext : public antlr4::ParserRuleContext {
   public:
-    pIRIntValObj obj;
+    pIRValObj obj;
     antlr4::Token *op = nullptr;
     ExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;

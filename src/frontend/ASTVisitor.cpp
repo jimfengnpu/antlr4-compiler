@@ -77,7 +77,7 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj, i
             pIRScalValObj expVal = any_cast<pIRScalValObj>(visitExp(exp));
             pIRScalValObj arrMemVal = newObj<IRScalValObj>(obj, "");
             assert(nullptr != curBlock);
-            curBlock->insertIR(IRType::IDX, arrMemVal, obj, newObj<IRScalValObj>(true, start, ""));
+            curBlock->insertIR(IRType::IDX, arrMemVal, obj, newObj<IRScalValObj>(true, start, to_string(start)));
             curBlock->insertIR(IRType::ASSIGN, arrMemVal, expVal, nullptr);
             start ++;
         }else if(childSize && start % childSize == 0){
@@ -138,9 +138,10 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
         size_t idx = 0;
         string text = v->getText();
         if(text[0] == '0' && text.size() > 1){base = 8;start = 1;}
-        else if(text[0] == '0' && (text[1] == 'x' || text[1] == 'X')){base = 16;start = 2;}
-        cout<< text.substr(start)<< " " << base <<endl;
-        ctx->obj = newObj<IRScalValObj>(true,  stoi(text.substr(start), &idx, base), "");
+        if(text[0] == '0' && (text[1] == 'x' || text[1] == 'X')){base = 16;start = 2;}
+        // cout<< text.substr(start)<< " " << base <<endl;
+        int val = stoi(text.substr(start), &idx, base);
+        ctx->obj = newObj<IRScalValObj>(true, val, to_string(val));
     }else if(auto v = ctx->lVal()){
         auto symbol_obj = any_cast<pIRValObj>(visit(v));
         if(symbol_obj == nullptr)throw runtime_error("can't find symbol");
@@ -198,7 +199,10 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
 }
 
 std::any ASTVisitor::visitBlock(SysYParser::BlockContext* ctx) {
+    ctx->upperBlock = curScopeBlock;
+    curScopeBlock = ctx;
     visitChildren(ctx);
+    curScopeBlock = ctx->upperBlock;
     return nullptr;
 }
 
@@ -243,19 +247,21 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
     auto obj = findSymbol(name);
     if(auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj)){
         return (pIRValObj)scalObj;
-    }else{
-        auto arrObj = dynamic_pointer_cast<IRArrValObj>(obj);
+    }else if(auto arrObj = dynamic_pointer_cast<IRArrValObj>(obj)){
+        assert(arrObj != nullptr);
         auto dim = arrObj.get()->dims;
         int size = arrObj.get()->size;
         auto off = newObj<IRScalValObj>(false, 0, "");
         auto tmp = newObj<IRScalValObj>(false, 0, "");
+        curBlock->insertIR(IRType::ASSIGN, off, 
+            newObj<IRScalValObj>(true, 0, "0"), nullptr);
         auto iter = dim.begin();
         if(curFunc == nullptr)throw runtime_error("lVal array reference global");
         for(auto arrCtx: ctx->arrAccess()) {
             int childSize = size/(*iter);
             curBlock->insertIR(IRType::MUL, tmp, 
-                newObj<IRScalValObj>(true, childSize, ""), 
-                any_cast<pIRScalValObj>(visit(arrCtx->exp())));
+                newObj<IRScalValObj>(true, childSize, to_string(childSize)), 
+                any_cast<pIRValObj>(visit(arrCtx->exp())));
             curBlock->insertIR(IRType::ADD, off, off, tmp);
             iter++;
             size = childSize;
@@ -279,7 +285,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
 
 std::any ASTVisitor::visitAssignStmt(SysYParser::AssignStmtContext* ctx) {
     visit(ctx->exp());
-    auto lValObj = any_cast<pIRScalValObj>(visit(ctx->lVal()));
+    auto lValObj = any_cast<pIRValObj>(visit(ctx->lVal()));
     curBlock->insertIR(IRType::ASSIGN, lValObj, ctx->exp()->obj, nullptr);
     return nullptr;
 }
@@ -317,16 +323,36 @@ std::any ASTVisitor::visitCondStmt(SysYParser::CondStmtContext* ctx) {
 }
 
 std::any ASTVisitor::visitLoopStmt(SysYParser::LoopStmtContext* ctx) {
+    pBlock condBranch = newFuncBlock(IR_NORMAL);
+    pBlock condLoop = newFuncBlock(IR_LOOP);
+    pBlock condOut = newFuncBlock(curBlock->blockType);
+    auto condCtx = ctx->cond();
+    condCtx->branchs = {condOut, condLoop};
+    if(curBlock->finishBB(condBranch, nullptr, nullptr))
+        curFunc->blocks.push_back(curBlock);
+    curBlock = condBranch;
+    visit(condCtx);
+    curBlock = condLoop;
+    visit(ctx->stmt());
+    if(curBlock->finishBB(condBranch, nullptr, nullptr))
+        curFunc->blocks.push_back(curBlock);
+    curBlock = condOut;
     return nullptr;
 }
 
 std::any ASTVisitor::visitBreakStmt(SysYParser::BreakStmtContext* ctx) {
-
+    SysYParser::LoopStmtContext* loopCtx = 
+        (SysYParser::LoopStmtContext*)ctx->parent;
+    if(curBlock->finishBB(loopCtx->cond()->branchs.first, nullptr, nullptr))
+        curFunc->blocks.push_back(curBlock);
     return nullptr;
 }
 
 std::any ASTVisitor::visitContStmt(SysYParser::ContStmtContext* ctx) {
-
+    SysYParser::LoopStmtContext* loopCtx = 
+        (SysYParser::LoopStmtContext*)ctx->parent;
+    if(curBlock->finishBB(loopCtx->cond()->branchs.second, nullptr, nullptr))
+        curFunc->blocks.push_back(curBlock);
     return nullptr;
 }
 

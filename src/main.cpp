@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
         cout << "no input file"<< endl;
         return -1;
     }
-    cout << "input:" << endl << input_file << endl;
+    // cout << "input:" << endl << input_file << endl;
     ANTLRInputStream input(input_file);
     SysYLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     SysYParser parser(&tokens);
     auto tree = parser.compUnit();
     auto s = tree->toStringTree(&parser, true);
-    std::cout << "Parse Tree: " << endl << s << std::endl;
+    // std::cout << "Parse Tree: " << endl << s << std::endl;
     ASTVisitor visitor;
     bool exist_main =  any_cast<bool>(visitor.visit(tree));
     // cout<< ".data"<<endl;

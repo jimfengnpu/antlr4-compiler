@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -23,7 +24,7 @@ class IRScalValObj;
 
 // class IRBlock;
 class IRFunc;
-typedef unique_ptr<IRFunc> pIRFunc;
+typedef shared_ptr<IRFunc> pIRFunc;
 // class BlockContext;
 
 
@@ -222,7 +223,7 @@ typedef pair<pBlock, pBlock> pCondBlocks;
 class SymbolTable
 {
 public:
-    map<string, pIRObj> symbols;
+    map<string, pIRObj> symbols = {};
     SymbolTable() = default;
     SymbolTable(const SymbolTable& table){
         symbols = table.symbols;

@@ -8,16 +8,17 @@ class ASTVisitor: public SysYBaseVisitor{
     SysYParser::BlockContext* curScopeBlock = nullptr;
 public:
     SymbolTable globalSymbolTable;
-    std::vector<IRFunc *> functions;
-    IRFunc* curFunc = nullptr;
+    std::vector<pIRFunc> functions;
+    pIRFunc curFunc = nullptr;
     pBlock curBlock = nullptr;
     pBlock globalData = nullptr;
     // ASTVisitor() = default;
     pBlock creatFunction(string name, 
         SysYParser::BlockContext* blockContext,
         int returnType, vector<pIRValObj>& args) {
-        auto func = new IRFunc(returnType, name, args, &(blockContext->symbolTable));
+        auto func = make_shared<IRFunc>(returnType, name, args, &(blockContext->symbolTable));
         functions.push_back(func);
+        globalSymbolTable.registerSymbol(func);
         curFunc = func;
         return func->entry = newFuncBlock(IR_NORMAL);
     }
@@ -30,8 +31,8 @@ public:
     //the last arg must be str name
     template<typename _Tp, typename... _Args>
     inline shared_ptr<_Tp> newObj(_Args&&... __args) {
-        auto obj = make_shared<_Tp>(forward<_Args>(__args)...);
-        auto name = std::get<sizeof...(__args) -1>(std::forward_as_tuple(std::forward<_Args>(__args)...));
+        auto obj = make_shared<_Tp>(__args...);
+        auto name = std::get<sizeof...(__args) -1>(std::forward_as_tuple(__args...));
         // cout << curFunc << " " << name << endl;
         if(nullptr != curFunc && (string(name).empty())){
             obj.get()->name = curFunc->getDefaultName(obj);

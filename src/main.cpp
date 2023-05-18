@@ -2,6 +2,7 @@
 #include "frontend/generated/SysYLexer.h"
 #include "frontend/generated/SysYParser.h"
 #include "frontend/ASTVisitor.h"
+#include "common/IRRunner.h"
 #include "iostream"
 
 using namespace antlr4;
@@ -46,6 +47,7 @@ int main(int argc, char** argv) {
     // tree = BuildAST(tree);
     // s = tree->toStringTree(&parser, true);
     // std::cout << "Parse Tree: " << s << std::endl;
-
+    IRRunner runner(visitor, cin, cout);
+    runner.apply();
     return 0;
 }

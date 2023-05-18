@@ -141,6 +141,7 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
         for(int i=0; i<arrVec.size(); i++) {
             pIRScalValObj val = dynamic_pointer_cast<IRScalValObj>(
                 any_cast<pIRValObj>(visit(arrVec[i]->exp())));
+            if(!val->isConst)throw runtime_error("array size must be const");
             int s = val.get()->value;
             dims.push_back(s);
             #ifdef VAL_IR
@@ -172,7 +173,6 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             base = 16;start = 2;
             std::transform(text.begin(), text.end(), text.begin(), ::tolower);
         }
-        // cout<< text.substr(start)<< " " << base <<endl;
         int val = stol(text.substr(start), &idx, base);
         ctx->obj = newObj<IRScalValObj>(true, val, to_string(val));
     }else if(auto v = ctx->StringConstant()){
@@ -220,6 +220,8 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
                         value = - exp1->value;break;
                     case IRType::NOP:
                         value = exp1->value;break;
+                    case IRType::NOT:
+                        value = exp1->value?0:1;break;
                     case IRType::EQ:
                         value = (exp1->value == exp2->value)?1:0;break;
                     case IRType::NEQ:
@@ -247,7 +249,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             if(funcObj == nullptr)throw runtime_error("unknown function name");
             if(!expVec.empty()){
                 for(auto p = expVec.rbegin(); p!= expVec.rend(); p++) {
-                    insertIR(IRType::PARAM, funcObj, (*p)->obj , nullptr);
+                    insertIR(IRType::PARAM, (*p)->obj, nullptr, nullptr);
                 }
             }
             insertIR(IRType::CALL, ctx->obj, funcObj, nullptr);
@@ -329,7 +331,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
                 new_dim.push_back(*iter);
                 iter++;
             }
-            auto newArr = newObj<IRArrValObj>(false, new_dim,"");
+            auto newArr = newObj<IRArrValObj>(arrObj, new_dim,"");
             insertIR(IRType::ARR, newArr, elem, nullptr);
             return (pIRValObj)newArr;
         }

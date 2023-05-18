@@ -24,5 +24,7 @@ gen_graph:
 run: ${TARGET_FILE}
 	./${TARGET_FILE} test_input.c
 
+lines:
+	find src/* -path "src/frontend/generated" -prune -o -name "*.*" -print | xargs wc -l
 
 .PHONY:all clean run 

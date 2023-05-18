@@ -45,8 +45,8 @@ exp locals[pIRValObj obj]: IntConstant
     | op=('+'|'-'| '!') exp
     | exp op=('*' | '/' | '%') exp
     | exp op=('+' | '-') exp
-    |exp comp=('<'|'>'|'<='|'>=') exp
-    |exp comp=('=='|'!=') exp
+    | exp op=('<'|'>'|'<='|'>=') exp
+    | exp op=('=='|'!=') exp
     ;
 
 

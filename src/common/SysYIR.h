@@ -22,8 +22,9 @@ using namespace std;
 // class IRObj;
 // class IRValObj;
 class IRScalValObj;
+typedef shared_ptr<IRScalValObj> pIRScalValObj;
 class IRArrValObj;
-
+class FuncFrame;
 // class IRBlock;
 class IRFunc;
 typedef shared_ptr<IRFunc> pIRFunc;
@@ -94,6 +95,27 @@ public:
         }
         value = map<int, shared_ptr<IRScalValObj> >();
     }
+    IRArrValObj(const shared_ptr<IRArrValObj>& arrParent, vector<int> dims, string name){
+        IRValObj(arrParent, name);
+        size = 1;
+        for (auto d : dims)
+        {
+            size *= d;
+        }
+    }
+    pIRScalValObj findValue(int index) {
+        if(fa != nullptr){
+            return fa->findValue(index + offset);
+        }
+        if(value.empty())return nullptr;
+        try{
+            return value.at(index);
+        }catch(...){
+            auto obj = make_shared<IRScalValObj>(isConst, 0, "");
+            value[index] = obj;
+            return obj;
+        }
+    }
     virtual void print(ostream& os) const override;
 };
 typedef shared_ptr<IRArrValObj> pIRArrValObj;
@@ -114,7 +136,6 @@ public:
     IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name){}
     virtual void print(ostream& os) const override;
 };
-typedef shared_ptr<IRScalValObj> pIRScalValObj;
 
 class IRStrValObj : public IRValObj
 {
@@ -147,19 +168,17 @@ enum class IRType : int
     MOD = 6,
     NEG = 7,
     NOT = 8,
-    AND = 9,
-    OR = 10,
-    EQ = 11,
-    NEQ = 12,
-    GT = 13,
-    LT = 14,
-    GE = 15,
-    LE = 16,
-    ARR = 17,
-    IDX = 18,
-    CALL = 19,
-    PARAM = 20,
-    RET = 21
+    EQ = 9,
+    NEQ = 10,
+    GT = 11,
+    LT = 12,
+    GE = 13,
+    LE = 14,
+    ARR = 15,
+    IDX = 16,
+    CALL = 17,
+    PARAM = 18,
+    RET = 19
 };
 static map<string, IRType> opfinder[2]={
     {
@@ -193,8 +212,6 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::MOD)
         ENUM_TO_STRING(IRType::NEG)
         ENUM_TO_STRING(IRType::NOT)
-        ENUM_TO_STRING(IRType::AND)
-        ENUM_TO_STRING(IRType::OR)
         ENUM_TO_STRING(IRType::EQ)
         ENUM_TO_STRING(IRType::NEQ)
         ENUM_TO_STRING(IRType::GT)
@@ -231,12 +248,12 @@ class IRBlock : public IRObj
     static int masterId;
     static int loopId;
     static int branchId;
+public:
     vector<pBlock> from;
     vector<unique_ptr<SysYIR> > structions;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
     pIRScalValObj branchVal = nullptr;
-public:
     int blockType; // 0 normal 1 branch 2 loop
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName():name), 

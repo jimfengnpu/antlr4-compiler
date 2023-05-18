@@ -18,7 +18,7 @@ public:
     T__20 = 21, T__21 = 22, T__22 = 23, WS = 24, COMMENT = 25, VoidType = 26, 
     IntType = 27, FloatType = 28, ConstPrefix = 29, IF = 30, ELSE = 31, 
     WHILE = 32, BREAK = 33, CONTINUE = 34, RETURN = 35, IntConstant = 36, 
-    FloatConstant = 37, DigitSequence = 38, Ident = 39
+    FloatConstant = 37, StringConstant = 38, DigitSequence = 39, Ident = 40
   };
 
   explicit SysYLexer(antlr4::CharStream *input);

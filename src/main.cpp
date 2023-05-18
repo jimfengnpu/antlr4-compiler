@@ -10,10 +10,15 @@ using namespace std;
 int main(int argc, char** argv) {
     string input_file;
     if(argc > 1){
-        ifstream fin(argv[1]);
-        fin.unsetf(ios::skipws);
-        input_file = string((istreambuf_iterator<char>(fin)),istreambuf_iterator<char>());
-        fin.close();
+        try{
+            ifstream fin(argv[1]);
+            fin.unsetf(ios::skipws);
+            input_file = string((istreambuf_iterator<char>(fin)),istreambuf_iterator<char>());
+            fin.close();
+        }catch(...){
+            cout << "open file failed" << endl;
+            return -1;
+        }
     }else {
         cout << "no input file"<< endl;
         return -1;

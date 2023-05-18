@@ -21,7 +21,7 @@ public:
     T__20 = 21, T__21 = 22, T__22 = 23, WS = 24, COMMENT = 25, VoidType = 26, 
     IntType = 27, FloatType = 28, ConstPrefix = 29, IF = 30, ELSE = 31, 
     WHILE = 32, BREAK = 33, CONTINUE = 34, RETURN = 35, IntConstant = 36, 
-    FloatConstant = 37, DigitSequence = 38, Ident = 39
+    FloatConstant = 37, StringConstant = 38, DigitSequence = 39, Ident = 40
   };
 
   enum {
@@ -357,12 +357,10 @@ public:
   class  CondContext : public antlr4::ParserRuleContext {
   public:
     pCondBlocks branchs;
-    antlr4::Token *comp = nullptr;
     antlr4::Token *lop = nullptr;
     CondContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<ExpContext *> exp();
-    ExpContext* exp(size_t i);
+    ExpContext *exp();
     std::vector<CondContext *> cond();
     CondContext* cond(size_t i);
 
@@ -379,10 +377,12 @@ public:
   public:
     pIRValObj obj;
     antlr4::Token *op = nullptr;
+    antlr4::Token *comp = nullptr;
     ExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IntConstant();
     antlr4::tree::TerminalNode *FloatConstant();
+    antlr4::tree::TerminalNode *StringConstant();
     LValContext *lVal();
     antlr4::tree::TerminalNode *Ident();
     std::vector<ExpContext *> exp();

@@ -7,6 +7,7 @@
 #include <memory>
 #include <utility>
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
@@ -17,10 +18,11 @@ using namespace std;
 #define IR_NORMAL 0
 #define IR_BRANCH 1
 #define IR_LOOP 2
+// #define VAL_IR 1
 // class IRObj;
 // class IRValObj;
 class IRScalValObj;
-// class IRArrValObj;
+class IRArrValObj;
 
 // class IRBlock;
 class IRFunc;
@@ -38,7 +40,8 @@ public:
     
     bool isIdent;
     IRObj() {}
-    IRObj(bool isIndent, string name): isIdent(isIndent), name(name){}
+    IRObj(bool isIndent, string name): isIdent(isIndent), name(name){
+    }
     virtual void print(ostream& os) const;
     friend ostream& operator <<(ostream& os, const IRObj& val){
         val.print(os);
@@ -51,11 +54,27 @@ typedef shared_ptr<IRObj> pIRObj;
 class IRValObj : public IRObj
 {
 public:
+    static int tmpValId;
     bool isConst;
+    shared_ptr<IRArrValObj> fa;
+    int offset;
     IRValObj() {}
-    IRValObj(bool isConst, string name) : 
-        isConst(isConst), IRObj(!name.empty(), name){}
+    IRValObj(bool isConst, string name) : IRObj(true, name),
+        isConst(isConst){
+            if(name.empty()){
+                this->name = getDefaultName();
+            }
+        }
+    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), IRObj(true, name),
+        isConst(((IRValObj*)arrParent.get())->isConst){
+        if(name.empty()){
+                this->name = getDefaultName();
+        }
+    }
     virtual void print(ostream& os) const override;
+    virtual string getDefaultName() {
+        return ".t" + to_string(++tmpValId);
+    }
 };
 typedef shared_ptr<IRValObj> pIRValObj;
 
@@ -84,20 +103,35 @@ class IRScalValObj : public IRValObj
 public:
     // int type;
     int value;
-    shared_ptr<IRArrValObj> fa;
-    int offset;
     IRScalValObj() {}
     IRScalValObj(bool isConst, int value, string name) : value(value), IRValObj(isConst, name)
     {
         fa = nullptr;
-    }
-    IRScalValObj(shared_ptr<IRArrValObj> arrParent, string name) : 
-        fa(arrParent){
-            IRValObj((fa.get())->isConst , "");
+        if(isConst && name.empty()){
+            this->name = to_string(value);
         }
+    }
+    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name){}
     virtual void print(ostream& os) const override;
 };
 typedef shared_ptr<IRScalValObj> pIRScalValObj;
+
+class IRStrValObj : public IRValObj
+{
+public:
+    static int constStrId;
+    string value;
+    IRStrValObj() {}
+    IRStrValObj(string value, string name) : value(value), IRValObj(true, name)
+    {
+        fa = nullptr;
+    }
+    virtual void print(ostream& os) const override;
+    virtual string getDefaultName() {
+        return ".s" + to_string(++constStrId);
+    }
+};
+typedef shared_ptr<IRStrValObj> pIRStrValObj;
 
 #define ENUM_TO_STRING(x) \
     case x:               \
@@ -124,17 +158,10 @@ enum class IRType : int
     ARR = 17,
     IDX = 18,
     CALL = 19,
-    PARAM = 20
+    PARAM = 20,
+    RET = 21
 };
-static map<string, IRType> opfinder[3]={
-    {
-        {"==", IRType::EQ},
-        {"!=", IRType::NEQ},
-        {"<", IRType::LT},
-        {">", IRType::GT},
-        {"<=", IRType::LE},
-        {">=", IRType::GE}
-    },
+static map<string, IRType> opfinder[2]={
     {
         {"+", IRType::NOP},
         {"-", IRType::NEG},
@@ -145,7 +172,13 @@ static map<string, IRType> opfinder[3]={
         {"-", IRType::SUB},
         {"*", IRType::MUL},
         {"/", IRType::DIV},
-        {"%", IRType::MOD}
+        {"%", IRType::MOD},
+        {"==", IRType::EQ},
+        {"!=", IRType::NEQ},
+        {"<", IRType::LT},
+        {">", IRType::GT},
+        {"<=", IRType::LE},
+        {">=", IRType::GE}
     }
 };
 static string IRTypeName(IRType type)
@@ -172,6 +205,7 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::IDX)
         ENUM_TO_STRING(IRType::CALL)
         ENUM_TO_STRING(IRType::PARAM)
+        ENUM_TO_STRING(IRType::RET)
     default:
         return "unknown";
     }
@@ -179,11 +213,11 @@ static string IRTypeName(IRType type)
 
 class SysYIR: public IRObj
 {
+public:
     IRType type;
     pIRObj target;
     pIRObj opt1;
     pIRObj opt2;
-public:
     SysYIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
@@ -193,16 +227,20 @@ class IRBlock;
 typedef shared_ptr<IRBlock> pBlock;
 class IRBlock : public IRObj
 { //Basic Block
+    
+    static int masterId;
+    static int loopId;
+    static int branchId;
     vector<pBlock> from;
     vector<unique_ptr<SysYIR> > structions;
-    pBlock nextNormal;
-    pBlock nextBranch;
-    pIRScalValObj branchVal;
+    pBlock nextNormal = nullptr;
+    pBlock nextBranch = nullptr;
+    pIRScalValObj branchVal = nullptr;
 public:
     int blockType; // 0 normal 1 branch 2 loop
 
-    IRBlock(int blockType, string name=""):IRObj(IR_VOID, name), blockType(blockType)
-    {}
+    IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName():name), 
+        blockType(blockType){}
     void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
     {
         structions.push_back(make_unique<SysYIR>(type, t, op1, op2));
@@ -215,6 +253,17 @@ public:
         return true;
     }
     virtual void print(ostream& os) const override;
+    virtual string getDefaultName() {
+        switch (blockType)
+        {
+        case IR_LOOP:
+            return ".L" + to_string(++loopId);
+        case IR_BRANCH:
+            return ".B" + to_string(++branchId);
+        default:
+            return ".M" + to_string(++masterId);
+        }
+    }
 };
 // False, True
 typedef pair<pBlock, pBlock> pCondBlocks;
@@ -233,16 +282,18 @@ public:
         symbols.insert({obj.get()->name, obj});
     }
     pIRObj findSymbol(string name) {
-        return symbols[name];
+        if(symbols.empty())return nullptr;
+        try{
+            return symbols.at(name);
+        }catch(...){
+            return nullptr;
+        }
     }
 };
 
 class IRFunc: public IRObj
 {
-    int tmpValId = 0;
-    int masterId = 0;
-    int loopId = 0;
-    int branchId = 0;
+    
 public:
     vector<pIRValObj> params;
     vector<pBlock> blocks;
@@ -251,29 +302,16 @@ public:
     SymbolTable* symbolTable;
     int returnType;
     pIRValObj returnVal;
+    // table == nullptr : lib function
     IRFunc(int returnType, string name, vector<pIRValObj> params, SymbolTable* table):
         IRObj(true, name), returnType(returnType), symbolTable(table), params(params) {
+        if(symbolTable != nullptr){
             for(auto arg: this->params) {
                 symbolTable->registerSymbol(arg);
             }
-    }
-    ~IRFunc() = default;
-    string getDefaultName(pIRScalValObj obj) {
-        return ".t" + to_string(++tmpValId);
-    }
-    string getDefaultName(pIRArrValObj obj) {
-        return ".t" + to_string(++tmpValId);
-    }
-    string getDefaultName(pBlock obj) {
-        switch (obj.get()->blockType)
-        {
-        case IR_LOOP:
-            return ".L" + to_string(++loopId);
-        case IR_BRANCH:
-            return ".B" + to_string(++branchId);
-        default:
-            return ".M" + to_string(++masterId);
         }
     }
+    ~IRFunc() = default;
+    
     virtual void print(ostream& os) const override;
 };

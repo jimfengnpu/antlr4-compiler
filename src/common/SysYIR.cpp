@@ -1,7 +1,11 @@
 
 #include "SysYIR.h"
 
-#define VAL_IR 1
+int IRValObj::tmpValId = 0;
+int IRBlock::masterId = 0;
+int IRBlock::branchId = 0;
+int IRBlock::loopId = 0;
+int IRStrValObj::constStrId = 0;
 #ifdef VAL_IR
 
 inline string idName(const string& origin) {
@@ -43,16 +47,23 @@ void IRArrValObj::print(std::ostream& os) const{
 
 void SysYIR::print(std::ostream& os) const{
     os << IRTypeName(type);
-    os << " " << target.get()->name << ", " << opt1.get()->name;
+    os << " " << idName(target->name) << ", " << idName(opt1->name);
     if(opt2 != nullptr){
-        os << ", " << opt2.get()->name;
+        os << ", " << idName(opt2->name);
     }
 }
 
 void IRBlock::print(std::ostream& os) const{
     os << idName(name) << ":\n";
-    for(auto &ir: structions) {
-        os << "\t" << *ir.get() << std::endl;
+    auto irIter = structions.begin();
+    while(irIter != structions.end()) {
+        auto& ir = *irIter;
+        switch(ir->type) {
+            
+            default:
+                os << "\t" << *ir.get() << std::endl;
+        }
+        irIter++;
     }
     if(nullptr != nextBranch){
         os << "\tif(" << idName(branchVal->name) << ") goto " 
@@ -72,20 +83,17 @@ void IRFunc::print(std::ostream& os) const{
         os << *((*p).get());
         symIter++;
     }
-    os << "){" << endl;
-    while(symIter != symbolTable->symbols.end()) {
-        auto ptr = (symIter->second).get();
-        if(ptr == nullptr)
-            os << ptr << ";" << endl;
-        else 
-            os << *ptr << ";" << endl;
-        symIter++;
-    }
-    for(auto blk: blocks) {
-        os << *blk.get();
-    }
-    os << "\treturn " << idName(returnVal.get()->name) << ";" << endl;
-    os << "}" <<endl;
+    os << ")" << endl;
+    // while(symIter != symbolTable->symbols.end()) {
+    //     auto ptr = (symIter->second).get();
+    //     os << "\t" << *ptr << ";" << endl;
+    //     symIter++;
+    // }
+    // for(auto blk: blocks) {
+    //     os << *blk.get();
+    // }
+    // os << "\treturn " << idName(returnVal.get()->name) << ";" << endl;
+    // os << "}" <<endl;
 }
 #else
 void IRObj::print(std::ostream& os) const{
@@ -102,26 +110,33 @@ void IRScalValObj::print(std::ostream& os) const{
     //     os << "[" << offset <<"]";
     // }else {
     IRObj::print(os);
-    // }
-    // if(!fa && isConst && !isIdent){
-    //     os << ":" << value;
-    // }
+    
+    if(!fa && isConst && !isIdent){
+        os << ":" << value;
+    }
 }
 
 void IRArrValObj::print(std::ostream& os) const{
     IRObj::print(os);
     os << "([" << size << "])";
-    // for(auto& [off, val]: value) {
-    //     os << *val.get();
-    // }
+    for(auto& [off, val]: value) {
+        os << *val.get();
+    }
+}
+
+void IRStrValObj::print(std::ostream& os) const{
+    IRObj::print(os);
+    os << value;
 }
 
 void SysYIR::print(std::ostream& os) const{
     os << IRTypeName(type);
-    os << " " << target.get()->name << ", " << opt1.get()->name;
-    if(opt2 != nullptr){
+    if(target != nullptr)
+        os << " " << target.get()->name;
+    if(opt1 != nullptr)
+        os << ", " << opt1.get()->name;
+    if(opt2 != nullptr)
         os << ", " << opt2.get()->name;
-    }
 }
 
 void IRBlock::print(std::ostream& os) const{
@@ -144,7 +159,6 @@ void IRFunc::print(std::ostream& os) const{
     for(auto blk: blocks) {
         os << *blk.get();
     }
-    os << "\tRET " << *returnVal.get() << endl;
 }
 
 #endif

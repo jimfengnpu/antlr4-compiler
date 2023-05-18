@@ -5,7 +5,7 @@ options{
 @parser::postinclude{
 #include "../../common/SysYIR.h"
 }
-compUnit: (decl | funcDef)+;
+compUnit: (decl | funcDef)*;
 
 decl locals[int type;bool isConst]: ConstPrefix? bType def ( ',' def)* ';';
 
@@ -32,20 +32,21 @@ initVal : exp
         |'{' initVal? (',' initVal)* '}'
         ;
 cond locals[pCondBlocks branchs]:exp
-    |exp comp=('<'|'>'|'<='|'>=') exp
-    |exp comp=('=='|'!=') exp
     |cond lop='&&' cond
     |cond lop='||' cond
     ;
 
 exp locals[pIRValObj obj]: IntConstant
     | FloatConstant
+    | StringConstant
     | lVal
     | Ident '(' (exp (',' exp)* )? ')'
     | '(' exp ')'
     | op=('+'|'-'| '!') exp
     | exp op=('*' | '/' | '%') exp
     | exp op=('+' | '-') exp
+    |exp comp=('<'|'>'|'<='|'>=') exp
+    |exp comp=('=='|'!=') exp
     ;
 
 
@@ -75,6 +76,8 @@ FloatConstant
     :   DecimalFloatingConstant
     |   HexadecimalFloatingConstant
     ;
+StringConstant: '"'.*?'"';
+
 fragment DecimalFloatingConstant
     :   FractionalConstant ExponentPart? 
     |   DigitSequence ExponentPart

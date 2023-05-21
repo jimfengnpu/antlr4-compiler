@@ -4,6 +4,7 @@
 #include "frontend/ASTVisitor.h"
 #include "common/IRRunner.h"
 #include "iostream"
+#include "fstream"
 
 using namespace antlr4;
 using namespace std;
@@ -40,14 +41,25 @@ int main(int argc, char** argv) {
     //     if(auto sym = value.get())
     //         cout << *(sym) <<endl;
     // }
-    cout << *(visitor.globalData.get());
-    for(auto &f : visitor.functions){
-        cout << *f;
-    }
-    // tree = BuildAST(tree);
-    // s = tree->toStringTree(&parser, true);
-    // std::cout << "Parse Tree: " << s << std::endl;
-    IRRunner runner(visitor, cin, cout);
-    runner.apply();
+    #ifdef VAL_IR
+        cout << "IR:"<<endl;
+        cout << *(visitor.globalData.get());
+        for(auto &f : visitor.functions){
+            cout << *f;
+        }
+    #endif
+    // assert(argc >= 3);
+    // try{
+    //     ofstream& foutput(string(argv[2]));
+    //     // tree = BuildAST(tree);
+    //     // s = tree->toStringTree(&parser, true);
+    //     // std::cout << "Parse Tree: " << s << std::endl;
+    //     ifstream finput(argv[3]);
+        IRRunner runner(visitor, cin, cout);
+        runner.apply();
+    // }catch(...){
+    //     cout << "open file failed" << endl;
+    //     return -1;
+    // }
     return 0;
 }

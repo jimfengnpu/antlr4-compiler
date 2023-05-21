@@ -18,7 +18,7 @@ using namespace std;
 #define IR_NORMAL 0
 #define IR_BRANCH 1
 #define IR_LOOP 2
-// #define VAL_IR 1
+#define VAL_IR 1
 // class IRObj;
 // class IRValObj;
 class IRScalValObj;
@@ -27,6 +27,7 @@ class IRArrValObj;
 class FuncFrame;
 // class IRBlock;
 class IRFunc;
+class SymbolTable;
 typedef shared_ptr<IRFunc> pIRFunc;
 // class BlockContext;
 
@@ -35,6 +36,7 @@ class IRObj
 {
 public:
     string name; 
+    SymbolTable* scopeSymbols=nullptr;
     // for val/arr: ident | .t + index in CFG_val
     // for CFG: function name ident
     // for BB: entry: == func name else:.func name + .M/.B/.L + index in CFG_master/branch/loop
@@ -57,8 +59,8 @@ class IRValObj : public IRObj
 public:
     static int tmpValId;
     bool isConst;
-    shared_ptr<IRArrValObj> fa;
     int offset;
+    shared_ptr<IRArrValObj> fa;
     IRValObj() {}
     IRValObj(bool isConst, string name) : IRObj(true, name),
         isConst(isConst){
@@ -103,19 +105,6 @@ public:
             size *= d;
         }
     }
-    pIRScalValObj findValue(int index) {
-        if(fa != nullptr){
-            return fa->findValue(index + offset);
-        }
-        if(value.empty())return nullptr;
-        try{
-            return value.at(index);
-        }catch(...){
-            auto obj = make_shared<IRScalValObj>(isConst, 0, "");
-            value[index] = obj;
-            return obj;
-        }
-    }
     virtual void print(ostream& os) const override;
 };
 typedef shared_ptr<IRArrValObj> pIRArrValObj;
@@ -130,6 +119,7 @@ public:
     {
         fa = nullptr;
         if(isConst && name.empty()){
+            this->isIdent = false;
             this->name = to_string(value);
         }
     }
@@ -178,7 +168,8 @@ enum class IRType : int
     IDX = 16,
     CALL = 17,
     PARAM = 18,
-    RET = 19
+    RET = 19,
+    DEF = 20
 };
 static map<string, IRType> opfinder[2]={
     {
@@ -223,6 +214,7 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::CALL)
         ENUM_TO_STRING(IRType::PARAM)
         ENUM_TO_STRING(IRType::RET)
+        ENUM_TO_STRING(IRType::DEF)
     default:
         return "unknown";
     }

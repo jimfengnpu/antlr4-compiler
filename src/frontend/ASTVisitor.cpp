@@ -26,20 +26,9 @@ std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
     }
     SysYParser::BlockContext *blockCtx = ctx->block();
     
-    #ifdef VAL_IR
-    if(curFunc == nullptr){
-        for(auto& [name, obj] :globalSymbolTable.symbols){
-            os << "\t" << *obj.get() << ";" <<endl;
-        }
-        os << *curBlock.get() <<endl;
-    }
-    #endif
     pBlock funcBlock = creatFunction(identity, ctx->block(), 
         ctx->returnType, params);
     curBlock = funcBlock;
-    #ifdef VAL_IR
-        os << *curFunc.get() <<endl;
-    #endif
     // curFunc->blocks.push_back(curBlock);
     visit(blockCtx);
     if(curFunc->exit == nullptr){
@@ -131,9 +120,6 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
     std::string identity = ctx->Ident()->getText();
     SysYParser::DeclContext* declCtx = (SysYParser::DeclContext*)ctx->parent;
     auto arrVec = ctx->arrAccess();
-    #ifdef VAL_IR
-        os << "int " << identity;
-    #endif
     if(arrVec.empty()){
         ctx->obj = newObj<IRScalValObj>(declCtx->isConst, 0, identity);
     }else{
@@ -144,19 +130,14 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
             if(!val->isConst)throw runtime_error("array size must be const");
             int s = val.get()->value;
             dims.push_back(s);
-            #ifdef VAL_IR
-                os << "[" << s << "]";
-            #endif
         }
         ctx->obj = newObj<IRArrValObj>(declCtx->isConst, dims, identity);
     }
+    insertIR(IRType::DEF, ctx->obj, nullptr, nullptr);
     if(ctx->initVal()) {
         visitInitVal(ctx->initVal(), ctx->obj);
     }
     registerIndent(ctx->obj);
-    #ifdef VAL_IR
-        os << ";" <<endl;
-    #endif
     // cout<< "exit def" <<endl;
     return nullptr;
 }
@@ -266,9 +247,6 @@ std::any ASTVisitor::visitBlock(SysYParser::BlockContext* ctx) {
     curScopeBlock = ctx;
     visitChildren(ctx);
     curScopeBlock = ctx->upperBlock;
-    #ifdef VAL_IR
-        os << "}"<<endl;
-    #endif
     return nullptr;
 }
 
@@ -368,14 +346,16 @@ std::any ASTVisitor::visitCondStmt(SysYParser::CondStmtContext* ctx) {
     visit(condCtx);
     curBlock = condTrue;
     visit(ctx->stmt(0));
-    if(condTrue->finishBB(condFinal, nullptr, nullptr))
-        curFunc->blocks.push_back(curBlock);
+    if(curBlock)
+        if(curBlock->finishBB(condFinal, nullptr, nullptr))
+            curFunc->blocks.push_back(curBlock);
     curBlock = condFalse;
     if(ctx->stmt().size() > 1){
         visit(ctx->stmt(1));
     }
-    if(condFalse->finishBB(condFinal, nullptr, nullptr))
-        curFunc->blocks.push_back(curBlock);
+    if(curBlock)
+        if(curBlock->finishBB(condFinal, nullptr, nullptr))
+            curFunc->blocks.push_back(curBlock);
     curBlock = condFinal;
     return nullptr;
 }
@@ -392,8 +372,9 @@ std::any ASTVisitor::visitLoopStmt(SysYParser::LoopStmtContext* ctx) {
     visit(condCtx);
     curBlock = condLoop;
     visit(ctx->stmt());
-    if(condLoop->finishBB(condBranch, nullptr, nullptr))
-        curFunc->blocks.push_back(curBlock);
+    if(curBlock)
+        if(curBlock->finishBB(condBranch, nullptr, nullptr))
+            curFunc->blocks.push_back(curBlock);
     curBlock = condOut;
     return nullptr;
 }
@@ -432,9 +413,8 @@ std::any ASTVisitor::visitReturnStmt(SysYParser::ReturnStmtContext* ctx) {
     if(auto expCtx = ctx->exp()){
         auto retVal = any_cast<pIRValObj>(visit(expCtx));
         if(curFunc->returnVal == nullptr)
-            curFunc->returnVal = retVal;
-        else
-            insertIR(IRType::ASSIGN, curFunc->returnVal, retVal, nullptr);
+            curFunc->returnVal = newObj<IRScalValObj>(false, 0, "");
+        insertIR(IRType::ASSIGN, curFunc->returnVal, retVal, nullptr);
     }
     if(curFunc->exit == nullptr)
         curFunc->exit = newFuncBlock(IR_NORMAL);

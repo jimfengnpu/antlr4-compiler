@@ -12,9 +12,7 @@ public:
     pIRFunc curFunc = nullptr;
     pBlock curBlock = nullptr;
     pBlock globalData = nullptr;
-    #ifdef VAL_IR
-    ostream& os = cout;
-    #endif
+    
     // ASTVisitor() = default;
     pBlock creatFunction(string name, 
         SysYParser::BlockContext* blockContext,
@@ -67,6 +65,8 @@ public:
         // if(nullptr != curFunc && (string(name).empty())){
         //     obj.get()->name = obj->getDefaultName();
         // }
+        obj->scopeSymbols = (curScopeBlock == nullptr)? &globalSymbolTable
+                        :&(curScopeBlock->symbolTable);
         return obj;
     }
 

@@ -228,6 +228,7 @@ public:
 
   class  StmtContext : public antlr4::ParserRuleContext {
   public:
+    pBlock loopEntry;
     StmtContext(antlr4::ParserRuleContext *parent, size_t invokingState);
    
     StmtContext() = default;

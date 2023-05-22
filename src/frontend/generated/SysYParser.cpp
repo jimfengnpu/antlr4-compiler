@@ -1032,6 +1032,7 @@ size_t SysYParser::StmtContext::getRuleIndex() const {
 
 void SysYParser::StmtContext::copyFrom(StmtContext *ctx) {
   ParserRuleContext::copyFrom(ctx);
+  this->loopEntry = ctx->loopEntry;
 }
 
 //----------------- LoopStmtContext ------------------------------------------------------------------

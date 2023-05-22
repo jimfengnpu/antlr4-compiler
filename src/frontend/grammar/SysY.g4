@@ -18,7 +18,7 @@ def locals[pIRValObj obj]: Ident (arrAccess)* ( '=' initVal)?
 funcFParam: bType Ident (funcArrParam)?;
 funcArrParam: '['']' (arrAccess)*;
 block locals[SymbolTable symbolTable, BlockContext* upperBlock]: '{' (decl | stmt)* '}';
-stmt: lVal '=' exp ';' # assignStmt
+stmt locals[pBlock loopEntry]: lVal '=' exp ';' # assignStmt
     | exp? ';' # expStmt
     | block # blockStmt
     | IF '(' cond ')' stmt (ELSE stmt)? # condStmt

@@ -171,7 +171,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
         if(!expVec.empty()){
             for(auto exp: ctx->exp()){
                 visit(exp);
-                is_const = is_const && (exp->obj.get()->isConst);
+                is_const = is_const && (exp->obj->isConst && exp->obj->fa == nullptr);
             }
         }
         if(ctx->op != nullptr) {
@@ -366,6 +366,7 @@ std::any ASTVisitor::visitLoopStmt(SysYParser::LoopStmtContext* ctx) {
     pBlock condLoop = newFuncBlock(IR_LOOP);
     pBlock condOut = newFuncBlock(curBlock->blockType);
     auto condCtx = ctx->cond();
+    ctx->loopEntry = condBranch;
     condCtx->branchs = {condOut, condLoop};
     if(curBlock->finishBB(condBranch, nullptr, nullptr))
         curFunc->blocks.push_back(curBlock);
@@ -403,7 +404,7 @@ std::any ASTVisitor::visitContStmt(SysYParser::ContStmtContext* ctx) {
         tree = tree->parent;
     }
     if(loopCtx == nullptr)throw runtime_error("no outside loop");
-    if(curBlock && curBlock->finishBB(loopCtx->cond()->branchs.second, nullptr, nullptr))
+    if(curBlock && curBlock->finishBB(loopCtx->loopEntry, nullptr, nullptr))
         curFunc->blocks.push_back(curBlock);
     curBlock = nullptr;
     return nullptr;

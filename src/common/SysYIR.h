@@ -18,7 +18,7 @@ using namespace std;
 #define IR_NORMAL 0
 #define IR_BRANCH 1
 #define IR_LOOP 2
-#define VAL_IR 1
+// #define VAL_IR 1
 // class IRObj;
 // class IRValObj;
 class IRScalValObj;
@@ -62,12 +62,9 @@ public:
     int offset;
     shared_ptr<IRArrValObj> fa;
     IRValObj() {}
-    IRValObj(bool isConst, string name) : IRObj(true, name),
-        isConst(isConst){
-            if(name.empty()){
-                this->name = getDefaultName();
-            }
-        }
+    IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),
+    fa(nullptr), isConst(isConst){
+    }
     IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), IRObj(true, name),
         isConst(((IRValObj*)arrParent.get())->isConst){
         if(name.empty()){
@@ -88,7 +85,7 @@ public:
     map<int, shared_ptr<IRScalValObj>  >value;
     vector<int> dims; // int[2][3] => vector(2, 3)
     int size;
-    IRArrValObj(bool isConst, vector<int> dims, string name) : IRValObj(isConst, name), dims(dims)
+    IRArrValObj(bool isConst, vector<int> dims, string name) : IRValObj(isConst, true, name), dims(dims)
     {
         size = 1;
         for (auto d : dims)
@@ -115,13 +112,9 @@ public:
     // int type;
     int value;
     IRScalValObj() {}
-    IRScalValObj(bool isConst, int value, string name) : value(value), IRValObj(isConst, name)
-    {
-        fa = nullptr;
-        if(isConst && name.empty()){
-            this->isIdent = false;
-            this->name = to_string(value);
-        }
+    IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)){
+    }
+    IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name){
     }
     IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name){}
     virtual void print(ostream& os) const override;
@@ -133,7 +126,7 @@ public:
     static int constStrId;
     string value;
     IRStrValObj() {}
-    IRStrValObj(string value, string name) : value(value), IRValObj(true, name)
+    IRStrValObj(string value, string name) : value(value), IRValObj(true, false, name)
     {
         fa = nullptr;
     }

@@ -37,11 +37,11 @@ public:
             make_shared<IRArrValObj>(false, vector<int>({1}), "")
         }));
         creatFunction("putint", nullptr, IR_VOID, vector<pIRValObj>({
-            make_shared<IRScalValObj>(false, 0, "")}));
+            make_shared<IRScalValObj>(false, "")}));
         creatFunction("putch", nullptr, IR_VOID, vector<pIRValObj>({
-            make_shared<IRScalValObj>(false, 0, "")}));
+            make_shared<IRScalValObj>(false, "")}));
         creatFunction("putarray", nullptr, IR_VOID, vector<pIRValObj>({
-            make_shared<IRScalValObj>(false, 0, ""),
+            make_shared<IRScalValObj>(false, ""),
             make_shared<IRArrValObj>(false, vector<int>({1}), "")
         }));
         creatFunction("putf", nullptr, IR_VOID, vector<pIRValObj>({

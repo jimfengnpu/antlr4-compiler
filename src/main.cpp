@@ -55,11 +55,12 @@ int main(int argc, char** argv) {
     //     // s = tree->toStringTree(&parser, true);
     //     // std::cout << "Parse Tree: " << s << std::endl;
     //     ifstream finput(argv[3]);
-        IRRunner runner(visitor, cin, cout);
-        runner.apply();
+    IRRunner runner(visitor, cin, cout);
+    runner.apply();
     // }catch(...){
     //     cout << "open file failed" << endl;
     //     return -1;
     // }
+    // return runner.returnVal;
     return 0;
 }

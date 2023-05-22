@@ -1,114 +1,82 @@
-// int t = 0;
-// int s[2];
-// int add(int x, int y) {
-//     return x+y;
-// }
+const int maxn = 18;
+const int mod = 1000000007;
+int dp[maxn][maxn][maxn][maxn][maxn][7];
+int list[200];
 
-// int indexArr(int a[], int i) {
-//     if(i>1)return a[i-1];
-//     return a[i+1];
-// }
-
-// int main(){
-//     int c = 0xFF;
-//     const int pi = 3;
-//     int a = 0;
-//     // int a[2][3][4]={1,2, 6, 5};
-//     /*   haha*/
-//     if(a>5 && pi){
-//         a+1;
-//         return -1;
-//     }
-//     ;
-//     while(c < 5){
-//     c = add(c, 1);
-//     }
-//     // int x = add(0, index(a[0][1], 2));
-//     // print(a);
-//     return 0;
-// }
-// int main(){
-//     int a=10;
-//     while(a>0){
-//         if(a>5){
-//             a=a-1;
-//             continue;
-//         }
-//         return a;
-//     }
-//     return a;
-// }
-// test if-else-if
-int n;
-int QuickSort(int arr[], int low, int high)
-{
-    if (low < high)
-    {
-        int i;
-        i = low;
-        int j;
-        j = high;
-        int k;
-        k = arr[low];
-        while (i < j)
-        {
-            while(i < j && arr[j] > k - 1)
-            {
-                j = j - 1;
-            }
- 
-            if(i < j)
-            {
-                arr[i] = arr[j];
-                i = i + 1;
-            }
- 
-            while(i < j && arr[i] < k)
-            {
-                i = i + 1;
-            }
- 
-            if(i < j)
-            {
-                arr[j] = arr[i];
-                j = j - 1;
-            }
-        }
- 
-        arr[i] = k;
-        int tmp;
-        tmp = i - 1;
-        tmp = QuickSort(arr, low, tmp);
-        tmp = i + 1;
-        tmp = QuickSort(arr, tmp, high);
-    }
+int equal(int a, int b) {
+    if (a == b)
+        return 1;
     return 0;
 }
 
+int dfs(int a, int b, int c, int d, int e, int last){
+    if(dp[a][b][c][d][e][last] != -1)
+        return dp[a][b][c][d][e][last];
+    if(a + b + c + d + e == 0)
+        return 1;
+    int ans = 0;
+    if (a) ans = (ans + (a - equal(last, 2)) * dfs(a - 1, b, c, d, e, 1)) % mod;
+    if (b) ans = (ans + (b - equal(last, 3)) * dfs(a + 1, b - 1, c, d, e, 2)) % mod;
+    if (c) ans = (ans + (c - equal(last, 4)) * dfs(a, b + 1, c - 1, d, e, 3)) % mod;
+    if (d) ans = (ans + (d - equal(last, 5)) * dfs(a, b, c + 1, d - 1, e, 4)) % mod;
+    if (e) ans = (ans + e * dfs(a, b, c, d + 1, e - 1, 5)) % mod;
+    dp[a][b][c][d][e][last] = ans % mod;
+    return dp[a][b][c][d][e][last];
+}
+
+int cns[20];
+ 
 int main(){
-    n = 4;
-    int a[10];
-    a[0]=4;a[1]=3;a[2]=9;a[3]=2;a[4]=0;
-    a[5]=1;a[6]=6;a[7]=5;a[8]=7;a[9]=8;
-    int i;
-    i = 0;
-    int tmp;
-    tmp = 3;
-    i = QuickSort(a, i, tmp);
-    while (i < n) {
-        int tmp;
-        tmp = a[i];
-        putint(tmp);
-        tmp = 10;
-        putch(tmp);
+    int n = getint();
+    int i = 0; 
+    while (i < maxn) {
+        int j = 0;
+        while(j < maxn) {
+            int k = 0;
+            while(k < maxn) {
+                int l = 0;
+                while (l < maxn) {
+                    int m = 0;
+                    while (m < maxn) {
+                        int h = 0;
+                        while (h < 7) {
+                            dp[i][j][k][l][m][h] = -1;
+                            h = h + 1;
+                        }
+                        m = m + 1;
+                    }
+                    l = l + 1;
+                }
+                k = k + 1;
+            }
+            j = j + 1;
+        }
         i = i + 1;
     }
-    return 0;
+    
+    i = 0;
+    while (i < n) {
+        list[i] = getint();
+        cns[list[i]] = cns[list[i]] + 1;
+        i = i + 1;
+    }
+
+    int ans = dfs(cns[1], cns[2], cns[3], cns[4], cns[5], 0);
+
+    putint(ans);
+
+    return ans;
 }
 /*
 IR:
 .global:
-        DEF n
+        DEF maxn
+        ASSIGN maxn, 18
+        DEF mod
+        ASSIGN mod, 1000000007
+        DEF dp
+        DEF list
+        DEF cns
         END
 @getint:
 @getch:
@@ -119,230 +87,388 @@ IR:
 @putf:
 @starttime:
 @stoptime:
-@QuickSort:
+@equal:
 .M1:
-        LT .t6, low, high
+        EQ .t6, a, b
         IF .t6 GOTO .M2
         GOTO .M3
 .M2:
-        DEF i
-        ASSIGN i, low
-        DEF j
-        ASSIGN j, high
-        DEF k
-        ASSIGN .t7, 0
-        MUL .t8, 1, low
-        ADD .t7, .t7, .t8
-        IDX .t9, arr, .t7
-        ASSIGN k, .t9
+        ASSIGN .t7, 1
         GOTO .M5
-.M5:
-        LT .t10, i, j
-        IF .t10 GOTO .M6
-        GOTO .M7
-.M6:
-        GOTO .M8
-.M8:
-        LT .t11, i, j
-        IF .t11 GOTO .M11
-        GOTO .M10
-.M11:
-        ASSIGN .t12, 0
-        MUL .t13, 1, j
-        ADD .t12, .t12, .t13
-        IDX .t14, arr, .t12
-        SUB .t15, k, 1
-        GT .t16, .t14, .t15
-        IF .t16 GOTO .M9
-        GOTO .M10
-.M9:
-        SUB .t17, j, 1
-        ASSIGN j, .t17
-        GOTO .M8
-.M10:
-        LT .t18, i, j
-        IF .t18 GOTO .M12
-        GOTO .M13
-.M12:
-        ASSIGN .t19, 0
-        MUL .t20, 1, j
-        ADD .t19, .t19, .t20
-        IDX .t21, arr, .t19
-        ASSIGN .t22, 0
-        MUL .t23, 1, i
-        ADD .t22, .t22, .t23
-        IDX .t24, arr, .t22
-        ASSIGN .t24, .t21
-        ADD .t25, i, 1
-        ASSIGN i, .t25
-        GOTO .M14
-.M13:
-        GOTO .M14
-.M14:
-        GOTO .M15
-.M15:
-        LT .t26, i, j
-        IF .t26 GOTO .M18
-        GOTO .M17
-.M18:
-        ASSIGN .t27, 0
-        MUL .t28, 1, i
-        ADD .t27, .t27, .t28
-        IDX .t29, arr, .t27
-        LT .t30, .t29, k
-        IF .t30 GOTO .M16
-        GOTO .M17
-.M16:
-        ADD .t31, i, 1
-        ASSIGN i, .t31
-        GOTO .M15
-.M17:
-        LT .t32, i, j
-        IF .t32 GOTO .M19
-        GOTO .M20
-.M19:
-        ASSIGN .t33, 0
-        MUL .t34, 1, i
-        ADD .t33, .t33, .t34
-        IDX .t35, arr, .t33
-        ASSIGN .t36, 0
-        MUL .t37, 1, j
-        ADD .t36, .t36, .t37
-        IDX .t38, arr, .t36
-        ASSIGN .t38, .t35
-        SUB .t39, j, 1
-        ASSIGN j, .t39
-        GOTO .M21
-.M20:
-        GOTO .M21
-.M21:
-        GOTO .M5
-.M7:
-        ASSIGN .t40, 0
-        MUL .t41, 1, i
-        ADD .t40, .t40, .t41
-        IDX .t42, arr, .t40
-        ASSIGN .t42, k
-        DEF tmp
-        SUB .t43, i, 1
-        ASSIGN tmp, .t43
-        ASSIGN .t44, 0
-        IDX .t46, arr, .t44
-        ARR , .t46
-        PARAM tmp
-        PARAM low
-        PARAM 
-        CALL .t48, @QuickSort
-        ASSIGN tmp, .t48
-        ADD .t49, i, 1
-        ASSIGN tmp, .t49
-        ASSIGN .t50, 0
-        IDX .t52, arr, .t50
-        ARR , .t52
-        PARAM high
-        PARAM tmp
-        PARAM 
-        CALL .t54, @QuickSort
-        ASSIGN tmp, .t54
-        GOTO .M4
 .M3:
         GOTO .M4
 .M4:
-        ASSIGN .t55, 0
+        ASSIGN .t7, 0
+        GOTO .M5
+.M5:
+        RET .t7
+        END
+@dfs:
+.M6:
+        ASSIGN .t8, 0
+        MUL .t9, 734832, a
+        ADD .t8, .t8, .t9
+        MUL .t9, 40824, b
+        ADD .t8, .t8, .t9
+        MUL .t9, 2268, c
+        ADD .t8, .t8, .t9
+        MUL .t9, 126, d
+        ADD .t8, .t8, .t9
+        MUL .t9, 7, e
+        ADD .t8, .t8, .t9
+        MUL .t9, 1, last
+        ADD .t8, .t8, .t9
+        IDX .t10, dp, .t8
+        NEQ .t11, .t10, -1
+        IF .t11 GOTO .M7
+        GOTO .M8
+.M7:
+        ASSIGN .t12, 0
+        MUL .t13, 734832, a
+        ADD .t12, .t12, .t13
+        MUL .t13, 40824, b
+        ADD .t12, .t12, .t13
+        MUL .t13, 2268, c
+        ADD .t12, .t12, .t13
+        MUL .t13, 126, d
+        ADD .t12, .t12, .t13
+        MUL .t13, 7, e
+        ADD .t12, .t12, .t13
+        MUL .t13, 1, last
+        ADD .t12, .t12, .t13
+        IDX .t14, dp, .t12
+        ASSIGN .t15, .t14
+        GOTO .M10
+.M8:
+        GOTO .M9
+.M9:
+        ADD .t16, a, b
+        ADD .t17, .t16, c
+        ADD .t18, .t17, d
+        ADD .t19, .t18, e
+        EQ .t20, .t19, 0
+        IF .t20 GOTO .M11
+        GOTO .M12
+.M11:
+        ASSIGN .t15, 1
+        GOTO .M10
+.M12:
+        GOTO .M13
+.M13:
+        DEF ans
+        ASSIGN ans, 0
+        IF a GOTO .M14
+        GOTO .M15
+.M14:
+        PARAM 2
+        PARAM last
+        CALL .t21, @equal
+        SUB .t22, a, .t21
+        SUB .t23, a, 1
+        PARAM 1
+        PARAM e
+        PARAM d
+        PARAM c
+        PARAM b
+        PARAM .t23
+        CALL .t24, @dfs
+        MUL .t25, .t22, .t24
+        ADD .t26, ans, .t25
+        MOD .t27, .t26, mod
+        ASSIGN ans, .t27
+        GOTO .M16
+.M15:
+        GOTO .M16
+.M16:
+        IF b GOTO .M17
+        GOTO .M18
+.M17:
+        PARAM 3
+        PARAM last
+        CALL .t28, @equal
+        SUB .t29, b, .t28
+        ADD .t30, a, 1
+        SUB .t31, b, 1
+        PARAM 2
+        PARAM e
+        PARAM d
+        PARAM c
+        PARAM .t31
+        PARAM .t30
+        CALL .t32, @dfs
+        MUL .t33, .t29, .t32
+        ADD .t34, ans, .t33
+        MOD .t35, .t34, mod
+        ASSIGN ans, .t35
+        GOTO .M19
+.M18:
+        GOTO .M19
+.M19:
+        IF c GOTO .M20
+        GOTO .M21
+.M20:
+        PARAM 4
+        PARAM last
+        CALL .t36, @equal
+        SUB .t37, c, .t36
+        ADD .t38, b, 1
+        SUB .t39, c, 1
+        PARAM 3
+        PARAM e
+        PARAM d
+        PARAM .t39
+        PARAM .t38
+        PARAM a
+        CALL .t40, @dfs
+        MUL .t41, .t37, .t40
+        ADD .t42, ans, .t41
+        MOD .t43, .t42, mod
+        ASSIGN ans, .t43
+        GOTO .M22
+.M21:
         GOTO .M22
 .M22:
-        RET .t55
+        IF d GOTO .M23
+        GOTO .M24
+.M23:
+        PARAM 5
+        PARAM last
+        CALL .t44, @equal
+        SUB .t45, d, .t44
+        ADD .t46, c, 1
+        SUB .t47, d, 1
+        PARAM 4
+        PARAM e
+        PARAM .t47
+        PARAM .t46
+        PARAM b
+        PARAM a
+        CALL .t48, @dfs
+        MUL .t49, .t45, .t48
+        ADD .t50, ans, .t49
+        MOD .t51, .t50, mod
+        ASSIGN ans, .t51
+        GOTO .M25
+.M24:
+        GOTO .M25
+.M25:
+        IF e GOTO .M26
+        GOTO .M27
+.M26:
+        ADD .t52, d, 1
+        SUB .t53, e, 1
+        PARAM 5
+        PARAM .t53
+        PARAM .t52
+        PARAM c
+        PARAM b
+        PARAM a
+        CALL .t54, @dfs
+        MUL .t55, e, .t54
+        ADD .t56, ans, .t55
+        MOD .t57, .t56, mod
+        ASSIGN ans, .t57
+        GOTO .M28
+.M27:
+        GOTO .M28
+.M28:
+        MOD .t58, ans, mod
+        ASSIGN .t59, 0
+        MUL .t60, 734832, a
+        ADD .t59, .t59, .t60
+        MUL .t60, 40824, b
+        ADD .t59, .t59, .t60
+        MUL .t60, 2268, c
+        ADD .t59, .t59, .t60
+        MUL .t60, 126, d
+        ADD .t59, .t59, .t60
+        MUL .t60, 7, e
+        ADD .t59, .t59, .t60
+        MUL .t60, 1, last
+        ADD .t59, .t59, .t60
+        IDX .t61, dp, .t59
+        ASSIGN .t61, .t58
+        ASSIGN .t62, 0
+        MUL .t63, 734832, a
+        ADD .t62, .t62, .t63
+        MUL .t63, 40824, b
+        ADD .t62, .t62, .t63
+        MUL .t63, 2268, c
+        ADD .t62, .t62, .t63
+        MUL .t63, 126, d
+        ADD .t62, .t62, .t63
+        MUL .t63, 7, e
+        ADD .t62, .t62, .t63
+        MUL .t63, 1, last
+        ADD .t62, .t62, .t63
+        IDX .t64, dp, .t62
+        ASSIGN .t15, .t64
+        GOTO .M10
+.M10:
+        RET .t15
         END
 @main:
-.M23:
-        ASSIGN n, 10
-        DEF a
-        ASSIGN .t56, 0
-        MUL .t57, 1, 0
-        ADD .t56, .t56, .t57
-        IDX .t58, a, .t56
-        ASSIGN .t58, 4
-        ASSIGN .t59, 0
-        MUL .t60, 1, 1
-        ADD .t59, .t59, .t60
-        IDX .t61, a, .t59
-        ASSIGN .t61, 3
-        ASSIGN .t62, 0
-        MUL .t63, 1, 2
-        ADD .t62, .t62, .t63
-        IDX .t64, a, .t62
-        ASSIGN .t64, 9
-        ASSIGN .t65, 0
-        MUL .t66, 1, 3
-        ADD .t65, .t65, .t66
-        IDX .t67, a, .t65
-        ASSIGN .t67, 2
-        ASSIGN .t68, 0
-        MUL .t69, 1, 4
-        ADD .t68, .t68, .t69
-        IDX .t70, a, .t68
-        ASSIGN .t70, 0
-        ASSIGN .t71, 0
-        MUL .t72, 1, 5
-        ADD .t71, .t71, .t72
-        IDX .t73, a, .t71
-        ASSIGN .t73, 1
-        ASSIGN .t74, 0
-        MUL .t75, 1, 6
-        ADD .t74, .t74, .t75
-        IDX .t76, a, .t74
-        ASSIGN .t76, 6
-        ASSIGN .t77, 0
-        MUL .t78, 1, 7
-        ADD .t77, .t77, .t78
-        IDX .t79, a, .t77
-        ASSIGN .t79, 5
-        ASSIGN .t80, 0
-        MUL .t81, 1, 8
-        ADD .t80, .t80, .t81
-        IDX .t82, a, .t80
-        ASSIGN .t82, 7
-        ASSIGN .t83, 0
-        MUL .t84, 1, 9
-        ADD .t83, .t83, .t84
-        IDX .t85, a, .t83
-        ASSIGN .t85, 8
+.M29:
+        DEF n
+        CALL .t65, @getint
+        ASSIGN n, .t65
         DEF i
         ASSIGN i, 0
-        DEF tmp
-        ASSIGN tmp, 9
+        GOTO .M30
+.M30:
+        LT .t66, i, maxn
+        IF .t66 GOTO .M31
+        GOTO .M32
+.M31:
+        DEF j
+        ASSIGN j, 0
+        GOTO .M33
+.M33:
+        LT .t67, j, maxn
+        IF .t67 GOTO .M34
+        GOTO .M35
+.M34:
+        DEF k
+        ASSIGN k, 0
+        GOTO .M36
+.M36:
+        LT .t68, k, maxn
+        IF .t68 GOTO .M37
+        GOTO .M38
+.M37:
+        DEF l
+        ASSIGN l, 0
+        GOTO .M39
+.M39:
+        LT .t69, l, maxn
+        IF .t69 GOTO .M40
+        GOTO .M41
+.M40:
+        DEF m
+        ASSIGN m, 0
+        GOTO .M42
+.M42:
+        LT .t70, m, maxn
+        IF .t70 GOTO .M43
+        GOTO .M44
+.M43:
+        DEF h
+        ASSIGN h, 0
+        GOTO .M45
+.M45:
+        LT .t71, h, 7
+        IF .t71 GOTO .M46
+        GOTO .M47
+.M46:
+        ASSIGN .t72, 0
+        MUL .t73, 734832, i
+        ADD .t72, .t72, .t73
+        MUL .t73, 40824, j
+        ADD .t72, .t72, .t73
+        MUL .t73, 2268, k
+        ADD .t72, .t72, .t73
+        MUL .t73, 126, l
+        ADD .t72, .t72, .t73
+        MUL .t73, 7, m
+        ADD .t72, .t72, .t73
+        MUL .t73, 1, h
+        ADD .t72, .t72, .t73
+        IDX .t74, dp, .t72
+        ASSIGN .t74, -1
+        ADD .t75, h, 1
+        ASSIGN h, .t75
+        GOTO .M45
+.M47:
+        ADD .t76, m, 1
+        ASSIGN m, .t76
+        GOTO .M42
+.M44:
+        ADD .t77, l, 1
+        ASSIGN l, .t77
+        GOTO .M39
+.M41:
+        ADD .t78, k, 1
+        ASSIGN k, .t78
+        GOTO .M36
+.M38:
+        ADD .t79, j, 1
+        ASSIGN j, .t79
+        GOTO .M33
+.M35:
+        ADD .t80, i, 1
+        ASSIGN i, .t80
+        GOTO .M30
+.M32:
+        ASSIGN i, 0
+        GOTO .M48
+.M48:
+        LT .t81, i, n
+        IF .t81 GOTO .M49
+        GOTO .M50
+.M49:
+        CALL .t82, @getint
+        ASSIGN .t83, 0
+        MUL .t84, 1, i
+        ADD .t83, .t83, .t84
+        IDX .t85, list, .t83
+        ASSIGN .t85, .t82
         ASSIGN .t86, 0
-        IDX .t88, a, .t86
-        ARR , .t88
-        PARAM tmp
-        PARAM i
-        PARAM 
-        CALL .t90, @QuickSort
-        ASSIGN i, .t90
-        GOTO .M24
-.M24:
-        LT .t91, i, n
-        IF .t91 GOTO .M25
-        GOTO .M26
-.M25:
-        DEF tmp
-        ASSIGN .t92, 0
-        MUL .t93, 1, i
-        ADD .t92, .t92, .t93
-        IDX .t94, a, .t92
-        ASSIGN tmp, .t94
-        PARAM tmp
-        CALL .t95, @putint
-        ASSIGN tmp, 10
-        PARAM tmp
-        CALL .t96, @putch
-        ADD .t97, i, 1
-        ASSIGN i, .t97
-        GOTO .M24
-.M26:
-        ASSIGN .t98, 0
-        GOTO .M27
-.M27:
-        RET .t98
+        ASSIGN .t88, 0
+        MUL .t89, 1, i
+        ADD .t88, .t88, .t89
+        IDX .t90, list, .t88
+        MUL .t87, 1, .t90
+        ADD .t86, .t86, .t87
+        IDX .t91, cns, .t86
+        ADD .t92, .t91, 1
+        ASSIGN .t93, 0
+        ASSIGN .t95, 0
+        MUL .t96, 1, i
+        ADD .t95, .t95, .t96
+        IDX .t97, list, .t95
+        MUL .t94, 1, .t97
+        ADD .t93, .t93, .t94
+        IDX .t98, cns, .t93
+        ASSIGN .t98, .t92
+        ADD .t99, i, 1
+        ASSIGN i, .t99
+        GOTO .M48
+.M50:
+        DEF ans
+        ASSIGN .t100, 0
+        MUL .t101, 1, 1
+        ADD .t100, .t100, .t101
+        IDX .t102, cns, .t100
+        ASSIGN .t103, 0
+        MUL .t104, 1, 2
+        ADD .t103, .t103, .t104
+        IDX .t105, cns, .t103
+        ASSIGN .t106, 0
+        MUL .t107, 1, 3
+        ADD .t106, .t106, .t107
+        IDX .t108, cns, .t106
+        ASSIGN .t109, 0
+        MUL .t110, 1, 4
+        ADD .t109, .t109, .t110
+        IDX .t111, cns, .t109
+        ASSIGN .t112, 0
+        MUL .t113, 1, 5
+        ADD .t112, .t112, .t113
+        IDX .t114, cns, .t112
+        PARAM 0
+        PARAM .t114
+        PARAM .t111
+        PARAM .t108
+        PARAM .t105
+        PARAM .t102
+        CALL .t115, @dfs
+        ASSIGN ans, .t115
+        PARAM ans
+        CALL .t116, @putint
+        ASSIGN .t117, ans
+        GOTO .M51
+.M51:
+        RET .t117
         END
+
 */

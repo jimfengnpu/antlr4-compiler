@@ -12,6 +12,7 @@ class IRRunner: IRProcessor{
 public:
     ostream& fout;
     istream& fin;
+    int returnVal;
     bool needNewLine = false;
     pIRFunc curFunc = nullptr;
     vector<pIRValObj> paramsBuf;
@@ -27,11 +28,11 @@ public:
         run(visitor.globalData);
         auto frame = new DataFrame();
         frameStack.push_back(frame);
-        int rt = runFunc(std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main")));
+        returnVal = runFunc(std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main")));
         frameStack.pop_back();
         delete frame;
         if(needNewLine)fout <<endl;
-        fout << rt << endl;
+        fout << (returnVal&0xFF) << endl;
     }
     int callLib(pIRFunc libFunc);
     pBlock run(pBlock block);

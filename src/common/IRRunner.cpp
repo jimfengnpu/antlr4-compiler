@@ -11,8 +11,8 @@ int IRRunner::callLib(pIRFunc libFunc){
         fout <<c;
         needNewLine = false;
     }else if(name == "@putarray"){
-        pIRArrValObj arr = dynamic_pointer_cast<IRArrValObj>(paramsBuf.back());
-        int val, n = getValue(paramsBuf[paramsBuf.size() -2]);
+        pIRArrValObj arr = dynamic_pointer_cast<IRArrValObj>(paramsBuf[0]);
+        int val, n = getValue(paramsBuf[1]);
         fout << n << ":";
         int addr = getAddr(arr);
         for(int i=0;i<n;i++){
@@ -67,9 +67,15 @@ int IRRunner::runFunc(pIRFunc func){
 int IRRunner::getAddr(pIRValObj obj){
     if(obj->fa)return getAddr(obj->fa) + obj->offset;
     int addr;
-    try{
-        addr = frameStack.back()->frameData.at(obj);
-    }catch(...){
+    bool flag = false;
+    if(!frameStack.empty()){
+        try{
+            addr = frameStack.back()->frameData.at(obj);
+            flag = true;
+        }catch(...){
+        }
+    }
+    if(!flag){
         try{
             addr = globalData.frameData.at(obj);
         }catch(...){
@@ -83,15 +89,18 @@ int IRRunner::getAddr(pIRValObj obj){
 
 int IRRunner::getValue(pIRObj obj){
     auto valObj = dynamic_pointer_cast<IRScalValObj>(obj);
-    int addr = getAddr(valObj);
     int rt = 0;
     bool flag = false;
-    if(valObj->isConst){
+    if(valObj->isConst&&(!valObj->isIdent)){
         rt = valObj->value;
         #ifdef VAL_IR
             cout << "const ";
         #endif
     }else{
+        int addr = getAddr(valObj);
+        #ifdef VAL_IR
+        cout << "addr: "<<obj->name << " "<<addr<<" ";
+        #endif
         rt = addr2val[addr];
     }
     #ifdef VAL_IR
@@ -104,6 +113,9 @@ int IRRunner::getValue(pIRObj obj){
 
 void IRRunner::storeValue(pIRValObj obj, int val){
     int addr = getAddr(obj);
+    #ifdef VAL_IR
+        cout << "addr: "<<obj->name << " "<<addr<<" ";
+    #endif
     addr2val[addr] = val;
     #ifdef VAL_IR
         cout << "st "<< obj;
@@ -186,6 +198,15 @@ void IRRunner::operateScalObj(IRType type, pIRObj target, pIRObj opt1, pIRObj op
     storeValue(targ, value);
 }
 void IRRunner::runSysY(const SysYIR& instr){
+    #ifdef VAL_IR
+    cout << IRTypeName(instr.type);
+    if(instr.target != nullptr)
+        cout << " " << instr.target.get()->name;
+    if(instr.opt1 != nullptr)
+        cout << ", " << instr.opt1.get()->name;
+    if(instr.opt2 != nullptr)
+        cout << ", " << instr.opt2.get()->name<<endl;
+    #endif
     pIRScalValObj targ = nullptr;
     pIRValObj param = nullptr;
     pIRFunc func;
@@ -228,20 +249,20 @@ void IRRunner::runSysY(const SysYIR& instr){
         }else{
             auto rParam = paramsBuf.rbegin();
             auto frame = new DataFrame();
-            frameStack.push_back(frame);
             for(auto& obj: func->params){
                 // *(obj.get()) = *(*(rParam)).get();
                 if(auto arg = dynamic_pointer_cast<IRScalValObj>(*rParam) ){
                     auto valObj = dynamic_pointer_cast<IRScalValObj>(obj);
-                    int val = getValue(arg);
-                    storeValue(valObj, val);
+                    frame->frameData[valObj] = addrTop++;
+                    addr2val[frame->frameData[valObj]] = getValue(arg);
                 }else {
                     auto arrArg = dynamic_pointer_cast<IRArrValObj>(*rParam);
                     auto valObj = dynamic_pointer_cast<IRArrValObj>(obj);
-                    storeValue(valObj, getValue(arrArg));
+                    frame->frameData[valObj] = getAddr(arrArg);
                 }
                 rParam++;
             }
+            frameStack.push_back(frame);
             rt = runFunc(func);
             frameStack.pop_back();
             delete frame;
@@ -253,7 +274,7 @@ void IRRunner::runSysY(const SysYIR& instr){
     case IRType::ARR:
         arr = dynamic_pointer_cast<IRArrValObj>(instr.target);
         targ = dynamic_pointer_cast<IRScalValObj>(instr.opt1);
-        storeValue(arr, getAddr(targ));
+        frameStack.back()->frameData[arr] = getAddr(targ);
         break;
     case IRType::IDX:
         targ = dynamic_pointer_cast<IRScalValObj>(instr.target);

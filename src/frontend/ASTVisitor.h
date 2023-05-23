@@ -94,6 +94,16 @@ public:
         }
     }
 
+    bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr){
+        if(curBlock && curBlock->finishBB(next_normal, next_branch, branch_val)){
+            next_normal->from.push_back(curBlock);
+            if(next_branch)
+                next_branch->from.push_back(curBlock);
+            return true;
+        }
+        return false;
+    }
+
     virtual std::any visitChildren(antlr4::tree::ParseTree *ctx)override;
     virtual std::any visitCompUnit(SysYParser::CompUnitContext * ctx)override;
     virtual std::any visitFuncDef(SysYParser::FuncDefContext* ctx)override;

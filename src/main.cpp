@@ -41,13 +41,13 @@ int main(int argc, char** argv) {
     //     if(auto sym = value.get())
     //         cout << *(sym) <<endl;
     // }
-    #ifdef VAL_IR
+    // #ifdef VAL_IR
         cout << "IR:"<<endl;
         cout << *(visitor.globalData.get());
         for(auto &f : visitor.functions){
             cout << *f;
         }
-    #endif
+    // #endif
     // assert(argc >= 3);
     // try{
     //     ofstream& foutput(string(argv[2]));

@@ -241,7 +241,7 @@ public:
     pIRScalValObj branchVal = nullptr;
     int blockType; // 0 normal 1 branch 2 loop
 
-    IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName():name), 
+    IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
     void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
     {
@@ -255,8 +255,8 @@ public:
         return true;
     }
     virtual void print(ostream& os) const override;
-    virtual string getDefaultName() {
-        switch (blockType)
+    virtual string getDefaultName(int type) {
+        switch (type)
         {
         case IR_LOOP:
             return ".L" + to_string(++loopId);

@@ -146,6 +146,50 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
     return nullptr;
 }
 
+pIRScalValObj ASTVisitor::calcExp(IRType type, pIRScalValObj exp1, pIRScalValObj exp2, bool is_const){
+    if(is_const){
+        int value = 0;
+        assert(exp1 != nullptr);
+        switch(type){
+            case IRType::ADD:
+                value = exp1->value + exp2->value;break;
+            case IRType::SUB:
+                value = exp1->value - exp2->value;break;
+            case IRType::MUL:
+                value = exp1->value * exp2->value;break;
+            case IRType::DIV:
+                if(exp2->value == 0)throw runtime_error("divided by zero");
+                value = exp1->value / exp2->value;break;
+            case IRType::MOD:
+                if(exp2->value == 0)throw runtime_error("divided by zero");
+                value = exp1->value % exp2->value;break;
+            case IRType::NEG:
+                value = - exp1->value;break;
+            case IRType::NOP:
+                value = exp1->value;break;
+            case IRType::NOT:
+                value = exp1->value?0:1;break;
+            case IRType::EQ:
+                value = (exp1->value == exp2->value)?1:0;break;
+            case IRType::NEQ:
+                value = (exp1->value != exp2->value)?1:0;break;
+            case IRType::LT:
+                value = (exp1->value < exp2->value)?1:0;break;
+            case IRType::GT:
+                value = (exp1->value > exp2->value)?1:0;break;
+            case IRType::LE:
+                value = (exp1->value <= exp2->value)?1:0;break;
+            case IRType::GE:
+                value = (exp1->value >= exp2->value)?1:0;break;
+        }
+        return newObj<IRScalValObj>(value);
+    }else{
+        auto obj = newObj<IRScalValObj>(false, "");
+        insertIR(type, obj, exp1, exp2);
+        return obj;
+    }
+}
+
 std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
     // cout << "enter exp"<<endl;
     if(auto v = ctx->IntConstant()){
@@ -172,7 +216,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
         if(!expVec.empty()){
             for(auto exp: ctx->exp()){
                 visit(exp);
-                is_const = is_const && (exp->obj->isConst && exp->obj->fa == nullptr);
+                is_const = is_const && (exp->obj->isConstant());
             }
         }
         if(ctx->op != nullptr) {
@@ -180,54 +224,11 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             int op_idx = ctx->exp().size() - 1;
             // cout << "exp "<< num_op <<endl;
             IRType type = opfinder[op_idx][op];
-            if(is_const){
-                int value = 0;
-                pIRScalValObj exp1 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(0)->obj);
-                pIRScalValObj exp2 = nullptr;
-                if(op_idx == 1)
-                    exp2 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(1)->obj);
-                assert(exp1 != nullptr);
-                assert(op_idx == 0 || exp2 != nullptr);
-                switch(type){
-                    case IRType::ADD:
-                        value = exp1->value + exp2->value;break;
-                    case IRType::SUB:
-                        value = exp1->value - exp2->value;break;
-                    case IRType::MUL:
-                        value = exp1->value * exp2->value;break;
-                    case IRType::DIV:
-                        if(exp2->value == 0)throw runtime_error("divided by zero");
-                        value = exp1->value / exp2->value;break;
-                    case IRType::MOD:
-                        if(exp2->value == 0)throw runtime_error("divided by zero");
-                        value = exp1->value % exp2->value;break;
-                    case IRType::NEG:
-                        value = - exp1->value;break;
-                    case IRType::NOP:
-                        value = exp1->value;break;
-                    case IRType::NOT:
-                        value = exp1->value?0:1;break;
-                    case IRType::EQ:
-                        value = (exp1->value == exp2->value)?1:0;break;
-                    case IRType::NEQ:
-                        value = (exp1->value != exp2->value)?1:0;break;
-                    case IRType::LT:
-                        value = (exp1->value < exp2->value)?1:0;break;
-                    case IRType::GT:
-                        value = (exp1->value > exp2->value)?1:0;break;
-                    case IRType::LE:
-                        value = (exp1->value <= exp2->value)?1:0;break;
-                    case IRType::GE:
-                        value = (exp1->value >= exp2->value)?1:0;break;
-                }
-                ctx->obj = newObj<IRScalValObj>(value);
-            }else{
-                ctx->obj = newObj<IRScalValObj>(false, "");
-                if(op_idx == 1)
-                    insertIR(type, ctx->obj, ctx->exp(0)->obj, ctx->exp(1)->obj);
-                else 
-                    insertIR(type, ctx->obj, ctx->exp(0)->obj, nullptr);
-            }
+            pIRScalValObj exp1 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(0)->obj);
+            pIRScalValObj exp2 = nullptr;
+            if(op_idx == 1)
+                exp2 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(1)->obj);
+            ctx->obj = calcExp(type, exp1, exp2, is_const);
         }else if(auto func = ctx->Ident()){
             ctx->obj = newObj<IRScalValObj>(false, "");
             auto funcObj = dynamic_pointer_cast<IRFunc>(findSymbol("@" + func->getText()));
@@ -288,24 +289,31 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
         assert(arrObj != nullptr);
         auto dim = arrObj.get()->dims;
         int size = arrObj.get()->size;
-        auto off = newObj<IRScalValObj>(false, "");
-        auto tmp = newObj<IRScalValObj>(false, "");
+        // auto off = newObj<IRScalValObj>(false, "");
+        // auto tmp = newObj<IRScalValObj>(false, "");
+        pIRScalValObj off = nullptr, tmp = nullptr;
         // auto sub = SysYParser::ExpContext()
-        insertIR(IRType::ASSIGN, off, 
-            newObj<IRScalValObj>(0), nullptr);
         auto iter = dim.begin();
         if(curFunc == nullptr)throw runtime_error("lVal array reference global");
         if(ctx->arrAccess().size()){
             for(auto arrCtx: ctx->arrAccess()) {
                 int childSize = size/(*iter);
                 // ctx->addChild()
-                insertIR(IRType::MUL, tmp, 
-                    newObj<IRScalValObj>(childSize), 
-                    any_cast<pIRValObj>(visit(arrCtx->exp())));
-                insertIR(IRType::ADD, off, off, tmp);
+                // insertIR(IRType::MUL, tmp, 
+                //     newObj<IRScalValObj>(childSize), 
+                //     any_cast<pIRValObj>(visit()));
+                // insertIR(IRType::ADD, off, off, tmp);
+                if(nullptr == off){
+                    off = newObj<IRScalValObj>(0);
+                }
+                auto dimExp = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visit(arrCtx->exp())));
+                tmp = calcExp(IRType::MUL, newObj<IRScalValObj>(childSize), dimExp, dimExp->isConstant());
+                off = calcExp(IRType::ADD, off, tmp, off->isConstant()&& tmp->isConstant());
                 iter++;
                 size = childSize;
             }
+        }else {
+            off = newObj<IRScalValObj>(0);
         }
         if(iter != dim.end()){
             vector<int> new_dim;
@@ -314,7 +322,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
                 iter++;
             }
             auto newArr = newObj<IRArrValObj>(arrObj, new_dim,"");
-            insertIR(IRType::ARR, newArr, arrObj, nullptr);
+            insertIR(IRType::ARR, newArr, arrObj, off);
             return (pIRValObj)newArr;
         }
         auto elem = newObj<IRScalValObj>(arrObj, "");

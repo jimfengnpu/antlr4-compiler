@@ -13,7 +13,7 @@ ${TARGET_FILE}:
 	-mkdir build
 	@cd build && cmake .. && make -j4
 
-gen_code:
+gen_code:${GRAMMAR_RULE}
 	-rm ${ANTLR_GEN_DIR}/*
 	-rm -r ${ANTLR_GEN_DIR}/../grammar/.antlr
 	antlr4 ${GRAMMAR_RULE} -Dlanguage=Cpp -Xexact-output-dir -visitor -o ${ANTLR_GEN_DIR}

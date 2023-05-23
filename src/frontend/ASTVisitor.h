@@ -103,7 +103,7 @@ public:
         }
         return false;
     }
-
+    pIRScalValObj calcExp(IRType type, pIRScalValObj exp1, pIRScalValObj exp2, bool is_const);
     virtual std::any visitChildren(antlr4::tree::ParseTree *ctx)override;
     virtual std::any visitCompUnit(SysYParser::CompUnitContext * ctx)override;
     virtual std::any visitFuncDef(SysYParser::FuncDefContext* ctx)override;

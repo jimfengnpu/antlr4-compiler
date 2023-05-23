@@ -210,7 +210,7 @@ void IRRunner::runSysY(const SysYIR& instr){
     pIRScalValObj targ = nullptr;
     pIRValObj param = nullptr;
     pIRFunc func;
-    pIRArrValObj arr;
+    pIRArrValObj arr, arrTarg;
     int addr;
     switch (instr.type)
     {
@@ -273,8 +273,9 @@ void IRRunner::runSysY(const SysYIR& instr){
         break;
     case IRType::ARR:
         arr = dynamic_pointer_cast<IRArrValObj>(instr.target);
-        targ = dynamic_pointer_cast<IRScalValObj>(instr.opt1);
-        frameStack.back()->frameData[arr] = getAddr(targ);
+        arrTarg = dynamic_pointer_cast<IRArrValObj>(instr.opt1);
+        arr->offset = getValue(instr.opt2);
+        frameStack.back()->frameData[arr] = getAddr(arrTarg) + arr->offset;
         break;
     case IRType::IDX:
         targ = dynamic_pointer_cast<IRScalValObj>(instr.target);

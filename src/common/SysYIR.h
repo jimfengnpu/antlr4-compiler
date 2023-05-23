@@ -71,6 +71,9 @@ public:
                 this->name = getDefaultName();
         }
     }
+    inline bool isConstant(){
+        return isConst&&(fa==nullptr);
+    }
     virtual void print(ostream& os) const override;
     virtual string getDefaultName() {
         return ".t" + to_string(++tmpValId);

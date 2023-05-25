@@ -65,11 +65,8 @@ public:
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),
     fa(nullptr), isConst(isConst){
     }
-    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), IRObj(true, name),
-        isConst(((IRValObj*)arrParent.get())->isConst){
-        if(name.empty()){
-                this->name = getDefaultName();
-        }
+    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), 
+        IRObj(true, name.empty()? getDefaultName(): name), isConst(((IRValObj*)arrParent.get())->isConst){
     }
     inline bool isConstant(){
         return isConst&&(fa==nullptr);
@@ -239,6 +236,8 @@ class IRBlock : public IRObj
 public:
     vector<pBlock> from;
     vector<unique_ptr<SysYIR> > structions;
+    vector<pBlock> domChild;
+    pBlock domFa;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
     pIRScalValObj branchVal = nullptr;
@@ -252,7 +251,7 @@ public:
     }
     bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr) {
         if(nextNormal != nullptr)return false;
-        nextNormal = next_normal;
+        nextNormal = next_normal; 
         nextBranch = next_branch;
         branchVal = branch_val;
         return true;
@@ -262,11 +261,11 @@ public:
         switch (type)
         {
         case IR_LOOP:
-            return ".L" + to_string(++loopId);
+            return "L" + to_string(++loopId);
         case IR_BRANCH:
-            return ".B" + to_string(++branchId);
+            return "B" + to_string(++branchId);
         default:
-            return ".M" + to_string(++masterId);
+            return "M" + to_string(++masterId);
         }
     }
 };

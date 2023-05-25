@@ -8,7 +8,7 @@ public:
 };
 // typedef shared_ptr<DataFrame> pDataFrame;
 
-class IRRunner: IRProcessor{
+class IRRunner: public IRProcessor{
 public:
     ostream& fout;
     istream& fin;
@@ -22,10 +22,9 @@ public:
     std::map<int, string> addr2str;
     int addrTop = 0;
     IRRunner()=default;
-    IRRunner(ASTVisitor& visitor, istream& fin, ostream& fout): IRProcessor(visitor),
-        fin(fin), fout(fout){}
-    virtual void apply(){
-        run(visitor.globalData);
+    IRRunner(istream& fin, ostream& fout): fin(fin), fout(fout){}
+    virtual void apply(ASTVisitor& visitor){
+        visit(visitor.globalData);
         auto frame = new DataFrame();
         frameStack.push_back(frame);
         returnVal = runFunc(std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main")));
@@ -35,7 +34,7 @@ public:
         fout << (returnVal&0xFF) << endl;
     }
     int callLib(pIRFunc libFunc);
-    pBlock run(pBlock block);
+    virtual pBlock visit(pBlock block);
     int runFunc(pIRFunc func);
     void runSysY(const SysYIR& instr);
     void operateScalObj(IRType type, pIRObj target, pIRObj opt1, pIRObj opt2);

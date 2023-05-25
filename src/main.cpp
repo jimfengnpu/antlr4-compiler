@@ -2,7 +2,9 @@
 #include "frontend/generated/SysYLexer.h"
 #include "frontend/generated/SysYParser.h"
 #include "frontend/ASTVisitor.h"
+#include "common/IRProcessor.h"
 #include "common/IRRunner.h"
+#include "backend/Dom.h"
 #include "iostream"
 #include "fstream"
 
@@ -41,13 +43,6 @@ int main(int argc, char** argv) {
     //     if(auto sym = value.get())
     //         cout << *(sym) <<endl;
     // }
-    // #ifdef VAL_IR
-        cout << "IR:"<<endl;
-        cout << *(visitor.globalData.get());
-        for(auto &f : visitor.functions){
-            cout << *f;
-        }
-    // #endif
     // assert(argc >= 3);
     // try{
     //     ofstream& foutput(string(argv[2]));
@@ -55,8 +50,20 @@ int main(int argc, char** argv) {
     //     // s = tree->toStringTree(&parser, true);
     //     // std::cout << "Parse Tree: " << s << std::endl;
     //     ifstream finput(argv[3]);
-    IRRunner runner(visitor, cin, cout);
-    runner.apply();
+    // IRRunner runner(visitor, cin, cout);
+    // runner.apply();
+    IRProcessors processors(visitor);
+    processors.add(new DomMaker());
+    // processors.add(new IRRunner(cin, cout));
+
+    processors.apply();
+    // #ifdef VAL_IR
+        // cout << "IR:"<<endl;
+        // cout << *(visitor.globalData.get());
+        for(auto &f : visitor.functions){
+            cout << *f;
+        }
+    // #endif
     // }catch(...){
     //     cout << "open file failed" << endl;
     //     return -1;

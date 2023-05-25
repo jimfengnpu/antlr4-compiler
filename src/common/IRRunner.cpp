@@ -43,7 +43,7 @@ int IRRunner::callLib(pIRFunc libFunc){
     return 0;
 }
 
-pBlock IRRunner::run(pBlock block){
+pBlock IRRunner::visit(pBlock block){
     #ifdef VAL_IR
         cout << "enter:" << block->name <<endl;
     #endif
@@ -57,7 +57,7 @@ pBlock IRRunner::run(pBlock block){
 int IRRunner::runFunc(pIRFunc func){
     pBlock block = func->entry;
     while(block != nullptr){
-        block = run(block);
+        block = visit(block);
     }
     int rt = 0;
     if(func->returnVal) rt = getValue(func->returnVal);

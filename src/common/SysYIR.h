@@ -56,8 +56,8 @@ typedef shared_ptr<IRObj> pIRObj;
 
 class IRValObj : public IRObj
 {
-public:
     static int tmpValId;
+public:
     bool isConst;
     int offset;
     shared_ptr<IRArrValObj> fa;
@@ -122,8 +122,8 @@ public:
 
 class IRStrValObj : public IRValObj
 {
-public:
     static int constStrId;
+public:
     string value;
     IRStrValObj() {}
     IRStrValObj(string value, string name) : value(value), IRValObj(true, false, name)
@@ -237,6 +237,7 @@ public:
     vector<pBlock> from;
     vector<unique_ptr<SysYIR> > structions;
     vector<pBlock> domChild;
+    vector<pBlock> domFrontier;
     pBlock domFa;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
@@ -256,7 +257,20 @@ public:
         branchVal = branch_val;
         return true;
     }
+
+    // bool dominate(pBlock block, bool strict=true){
+    //     if(block && strict){
+    //         block = block->domFa;
+    //     }
+    //     while(block){
+    //         if(block.get() == this)return true;
+    //         block = block->domFa;
+    //     }
+    //     return false;
+    // }
+
     virtual void print(ostream& os) const override;
+
     virtual string getDefaultName(int type) {
         switch (type)
         {

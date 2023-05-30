@@ -44,4 +44,16 @@ void DomMaker::makeDom(pIRFunc func){
         p->domFa = idom[p];
         idom[p]->domChild.push_back(p);
     }
+    for(int i=0; i < visitId; i++){
+        p = visitBlocks[i];
+        if(p->from.size() > 1){
+            for(pBlock pp: p->from){
+                pBlock runner = pp;
+                while(runner != p->domFa){
+                    runner->domFrontier.push_back(p);
+                    runner = runner->domFa;
+                }
+            }
+        }
+    }
 }

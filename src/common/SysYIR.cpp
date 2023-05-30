@@ -51,31 +51,32 @@ void SysYIR::print(std::ostream& os) const{
 }
 
 void IRBlock::print(std::ostream& os) const{
-    // os << name << ":\n";
-    os << name << "[label=\"" << name << " |";
-    if(structions.size() > 4){ 
-        os << *structions[0].get() <<"\\|";
-        os << *structions[1].get() <<"\\|...\\|";
-        os << *structions[structions.size() -1].get() <<"\\|";
-    }else{
+    os << name << ":\n";
+    // os << name << "[label=\"" << name << " |";
+    // if(structions.size() > 4){ 
+    //     os << *structions[0].get() <<"\\|";
+    //     os << *structions[1].get() <<"\\|...\\|";
+    //     os << *structions[structions.size() -1].get() <<"\\|";
+    // }else{
     for(auto &ir: structions) {
-        os << *ir.get() << "\\|";//std::endl;
+        // os << *ir.get() << "\\|";//std::endl;
+        os << *ir.get() << std::endl;
     }
-    }
-    os << "\"];"<<endl;
-    //cfg
-    for(auto p: from){
-        os << p->name << " -> " << name << ";" << endl;
-    }
-    //dom
-    if(domFa != nullptr)
-        os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
-    // if(nullptr != nextBranch){
-    //     os << "\tIF " << branchVal->name << " GOTO " 
-    //         << nextBranch.get()->name << endl;
     // }
-    // if(nullptr != nextNormal)
-    //     os << "\tGOTO " << nextNormal.get()->name << endl;
+    // os << "\"];"<<endl;
+    //cfg
+    // for(auto p: from){
+    //     os << p->name << " -> " << name << ";" << endl;
+    // }
+    //dom
+    // if(domFa != nullptr)
+    //     os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
+    if(nullptr != nextBranch){
+        os << "\tIF " << branchVal->name << " GOTO " 
+            << nextBranch.get()->name << endl;
+    }
+    if(nullptr != nextNormal)
+        os << "\tGOTO " << nextNormal.get()->name << endl;
     // else
     //     os << "\tEND" << endl;
 }

@@ -5,6 +5,7 @@
 #include "common/IRProcessor.h"
 #include "common/IRRunner.h"
 #include "backend/Dom.h"
+#include "backend/SSA.h"
 #include "iostream"
 #include "fstream"
 
@@ -54,6 +55,7 @@ int main(int argc, char** argv) {
     // runner.apply();
     IRProcessors processors(visitor);
     processors.add(new DomMaker());
+    processors.add(new SSAMaker());
     // processors.add(new IRRunner(cin, cout));
 
     processors.apply();

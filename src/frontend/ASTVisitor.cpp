@@ -147,6 +147,12 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
 }
 
 pIRScalValObj ASTVisitor::calcExp(IRType type, pIRScalValObj exp1, pIRScalValObj exp2, bool is_const){
+    // if(exp1!= nullptr && !exp1->isTmp){
+    //     curBlock->useObj.push_back(exp1);
+    // }
+    // if(exp2!= nullptr && !exp2->isTmp){
+    //     curBlock->useObj.push_back(exp2);
+    // }
     if(is_const){
         int value = 0;
         assert(exp1 != nullptr);
@@ -337,6 +343,9 @@ std::any ASTVisitor::visitAssignStmt(SysYParser::AssignStmtContext* ctx) {
     visit(ctx->exp());
     auto lValObj = any_cast<pIRValObj>(visit(ctx->lVal()));
     insertIR(IRType::ASSIGN, lValObj, ctx->exp()->obj, nullptr);
+    // if(!lValObj->isTmp){
+    //     curBlock->defObj.push_back(lValObj);
+    // }
     return nullptr;
 }
 

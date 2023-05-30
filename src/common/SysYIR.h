@@ -59,10 +59,11 @@ class IRValObj : public IRObj
     static int tmpValId;
 public:
     bool isConst;
+    bool isTmp;
     int offset;
     shared_ptr<IRArrValObj> fa;
     IRValObj() {}
-    IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),
+    IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
     fa(nullptr), isConst(isConst){
     }
     IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), 
@@ -239,6 +240,10 @@ public:
     vector<pBlock> domChild;
     vector<pBlock> domFrontier;
     pBlock domFa;
+    vector<pIRValObj> defObj;
+    vector<pIRValObj> useObj;
+    map<pIRValObj, vector<pBlock> > phiFa;
+    map<pIRValObj, vector<pIRValObj> > phiList;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
     pIRScalValObj branchVal = nullptr;

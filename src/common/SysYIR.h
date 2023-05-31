@@ -66,9 +66,10 @@ public:
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
     fa(nullptr), isConst(isConst){
     }
-    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent), 
+    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent),isTmp(name.empty()),
         IRObj(true, name.empty()? getDefaultName(): name), isConst(((IRValObj*)arrParent.get())->isConst){
     }
+    //note: for const indent return true
     inline bool isConstant(){
         return isConst&&(fa==nullptr);
     }
@@ -242,8 +243,9 @@ public:
     pBlock domFa;
     vector<pIRValObj> defObj;
     vector<pIRValObj> useObj;
-    map<pIRValObj, vector<pBlock> > phiFa;
-    map<pIRValObj, vector<pIRValObj> > phiList;
+    vector<pIRValObj> phiFa;
+    map<pIRValObj, vector<pair<pBlock, pIRValObj> > > phiList;
+    map<pIRValObj, pIRValObj> phiObj;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
     pIRScalValObj branchVal = nullptr;
@@ -295,9 +297,10 @@ typedef pair<pBlock, pBlock> pCondBlocks;
 class SymbolTable
 {
 public:
+    bool isGlobal;
     map<string, pIRObj> symbols = {};
     SymbolTable() = default;
-    SymbolTable(const SymbolTable& table){
+    SymbolTable(const SymbolTable& table): isGlobal(false){
         symbols = table.symbols;
     }
     ~SymbolTable() = default;
@@ -329,8 +332,9 @@ public:
     IRFunc(int returnType, string name, vector<pIRValObj> params, SymbolTable* table):
         IRObj(true, name), returnType(returnType), symbolTable(table), params(params) {
         if(symbolTable != nullptr){
-            for(auto arg: this->params) {
+            for(auto& arg: this->params) {
                 symbolTable->registerSymbol(arg);
+                arg->scopeSymbols = symbolTable;
             }
         }
     }

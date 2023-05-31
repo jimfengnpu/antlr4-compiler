@@ -74,17 +74,22 @@ public:
         SysYParser::BlockContext* scope = curScopeBlock;
         while(nullptr != scope) {
             pIRObj obj = scope->symbolTable.findSymbol(name);
-            if(obj)return obj;
+            if(obj){
+                // cout << "find "<< name << " in " << scope <<endl;
+                return obj;
+            }
             scope = scope->upperBlock;
         }
+        // cout << "find "<< name << " in " << scope <<endl;
         return globalSymbolTable.findSymbol(name);
     }
 
     pIRObj registerIndent(pIRObj obj){
         if(curScopeBlock != nullptr){
             curScopeBlock->symbolTable.registerSymbol(obj);
-        }
-        globalSymbolTable.registerSymbol(obj);
+        }else
+            globalSymbolTable.registerSymbol(obj);
+        // cout << "add "<< obj->name << " in " << curScopeBlock << endl;
         return obj;
     }
 

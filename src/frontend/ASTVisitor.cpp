@@ -11,6 +11,7 @@ std::any ASTVisitor::visitChildren(antlr4::tree::ParseTree *ctx) {
 std::any ASTVisitor::visitCompUnit(SysYParser::CompUnitContext * ctx) {
     registerLibFunc();
     globalData = make_shared<IRBlock>(IR_NORMAL, ".global");
+    globalSymbolTable.isGlobal = true;
     curBlock = globalData;
     // curFunc->blocks.push_back(curBlock);
     visitChildren(ctx);

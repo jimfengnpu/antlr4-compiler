@@ -1,6 +1,7 @@
 digraph{ nodesep = 1; node[shape = record];
-M1[label="M1 |DEF temp\|MUL .t6, 1, i\|...\|ASSIGN .t18, 0\|"];
-M2[label="M2 |RET .t18\|"];
+M9[label="M9"];
+M10[label="M10"];
+M11[label="M11"];
 M1 -> M2;
 M1 -> M2[color="red"];
 }

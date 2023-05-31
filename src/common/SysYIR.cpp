@@ -58,9 +58,16 @@ void IRBlock::print(std::ostream& os) const{
     //     os << *structions[1].get() <<"\\|...\\|";
     //     os << *structions[structions.size() -1].get() <<"\\|";
     // }else{
+    for(auto& [obj, vec]: phiList){
+        os << "\tPHI " << phiObj.at(obj)->name;
+        for(auto f: vec){
+            os << " ("<< f.first->name << ")"<<f.second->name<<" ";
+        }
+        os << endl;
+    }
     for(auto &ir: structions) {
-        // os << *ir.get() << "\\|";//std::endl;
-        os << *ir.get() << std::endl;
+        // os << *ir.get() << "\\|";
+        os << "\t" << *ir.get() << std::endl;
     }
     // }
     // os << "\"];"<<endl;

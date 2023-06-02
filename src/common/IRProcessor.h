@@ -6,7 +6,9 @@ class IRProcessor{
 public:
     IRProcessor()=default;
     virtual void apply(ASTVisitor& visitor)=0;
-    virtual pBlock visit(pBlock root)=0;
+    virtual pBlock visit(pBlock root){
+        return nullptr;
+    };
 };
 
 class IRProcessors{
@@ -21,5 +23,26 @@ public:
     }
     void add(IRProcessor* proc){
         processors.push_back(proc);
+    }
+};
+
+class BlockPruner: public IRProcessor{
+    vector<pBlock> deleted;
+public:
+    BlockPruner()=default;
+    bool checkRemoveEmptyBlock(pBlock block);
+    virtual void apply(ASTVisitor& visitor){
+        for(auto& f: visitor.functions){
+            deleted.clear();
+            for(auto block: f->blocks){
+                if(block != f->entry && block != f->exit){
+                    if(checkRemoveEmptyBlock(block))
+                        deleted.push_back(block);
+                }
+            }
+            for(auto p: deleted){
+                f->blocks.erase(p);
+            }
+        }
     }
 };

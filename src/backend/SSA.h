@@ -36,6 +36,7 @@ public:
                 renamedObj.clear();
                 visited.clear();
                 renamedId.clear();
+                visitStack.clear();
                 for(auto& param: func->params){
                     pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(param);
                     if(obj){
@@ -51,4 +52,17 @@ public:
     }
     pIRValObj findUsingObj(pIRValObj origin);
     pIRObj renameObj(pBlock block, pIRObj operand);
+};
+
+class SSAFinalizer: public IRProcessor{
+public:
+    SSAFinalizer(){}
+    virtual pBlock visit(pBlock block);
+    virtual void apply(ASTVisitor& visitor){
+        for(auto& func: visitor.functions){
+            if(func->entry){
+                visit(func->entry);
+            }
+        }
+    }
 };

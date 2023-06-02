@@ -30,7 +30,7 @@ void SSAMaker::fillPostPhi(pBlock block, pBlock from){
     for(auto& obj: block->phiFa){
         auto found = findUsingObj(obj);
         if(found)
-            block->phiList[obj].push_back({from, found});
+            block->phiList[obj].insert({from, found});
     }
 }
 
@@ -50,7 +50,6 @@ void SSAMaker::visitRename(pBlock block){
     }
     for(auto& ir: block->structions){
         // cout << *ir.get() << endl;
-        if(ir->type == IRType::PARAM)continue;
         if(ir->opt1)ir->opt1= renameObj(block, ir->opt1);
         if(ir->opt2)ir->opt2 = renameObj(block, ir->opt2);
         pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(ir->target), newObj = nullptr;
@@ -78,4 +77,10 @@ void SSAMaker::visitRename(pBlock block){
         visitRename(child);
     }
     visitStack.pop_back();
+}
+
+pBlock SSAFinalizer::visit(pBlock block){
+    int needResolveCnt = 0;
+    
+    return nullptr;
 }

@@ -3,6 +3,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <set>
 #include <map>
 #include <memory>
 #include <utility>
@@ -66,8 +67,8 @@ public:
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
     fa(nullptr), isConst(isConst){
     }
-    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): fa(arrParent),isTmp(name.empty()),
-        IRObj(true, name.empty()? getDefaultName(): name), isConst(((IRValObj*)arrParent.get())->isConst){
+    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRObj(true, name.empty()? getDefaultName(): name),isTmp(name.empty()),
+        fa(arrParent),isConst(((IRValObj*)arrParent.get())->isConst){
     }
     //note: for const indent return true
     inline bool isConstant(){
@@ -96,8 +97,7 @@ public:
         }
         value = map<int, shared_ptr<IRScalValObj> >();
     }
-    IRArrValObj(const shared_ptr<IRArrValObj>& arrParent, vector<int> dims, string name){
-        IRValObj(arrParent, name);
+    IRArrValObj(const shared_ptr<IRArrValObj>& arrParent, vector<int> dims, string name): IRValObj(arrParent, name){
         size = 1;
         for (auto d : dims)
         {
@@ -129,9 +129,7 @@ public:
     string value;
     IRStrValObj() {}
     IRStrValObj(string value, string name) : value(value), IRValObj(true, false, name)
-    {
-        fa = nullptr;
-    }
+    {}
     virtual void print(ostream& os) const override;
     virtual string getDefaultName() {
         return ".s" + to_string(++constStrId);
@@ -236,26 +234,30 @@ class IRBlock : public IRObj
     static int loopId;
     static int branchId;
 public:
-    vector<pBlock> from;
-    vector<unique_ptr<SysYIR> > structions;
+    // basic & CFG <lv 0>
+    vector<shared_ptr<SysYIR> > structions;
+    int blockType; // 0 normal 1 branch 2 loop
+    pIRScalValObj branchVal = nullptr;
+    pBlock nextNormal = nullptr;
+    pBlock nextBranch = nullptr;
+    set<pBlock> from;
+    // dom <lv 1>
     vector<pBlock> domChild;
     vector<pBlock> domFrontier;
     pBlock domFa;
+    // SSA <lv2>
+    vector<pIRValObj> phiFa;
+    map<pIRValObj, set<pair<pBlock, pIRValObj> > > phiList;
+    map<pIRValObj, pIRValObj> phiObj;
+    // live interval <lv 3>
     vector<pIRValObj> defObj;
     vector<pIRValObj> useObj;
-    vector<pIRValObj> phiFa;
-    map<pIRValObj, vector<pair<pBlock, pIRValObj> > > phiList;
-    map<pIRValObj, pIRValObj> phiObj;
-    pBlock nextNormal = nullptr;
-    pBlock nextBranch = nullptr;
-    pIRScalValObj branchVal = nullptr;
-    int blockType; // 0 normal 1 branch 2 loop
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
     void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
     {
-        structions.push_back(make_unique<SysYIR>(type, t, op1, op2));
+        structions.push_back(make_shared<SysYIR>(type, t, op1, op2));
     }
     bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr) {
         if(nextNormal != nullptr)return false;
@@ -322,7 +324,7 @@ class IRFunc: public IRObj
     
 public:
     vector<pIRValObj> params;
-    vector<pBlock> blocks;
+    set<pBlock> blocks;
     pBlock entry;
     pBlock exit;
     SymbolTable* symbolTable;

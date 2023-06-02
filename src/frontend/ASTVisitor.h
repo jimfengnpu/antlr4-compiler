@@ -100,10 +100,12 @@ public:
     }
 
     bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr){
+        // cout << curBlock->name << " s:"<< curBlock->structions.size() << next_normal->name << endl;
         if(curBlock && curBlock->finishBB(next_normal, next_branch, branch_val)){
-            next_normal->from.push_back(curBlock);
+            next_normal->from.insert(curBlock);
             if(next_branch)
-                next_branch->from.push_back(curBlock);
+                next_branch->from.insert(curBlock);
+            curFunc->blocks.insert(curBlock);
             return true;
         }
         return false;

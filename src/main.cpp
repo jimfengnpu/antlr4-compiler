@@ -54,6 +54,9 @@ int main(int argc, char** argv) {
     // IRRunner runner(visitor, cin, cout);
     // runner.apply();
     IRProcessors processors(visitor);
+    // model list:
+    // DomMaker: generate dom tree in pBlock, dependency: 
+    processors.add(new BlockPruner());
     processors.add(new DomMaker());
     processors.add(new SSAMaker());
     // processors.add(new IRRunner(cin, cout));

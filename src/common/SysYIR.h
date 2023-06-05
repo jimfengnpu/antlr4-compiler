@@ -63,6 +63,8 @@ public:
     bool isTmp;
     int offset;
     shared_ptr<IRArrValObj> fa;
+    // live u-d <lv 4>
+
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
     fa(nullptr), isConst(isConst){
@@ -245,13 +247,15 @@ public:
     vector<pBlock> domChild;
     vector<pBlock> domFrontier;
     pBlock domFa;
-    // SSA <lv2>
+    // live interval <lv 2>
+    set<pIRValObj> defObj;
+    set<pIRValObj> useObj;
+    set<pIRValObj> liveIn;
+    set<pIRValObj> liveOut;
+    // SSA <lv3>
     vector<pIRValObj> phiFa;
     map<pIRValObj, set<pair<pBlock, pIRValObj> > > phiList;
     map<pIRValObj, pIRValObj> phiObj;
-    // live interval <lv 3>
-    vector<pIRValObj> defObj;
-    vector<pIRValObj> useObj;
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
@@ -325,6 +329,7 @@ class IRFunc: public IRObj
 public:
     vector<pIRValObj> params;
     set<pBlock> blocks;
+    set<pIRValObj> vals;
     pBlock entry;
     pBlock exit;
     SymbolTable* symbolTable;

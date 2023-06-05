@@ -46,3 +46,18 @@ public:
         }
     }
 };
+
+class LiveCalculator: public IRProcessor{
+    bool changed;
+public:
+    LiveCalculator(){}
+    void makeLive(pIRFunc& func);
+    virtual pBlock visit(pBlock block);
+    virtual void apply(ASTVisitor& visitor){
+        for(auto& f: visitor.functions){
+            if(f->entry){
+                makeLive(f);
+            }
+        }
+    }
+};

@@ -1,5 +1,6 @@
 #pragma once
 #include "../common/IRProcessor.h"
+#include <deque>
 
 class SSAMaker: public IRProcessor{
     map<pBlock, bool> visited;
@@ -8,35 +9,50 @@ class SSAMaker: public IRProcessor{
     vector<pBlock> visitStack;
 public:
     SSAMaker(){}
-    virtual pBlock visit(pBlock block){
-        for(auto& ir: block->structions){
-            if(ir->type == IRType::ASSIGN){
-                auto targ = dynamic_pointer_cast<IRValObj>(ir->target);
-                if(!targ->isTmp){
-                    for(auto df: block->domFrontier){
-                        df->phiFa.push_back(targ);
-                    }
-                }
-            }
-        }
-        for(pBlock child: block->domChild){
-            visit(child);
-        }
-        return nullptr;
-    }
+    // rename
+    virtual pBlock visit(pBlock block);
     string getNewName(pIRValObj obj){
         return obj->name + "." + to_string(renamedId[obj]++);
     }
-    void fillPostPhi(pBlock block, pBlock from);
-    void visitRename(pBlock block);
+    void fillSuccPhi(pBlock block, pBlock from);
     virtual void apply(ASTVisitor& visitor){
+        map<pIRValObj, set<pBlock> > phiUse;
+        set<pIRValObj> phiDef;
+        map<pBlock, bool> phiFlag;
         for(auto& func: visitor.functions){
             if(func->entry){
-                visit(func->entry);
+                //init
                 renamedObj.clear();
                 visited.clear();
                 renamedId.clear();
                 visitStack.clear();
+                phiUse.clear();
+                phiDef.clear();
+                //insert phi
+                for(auto b: func->blocks){
+                    for(auto& obj: b->useObj){
+                        if(auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj)){
+                            phiUse[obj].insert(b);
+                        } 
+                    }
+                    phiDef.insert(b->defObj.begin(), b->defObj.end());
+                }
+                for(auto& obj: phiDef){
+                    phiFlag.clear();
+                    auto& blocks = phiUse[obj];
+                    while(blocks.size()){
+                        pBlock b = *(blocks.begin());
+                        blocks.erase(b);
+                        for(auto df: b->domFrontier){
+                            if(!phiFlag[df]){
+                                phiFlag[df] = true;
+                                df->phiOrigin.push_back(obj);
+                                blocks.insert(df);
+                            }
+                        }
+                    }
+                }
+                //rename
                 for(auto& param: func->params){
                     pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(param);
                     if(obj){
@@ -46,7 +62,7 @@ public:
                         renamedObj[func->entry][obj] = newObj;
                     }
                 }
-                visitRename(func->entry);
+                visit(func->entry);
             }
         }
     }

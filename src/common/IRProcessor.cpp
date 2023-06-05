@@ -45,7 +45,17 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
 
 pBlock LiveCalculator::visit(pBlock block){
     int sz = block->liveOut.size();
-    
+    vector<pIRValObj> diff;
+    if(block->nextBranch)block->liveOut.insert(
+        block->nextBranch->liveIn.begin(), block->nextBranch->liveIn.end());
+    if(block->nextNormal)block->liveOut.insert(
+        block->nextNormal->liveIn.begin(), block->nextNormal->liveIn.end());
+    set_difference(block->liveOut.begin(), block->liveOut.end(),
+        block->defObj.begin(), block->defObj.end(), back_inserter(diff));
+    for(auto p: diff){
+        block->liveIn.insert(p);
+    }
+    if(block->liveOut.size() != sz)changed = true;
     return nullptr;
 }
 
@@ -68,6 +78,7 @@ void LiveCalculator::makeLive(pIRFunc& func){
                 && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
             if(targ)liveDef.insert(targ);
         }
+        block->liveIn.insert(liveUse.begin(), liveUse.end());
     }
     do{
         changed = false;

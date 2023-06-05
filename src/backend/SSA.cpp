@@ -26,20 +26,20 @@ pIRObj SSAMaker::renameObj(pBlock block, pIRObj operand){
     return out_obj;
 }
 
-void SSAMaker::fillPostPhi(pBlock block, pBlock from){
-    for(auto& obj: block->phiFa){
+void SSAMaker::fillSuccPhi(pBlock block, pBlock from){
+    for(auto& obj: block->phiOrigin){
         auto found = findUsingObj(obj);
         if(found)
             block->phiList[obj].insert({from, found});
     }
 }
 
-void SSAMaker::visitRename(pBlock block){
+pBlock SSAMaker::visit(pBlock block){
     // phiFinished[block] = true;
     // if(visited[block])return;
     visitStack.push_back(block);
     visited[block] = true;
-    for(auto& obj : block->phiFa){
+    for(auto& obj : block->phiOrigin){
         if(!renamedObj[block][obj]){
             pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(obj);
             auto newObj = block->phiObj[obj] = make_shared<IRScalValObj>(*targ.get());
@@ -66,17 +66,18 @@ void SSAMaker::visitRename(pBlock block){
         }
     }
     if(block->nextNormal){
-        fillPostPhi(block->nextNormal, block);
+        fillSuccPhi(block->nextNormal, block);
     }
     if(block->nextBranch){
-        fillPostPhi(block->nextBranch, block);
+        fillSuccPhi(block->nextBranch, block);
     }
     // if(block->nextBranch &&(!(visited[block->nextBranch]&&phiFinished[block->nextBranch])))
     //     visitRename(block->nextBranch);
     for(auto child: block->domChild){
-        visitRename(child);
+        visit(child);
     }
     visitStack.pop_back();
+    return nullptr;
 }
 
 pBlock SSAFinalizer::visit(pBlock block){

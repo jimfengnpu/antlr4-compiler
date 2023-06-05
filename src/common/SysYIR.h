@@ -253,7 +253,7 @@ public:
     set<pIRValObj> liveIn;
     set<pIRValObj> liveOut;
     // SSA <lv3>
-    vector<pIRValObj> phiFa;
+    vector<pIRValObj> phiOrigin;
     map<pIRValObj, set<pair<pBlock, pIRValObj> > > phiList;
     map<pIRValObj, pIRValObj> phiObj;
 

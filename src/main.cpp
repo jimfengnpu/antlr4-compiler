@@ -61,15 +61,16 @@ int main(int argc, char** argv) {
     processors.add(new LiveCalculator());
     processors.add(new SSAMaker());
     processors.add(new LiveCalculator());
+    // processors.add(new SSAFinalizer());
     // processors.add(new IRRunner(cin, cout));
 
     processors.apply();
     // #ifdef VAL_IR
-        cout << "IR:"<<endl;
-        cout << *(visitor.globalData.get());
-        for(auto &f : visitor.functions){
-            cout << *f;
-        }
+        // cout << "IR:"<<endl;
+        // cout << *(visitor.globalData.get());
+        // for(auto &f : visitor.functions){
+        //     cout << *f;
+        // }
     // #endif
     // }catch(...){
     //     cout << "open file failed" << endl;

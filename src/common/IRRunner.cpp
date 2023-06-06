@@ -237,7 +237,7 @@ void IRRunner::runSysY(const SysYIR& instr){
         alloc(param);
         break;
     case IRType::PARAM:
-        param = dynamic_pointer_cast<IRValObj>(instr.target);
+        param = dynamic_pointer_cast<IRValObj>(instr.opt1);
         paramsBuf.push_back(param);
         break;
     case IRType::CALL:

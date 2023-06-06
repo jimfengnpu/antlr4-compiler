@@ -75,10 +75,31 @@ public:
     SSAFinalizer(){}
     virtual pBlock visit(pBlock block);
     virtual void apply(ASTVisitor& visitor){
+        set<pBlock> newBlocks;
         for(auto& func: visitor.functions){
-            if(func->entry){
-                visit(func->entry);
+            newBlocks.clear();
+            for(auto block: func->blocks){
+                for(auto& origin: block->phiOrigin){
+                    for(auto& f: block->from){
+                        pBlock insertBlock = f, newBlock = nullptr;
+                        if(f->liveOut.find(block->phiObj[origin])!=f->liveOut.end()){
+                            newBlock = make_shared<IRBlock>(IR_NORMAL);
+                            newBlock->finishBB(block);
+                            newBlocks.insert(newBlock);
+                            if(f->nextBranch == block){
+                                f->nextBranch = newBlock;
+                            }else{
+                                f->nextNormal = newBlock;
+                            }
+                            insertBlock = newBlock;
+                        }
+                        insertBlock->insertIR(
+                            IRType::ASSIGN, block->phiObj[origin], 
+                            block->phiList[origin][f], nullptr);
+                    }
+                }
             }
+            func->blocks.insert(newBlocks.begin(), newBlocks.end());
         }
     }
 };

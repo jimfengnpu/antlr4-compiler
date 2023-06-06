@@ -78,7 +78,6 @@ pBlock SSAMaker::visit(pBlock block){
 }
 
 pBlock SSAFinalizer::visit(pBlock block){
-    int needResolveCnt = 0;
     
     return nullptr;
 }

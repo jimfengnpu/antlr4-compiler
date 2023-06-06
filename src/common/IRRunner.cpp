@@ -140,61 +140,14 @@ void IRRunner::alloc(pIRValObj obj){
 
 void IRRunner::operateScalObj(IRType type, pIRObj target, pIRObj opt1, pIRObj opt2){
     pIRScalValObj targ = nullptr;
-    int exp1Val, exp2Val;
+    int exp1Val, exp2Val = 0;
     int value = 0;
     targ = dynamic_pointer_cast<IRScalValObj>(target);
     exp1Val = getValue(opt1);
     if(opt2 != nullptr){
         exp2Val = getValue(opt2);
     }
-    switch (type)
-    {
-        case IRType::ASSIGN:
-            value = exp1Val;break;
-        case IRType::ADD:
-        assert(opt2!= nullptr);
-            value = exp1Val + exp2Val;break;
-        case IRType::SUB:
-        assert(opt2!= nullptr);
-            value = exp1Val - exp2Val;break;
-        case IRType::MUL:
-        assert(opt2!= nullptr);
-            value = exp1Val * exp2Val;break;
-        case IRType::DIV:
-        assert(opt2!= nullptr);
-            if(exp2Val == 0)throw runtime_error("divided by zero");
-            value = exp1Val / exp2Val;break;
-        case IRType::MOD:
-        assert(opt2!= nullptr);
-            if(exp2Val == 0)throw runtime_error("divided by zero");
-            value = exp1Val % exp2Val;break;
-        case IRType::NEG:
-            value = - exp1Val;break;
-        case IRType::NOP:
-            value = exp1Val;break;
-        case IRType::NOT:
-            value = exp1Val?0:1;break;
-        case IRType::EQ:
-        assert(opt2!= nullptr);
-            value = (exp1Val == exp2Val)?1:0;break;
-        case IRType::NEQ:
-        assert(opt2!= nullptr);
-            value = (exp1Val != exp2Val)?1:0;break;
-        case IRType::LT:
-        assert(opt2!= nullptr);
-            value = (exp1Val < exp2Val)?1:0;break;
-        case IRType::GT:
-        assert(opt2!= nullptr);
-            value = (exp1Val > exp2Val)?1:0;break;
-        case IRType::LE:
-        assert(opt2!= nullptr);
-            value = (exp1Val <= exp2Val)?1:0;break;
-        case IRType::GE:
-        assert(opt2!= nullptr);
-            value = (exp1Val >= exp2Val)?1:0;break;            
-        default:
-            break;
-    }
+    value = CalConstExp(type, exp1Val, exp2Val);
     storeValue(targ, value);
 }
 void IRRunner::runSysY(const SysYIR& instr){

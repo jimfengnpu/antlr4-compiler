@@ -156,38 +156,7 @@ pIRScalValObj ASTVisitor::calcExp(IRType type, pIRScalValObj exp1, pIRScalValObj
     if(is_const){
         int value = 0;
         assert(exp1 != nullptr);
-        switch(type){
-            case IRType::ADD:
-                value = exp1->value + exp2->value;break;
-            case IRType::SUB:
-                value = exp1->value - exp2->value;break;
-            case IRType::MUL:
-                value = exp1->value * exp2->value;break;
-            case IRType::DIV:
-                if(exp2->value == 0)throw runtime_error("divided by zero");
-                value = exp1->value / exp2->value;break;
-            case IRType::MOD:
-                if(exp2->value == 0)throw runtime_error("divided by zero");
-                value = exp1->value % exp2->value;break;
-            case IRType::NEG:
-                value = - exp1->value;break;
-            case IRType::NOP:
-                value = exp1->value;break;
-            case IRType::NOT:
-                value = exp1->value?0:1;break;
-            case IRType::EQ:
-                value = (exp1->value == exp2->value)?1:0;break;
-            case IRType::NEQ:
-                value = (exp1->value != exp2->value)?1:0;break;
-            case IRType::LT:
-                value = (exp1->value < exp2->value)?1:0;break;
-            case IRType::GT:
-                value = (exp1->value > exp2->value)?1:0;break;
-            case IRType::LE:
-                value = (exp1->value <= exp2->value)?1:0;break;
-            case IRType::GE:
-                value = (exp1->value >= exp2->value)?1:0;break;
-        }
+        value = CalConstExp(type, exp1->value, exp2?exp2->value:0);
         return newObj<IRScalValObj>(value);
     }else{
         auto obj = newObj<IRScalValObj>(false, "");

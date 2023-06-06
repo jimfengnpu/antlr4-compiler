@@ -66,11 +66,11 @@ int main(int argc, char** argv) {
 
     processors.apply();
     // #ifdef VAL_IR
-        // cout << "IR:"<<endl;
-        // cout << *(visitor.globalData.get());
-        // for(auto &f : visitor.functions){
-        //     cout << *f;
-        // }
+        cout << "IR:"<<endl;
+        cout << *(visitor.globalData.get());
+        for(auto &f : visitor.functions){
+            cout << *f;
+        }
     // #endif
     // }catch(...){
     //     cout << "open file failed" << endl;

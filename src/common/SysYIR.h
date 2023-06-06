@@ -227,6 +227,8 @@ public:
     virtual void print(ostream& os) const override;
 };
 
+int CalConstExp(IRType type, int exp1Val, int exp2Val=0);
+
 class IRBlock;
 typedef shared_ptr<IRBlock> pBlock;
 class IRBlock : public IRObj

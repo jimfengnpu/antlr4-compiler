@@ -64,6 +64,9 @@ pBlock SSAMaker::visit(pBlock block){
             renamedObj[block][targ] = newObj;
         }
     }
+    if(block->branchVal){
+        block->branchVal = dynamic_pointer_cast<IRScalValObj>(renameObj(block, block->branchVal));
+    }
     if(block->nextNormal){
         fillSuccPhi(block->nextNormal, block);
     }

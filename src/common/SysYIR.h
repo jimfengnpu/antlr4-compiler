@@ -25,6 +25,8 @@ using namespace std;
 class IRScalValObj;
 typedef shared_ptr<IRScalValObj> pIRScalValObj;
 class IRArrValObj;
+class SysYIR;
+typedef shared_ptr<SysYIR> pSysYIR;
 class FuncFrame;
 // class IRBlock;
 class IRFunc;
@@ -63,7 +65,9 @@ public:
     bool isTmp;
     int offset;
     shared_ptr<IRArrValObj> fa;
-    // live u-d <lv 4>
+    // u-d <lv 3> **add within ssa rename**
+    pSysYIR defStruction;
+    set<pSysYIR> useStructions;
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
@@ -218,6 +222,7 @@ static string IRTypeName(IRType type)
 class SysYIR: public IRObj
 {
 public:
+    bool removedMask=false;
     IRType type;
     pIRObj target;
     pIRObj opt1;
@@ -247,18 +252,18 @@ public:
     set<pBlock> from;
     // dom <lv 1>
     vector<pBlock> domChild;
-    vector<pBlock> domFrontier;
+    set<pBlock> domFrontier;
     pBlock domFa;
     // live interval <lv 2>
-    set<pIRValObj> defObj;
-    set<pIRValObj> useObj;
-    set<pIRValObj> liveIn;
-    set<pIRValObj> liveOut;
+    set<pIRValObj> defObj;  // 当前block内定义的值,包括phi指令定义的
+    set<pIRValObj> useObj;  // 当前block内用到的,但定值点在前面block的值(不含phi指令用到的(因phi的use与前驱相关))
+    set<pIRValObj> liveIn;  // 当前block开头处活跃的值(当前块或后面块用到但是定值点在前面block)不包含phi指令用到的
+    set<pIRValObj> liveOut; // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
     // SSA <lv3>
-    vector<pIRValObj> phiOrigin;
-    set<pIRValObj> phiDef;
-    map<pIRValObj, map<pBlock, pIRValObj> > phiList;
-    map<pIRValObj, pIRValObj> phiObj;
+    vector<pIRValObj> phiOrigin; // (SSA之前)需要应用phi指令的操作数 x
+    set<pIRValObj> phiDef; // SSA define 的值 x(k)
+    map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x => [ fromBlock => x(i)]
+    map<pIRValObj, pIRValObj> phiObj; // x => x(k)
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
@@ -306,7 +311,7 @@ typedef pair<pBlock, pBlock> pCondBlocks;
 class SymbolTable
 {
 public:
-    bool isGlobal;
+    bool isGlobal=false;
     map<string, pIRObj> symbols = {};
     SymbolTable() = default;
     SymbolTable(const SymbolTable& table): isGlobal(false){

@@ -50,7 +50,7 @@ void DomMaker::makeDom(pIRFunc func){
             for(pBlock pp: p->from){
                 pBlock runner = pp;
                 while(runner != p->domFa){
-                    runner->domFrontier.push_back(p);
+                    runner->domFrontier.insert(p);
                     runner = runner->domFa;
                 }
             }

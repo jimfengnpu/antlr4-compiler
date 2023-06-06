@@ -16,9 +16,9 @@ public:
     }
     void fillSuccPhi(pBlock block, pBlock from);
     virtual void apply(ASTVisitor& visitor){
-        map<pIRValObj, set<pBlock> > phiDef;
-        set<pIRValObj> phiUse;
-        map<pBlock, bool> phiFlag;
+        map<pIRValObj, set<pBlock> > phiDef;// define point
+        set<pIRValObj> phiUse; // val used between blocks (union of useObj)
+        map<pBlock, bool> phiFlag; // if block has phi for certain obj(that in loop)
         for(auto& func: visitor.functions){
             if(func->entry){
                 //init
@@ -44,7 +44,7 @@ public:
                         pBlock b = *(blocks.begin());
                         blocks.erase(b);
                         for(auto df: b->domFrontier){
-                            if(!phiFlag[df]){
+                            if(!phiFlag[df]&& df->liveIn.find(obj) != df->liveIn.end()){
                                 phiFlag[df] = true;
                                 df->phiOrigin.push_back(obj);
                                 blocks.insert(df);
@@ -53,6 +53,7 @@ public:
                     }
                 }
                 //rename
+                //rename func param
                 for(auto& param: func->params){
                     pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(param);
                     if(obj){
@@ -75,6 +76,8 @@ public:
     SSAFinalizer(){}
     virtual pBlock visit(pBlock block);
     virtual void apply(ASTVisitor& visitor){
+        // possibly add new block in the iteration, 
+        // use another container here to avoid change during loop
         set<pBlock> newBlocks;
         for(auto& func: visitor.functions){
             newBlocks.clear();
@@ -82,6 +85,8 @@ public:
                 for(auto& origin: block->phiOrigin){
                     for(auto& f: block->from){
                         pBlock insertBlock = f, newBlock = nullptr;
+                        // if predecessor(f) has defined phi val in live out, 
+                        // then add another bb insert assign statement to avoid lost copy
                         if(f->liveOut.find(block->phiObj[origin])!=f->liveOut.end()){
                             newBlock = make_shared<IRBlock>(IR_NORMAL);
                             newBlock->finishBB(block);

@@ -102,11 +102,13 @@ void IRBlock::print(std::ostream& os) const{
     // }else{
     os << "live in:";
     for(auto& p: liveIn){
+        if(p)
         os << " " << p->name;
     }
     os << endl;
     os << "live out:";
     for(auto& p: liveOut){
+        if(p)
         os << " " << p->name;
     }
     os << endl;
@@ -122,6 +124,10 @@ void IRBlock::print(std::ostream& os) const{
         os << "\t" << *ir.get() << std::endl;
     }
     // }
+    if(nullptr != nextBranch){
+        os << "\tIF " << branchVal->name << " GOTO " 
+            << nextBranch.get()->name << endl;
+    }
     if(nullptr != nextNormal)
         os << "\tGOTO " << nextNormal.get()->name << endl;
     // else
@@ -134,10 +140,11 @@ void IRBlock::print(std::ostream& os) const{
     // dom
     if(domFa != nullptr)
         os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
-    if(nullptr != nextBranch){
-        os << "\tIF " << branchVal->name << " GOTO " 
-            << nextBranch.get()->name << endl;
+    os << "df:";
+    for(auto& df: domFrontier){
+        os << " " << df->name;
     }
+    os << endl;
 }
 
 void IRFunc::print(std::ostream& os) const{

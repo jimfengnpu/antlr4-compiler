@@ -16,8 +16,8 @@ public:
     }
     void fillSuccPhi(pBlock block, pBlock from);
     virtual void apply(ASTVisitor& visitor){
-        map<pIRValObj, set<pBlock> > phiUse;
-        set<pIRValObj> phiDef;
+        map<pIRValObj, set<pBlock> > phiDef;
+        set<pIRValObj> phiUse;
         map<pBlock, bool> phiFlag;
         for(auto& func: visitor.functions){
             if(func->entry){
@@ -30,16 +30,16 @@ public:
                 phiDef.clear();
                 //insert phi
                 for(auto b: func->blocks){
-                    for(auto& obj: b->useObj){
+                    for(auto& obj: b->defObj){
                         if(auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj)){
-                            phiUse[obj].insert(b);
-                        } 
+                            phiDef[obj].insert(b);
+                        }
                     }
-                    phiDef.insert(b->defObj.begin(), b->defObj.end());
+                    phiUse.insert(b->useObj.begin(), b->useObj.end());
                 }
-                for(auto& obj: phiDef){
+                for(auto& obj: phiUse){
                     phiFlag.clear();
-                    auto& blocks = phiUse[obj];
+                    auto& blocks = phiDef[obj];
                     while(blocks.size()){
                         pBlock b = *(blocks.begin());
                         blocks.erase(b);

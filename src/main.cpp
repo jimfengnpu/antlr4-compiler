@@ -57,9 +57,10 @@ int main(int argc, char** argv) {
     // model list:
     // DomMaker: generate dom tree in pBlock, dependency: 
     processors.add(new BlockPruner());
-    processors.add(new LiveCalculator());
     processors.add(new DomMaker());
+    processors.add(new LiveCalculator());
     processors.add(new SSAMaker());
+    processors.add(new LiveCalculator());
     // processors.add(new IRRunner(cin, cout));
 
     processors.apply();

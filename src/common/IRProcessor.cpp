@@ -42,14 +42,19 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
     return true;
 }
 
+void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
+    if(!block)return;
+    from->liveOut.insert(block->liveIn.begin(), block->liveIn.end());
+    for(auto& origin: block->phiOrigin){
+        from->liveOut.insert(block->phiList[origin][from]);
+    }
+}
 
 pBlock LiveCalculator::visit(pBlock block){
     int sz = block->liveOut.size();
     vector<pIRValObj> diff;
-    if(block->nextBranch)block->liveOut.insert(
-        block->nextBranch->liveIn.begin(), block->nextBranch->liveIn.end());
-    if(block->nextNormal)block->liveOut.insert(
-        block->nextNormal->liveIn.begin(), block->nextNormal->liveIn.end());
+    mergeSuccLivein(block->nextBranch, block);
+    mergeSuccLivein(block->nextNormal, block);
     set_difference(block->liveOut.begin(), block->liveOut.end(),
         block->defObj.begin(), block->defObj.end(), back_inserter(diff));
     for(auto p: diff){
@@ -68,6 +73,9 @@ void LiveCalculator::makeLive(pIRFunc& func){
         auto& liveUse = block->useObj;
         auto& liveDef = block->defObj;
         pIRValObj op1, op2, targ;
+        for(auto& obj: block->phiOrigin){
+            liveDef.insert(block->phiObj[obj]);
+        }
         for(auto& ir: block->structions){
             op1 = dynamic_pointer_cast<IRValObj>(ir->opt1);
             op2 = dynamic_pointer_cast<IRValObj>(ir->opt2);
@@ -76,7 +84,7 @@ void LiveCalculator::makeLive(pIRFunc& func){
                 && liveDef.find(op1) == liveDef.end())liveUse.insert(op1);
             if(op2 && (!op2->isConstant()||(op2->isIdent)) 
                 && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
-            if(targ)liveDef.insert(targ);
+            if(targ && !targ->scopeSymbols->isGlobal)liveDef.insert(targ);
         }
         block->liveIn.insert(liveUse.begin(), liveUse.end());
     }

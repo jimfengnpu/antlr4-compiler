@@ -10,7 +10,7 @@ pIRValObj SSAMaker::findUsingObj(pIRValObj origin){
         }
     }
     // cout <<endl;
-    // assert(0);
+    assert(0);
     return nullptr;
 }
 
@@ -29,14 +29,12 @@ pIRObj SSAMaker::renameObj(pBlock block, pIRObj operand){
 void SSAMaker::fillSuccPhi(pBlock block, pBlock from){
     for(auto& obj: block->phiOrigin){
         auto found = findUsingObj(obj);
-        if(found)
-            block->phiList[obj].insert({from, found});
+        // if(found)
+        block->phiList[obj].insert({from, found});
     }
 }
 
 pBlock SSAMaker::visit(pBlock block){
-    // phiFinished[block] = true;
-    // if(visited[block])return;
     visitStack.push_back(block);
     visited[block] = true;
     for(auto& obj : block->phiOrigin){
@@ -46,6 +44,7 @@ pBlock SSAMaker::visit(pBlock block){
             newObj->name = getNewName(obj);
             // cout << "add "<< obj->name << " in "<< block<<endl;
             renamedObj[block][obj] = newObj;
+            block->phiDef.insert(newObj);
         }
     }
     for(auto& ir: block->structions){
@@ -54,7 +53,7 @@ pBlock SSAMaker::visit(pBlock block){
         if(ir->opt2)ir->opt2 = renameObj(block, ir->opt2);
         pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(ir->target), newObj = nullptr;
         if(targ){
-            if(targ->isTmp){
+            if(targ->isTmp || targ->scopeSymbols->isGlobal){
                 newObj = targ;
             }else {
                 newObj = make_shared<IRScalValObj>(*targ.get());
@@ -71,8 +70,6 @@ pBlock SSAMaker::visit(pBlock block){
     if(block->nextBranch){
         fillSuccPhi(block->nextBranch, block);
     }
-    // if(block->nextBranch &&(!(visited[block->nextBranch]&&phiFinished[block->nextBranch])))
-    //     visitRename(block->nextBranch);
     for(auto child: block->domChild){
         visit(child);
     }

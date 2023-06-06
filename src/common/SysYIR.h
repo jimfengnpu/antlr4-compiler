@@ -254,7 +254,8 @@ public:
     set<pIRValObj> liveOut;
     // SSA <lv3>
     vector<pIRValObj> phiOrigin;
-    map<pIRValObj, set<pair<pBlock, pIRValObj> > > phiList;
+    set<pIRValObj> phiDef;
+    map<pIRValObj, map<pBlock, pIRValObj> > phiList;
     map<pIRValObj, pIRValObj> phiObj;
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 

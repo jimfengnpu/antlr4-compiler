@@ -80,22 +80,22 @@ void IRBlock::print(std::ostream& os) const{
         os << "\t" << *ir.get() << std::endl;
     }
     // }
-    // os << "\"];"<<endl;
-    // cfg
-    // for(auto p: from){
-    //     os << p->name << " -> " << name << ";" << endl;
-    // }
-    // dom
-    // if(domFa != nullptr)
-    //     os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
-    if(nullptr != nextBranch){
-        os << "\tIF " << branchVal->name << " GOTO " 
-            << nextBranch.get()->name << endl;
-    }
     if(nullptr != nextNormal)
         os << "\tGOTO " << nextNormal.get()->name << endl;
     // else
     //     os << "\tEND" << endl;
+    // os << "\"];"<<endl;
+    // cfg
+    for(auto p: from){
+        os << p->name << " -> " << name << ";" << endl;
+    }
+    // dom
+    if(domFa != nullptr)
+        os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
+    if(nullptr != nextBranch){
+        os << "\tIF " << branchVal->name << " GOTO " 
+            << nextBranch.get()->name << endl;
+    }
 }
 
 void IRFunc::print(std::ostream& os) const{

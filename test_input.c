@@ -63,3 +63,8 @@ int main(){
     }
     return 0;
 }
+void test(){
+    int x,y;
+    if(x>0)x= y+1;
+    y =x;
+}

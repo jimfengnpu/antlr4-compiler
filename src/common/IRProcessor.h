@@ -52,6 +52,7 @@ class LiveCalculator: public IRProcessor{
 public:
     LiveCalculator(){}
     void makeLive(pIRFunc& func);
+    void mergeSuccLivein(pBlock block, pBlock from);
     virtual pBlock visit(pBlock block);
     virtual void apply(ASTVisitor& visitor){
         for(auto& f: visitor.functions){

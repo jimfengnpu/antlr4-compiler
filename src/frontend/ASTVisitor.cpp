@@ -37,7 +37,7 @@ std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
         curBlock = nullptr;
     }else 
         finishBB(curFunc->exit);
-    curFunc->exit->insertIR(IRType::RET, curFunc->returnVal, nullptr, nullptr);
+    curFunc->exit->insertIR(IRType::RET, nullptr, curFunc->returnVal, nullptr);
     curFunc->blocks.insert(curFunc->exit);
     curBlock = globalData;
     return nullptr;
@@ -147,12 +147,6 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
 }
 
 pIRScalValObj ASTVisitor::calcExp(IRType type, pIRScalValObj exp1, pIRScalValObj exp2, bool is_const){
-    // if(exp1!= nullptr && !exp1->isTmp){
-    //     curBlock->useObj.push_back(exp1);
-    // }
-    // if(exp2!= nullptr && !exp2->isTmp){
-    //     curBlock->useObj.push_back(exp2);
-    // }
     if(is_const){
         int value = 0;
         assert(exp1 != nullptr);

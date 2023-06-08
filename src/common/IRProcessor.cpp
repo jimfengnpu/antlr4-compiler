@@ -1,4 +1,6 @@
 #include "IRProcessor.h"
+#include "../backend/Dom.h"
+
 
 bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
     if(block->structions.size() > 0)return false;
@@ -42,16 +44,22 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
     return true;
 }
 
+void BlockPruner::processDependency(IRProcessors* procs){
+    cout << "add dom";
+    procs->add(new DomMaker());
+}
+
 void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;
     from->liveOut.insert(block->liveIn.begin(), block->liveIn.end());
     for(auto& origin: block->phiOrigin){
+        if(from->liveOut.find(block->phiList[origin][from]) == from->liveOut.end())
+            changed = true;
         from->liveOut.insert(block->phiList[origin][from]);
     }
 }
 
 pBlock LiveCalculator::visit(pBlock block){
-    int sz = block->liveOut.size();
     vector<pIRValObj> diff;
     mergeSuccLivein(block->nextBranch, block);
     mergeSuccLivein(block->nextNormal, block);
@@ -60,7 +68,6 @@ pBlock LiveCalculator::visit(pBlock block){
     for(auto p: diff){
         block->liveIn.insert(p);
     }
-    if(block->liveOut.size() != sz)changed = true;
     return nullptr;
 }
 
@@ -86,6 +93,8 @@ void LiveCalculator::makeLive(pIRFunc& func){
                 && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
             if(targ && !targ->scopeSymbols->isGlobal)liveDef.insert(targ);
         }
+        if(block->branchVal && liveDef.find(block->branchVal) == liveDef.end())
+            liveUse.insert(block->branchVal);
         block->liveIn.insert(liveUse.begin(), liveUse.end());
     }
     do{

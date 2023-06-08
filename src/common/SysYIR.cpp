@@ -86,10 +86,24 @@ void SysYIR::print(std::ostream& os) const{
     os << IRTypeName(type);
     if(target != nullptr)
         os << " " << target.get()->name;
+    if(auto scal=dynamic_pointer_cast<IRScalValObj>(target)){
+        if(scal->constState==IR_CONST)
+        os << "(" << scal->value<<")";
+    }
     if(opt1 != nullptr)
         os << ", " << opt1.get()->name;
+    if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt1)){
+        if(scal->constState==IR_CONST)
+        os << "(" << scal->value<<")";
+    }
     if(opt2 != nullptr)
         os << ", " << opt2.get()->name;
+    if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt2)){
+        if(scal->constState==IR_CONST)
+        os << "(" << scal->value<<")";
+    }
+    if(removedMask)
+        os << "     --m";
 }
 
 void IRBlock::print(std::ostream& os) const{
@@ -112,10 +126,29 @@ void IRBlock::print(std::ostream& os) const{
         os << " " << p->name;
     }
     os << endl;
+    os << "def:";
+    for(auto& p: defObj){
+        if(p)
+        os << " " << p->name;
+    }
+    os << endl;
+    os << "use:";
+    for(auto& p: useObj){
+        if(p)
+        os << " " << p->name;
+    }
+    os << endl;
     for(auto& [obj, vec]: phiList){
-        os << "\tPHI " << phiObj.at(obj)->name;
+        auto scal = dynamic_pointer_cast<IRScalValObj>(phiObj.at(obj));
+        os << "\tPHI " << scal->name;
+        if(scal->constState==IR_CONST)
+        os << "(" << scal->value<<")";
         for(auto f: vec){
             os << " ("<< f.first->name << ")"<<f.second->name<<" ";
+            if(auto scal=dynamic_pointer_cast<IRScalValObj>(f.second)){
+                if(scal->constState==IR_CONST)
+                os << "(" << scal->value<<")";
+            }
         }
         os << endl;
     }

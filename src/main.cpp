@@ -6,6 +6,7 @@
 #include "common/IRRunner.h"
 #include "backend/Dom.h"
 #include "backend/SSA.h"
+#include "backend/Optimizer.h"
 #include "iostream"
 #include "fstream"
 
@@ -57,20 +58,19 @@ int main(int argc, char** argv) {
     // model list:
     // DomMaker: generate dom tree in pBlock, dependency: 
     processors.add(new BlockPruner());
-    processors.add(new DomMaker());
     processors.add(new LiveCalculator());
     processors.add(new SSAMaker());
-    processors.add(new LiveCalculator());
-    processors.add(new SSAFinalizer());
-    processors.add(new IRRunner(cin, cout));
+    processors.add(new ConstBroadcast());
+    // processors.add(new SSAFinalizer());
+    // processors.add(new IRRunner(cin, cout));
 
     processors.apply();
     // #ifdef VAL_IR
-        // cout << "IR:"<<endl;
-        // cout << *(visitor.globalData.get());
-        // for(auto &f : visitor.functions){
-        //     cout << *f;
-        // }
+        cout << "IR:"<<endl;
+        cout << *(visitor.globalData.get());
+        for(auto &f : visitor.functions){
+            cout << *f;
+        }
     // #endif
     // }catch(...){
     //     cout << "open file failed" << endl;

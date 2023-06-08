@@ -19,6 +19,12 @@ using namespace std;
 #define IR_NORMAL 0
 #define IR_BRANCH 1
 #define IR_LOOP 2
+
+#define IR_UNDEF 0
+#define IR_CONST 1
+#define IR_NAC   2
+#define CONST_OP(x, y) ((x)==1&&(y)==1)
+#define CONST_STATE(x, y) (min(2, (x) + (y)))
 // #define VAL_IR 1
 // class IRObj;
 // class IRValObj;
@@ -66,8 +72,9 @@ public:
     int offset;
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
-    pSysYIR defStruction;
-    set<pSysYIR> useStructions;
+    bool phiDef=false;
+    pIRObj defStruction;
+    set<pIRObj> useStructions;
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
@@ -117,10 +124,12 @@ typedef shared_ptr<IRArrValObj> pIRArrValObj;
 class IRScalValObj : public IRValObj
 {
 public:
-    // int type;
+    // <lv 4> const folding
+    int constState=IR_NAC;
+
     int value;
     IRScalValObj() {}
-    IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)){
+    IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)), constState(IR_CONST){
     }
     IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name){
     }
@@ -260,10 +269,11 @@ public:
     set<pIRValObj> liveIn;  // 当前block开头处活跃的值(当前块或后面块用到但是定值点在前面block)不包含phi指令用到的
     set<pIRValObj> liveOut; // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
     // SSA <lv3>
-    vector<pIRValObj> phiOrigin; // (SSA之前)需要应用phi指令的操作数 x
+    set<pIRValObj> phiOrigin; // (SSA之前)需要应用phi指令的操作数 x
     set<pIRValObj> phiDef; // SSA define 的值 x(k)
     map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x => [ fromBlock => x(i)]
     map<pIRValObj, pIRValObj> phiObj; // x => x(k)
+    map<pIRValObj, pIRValObj> phiKey; // x(k) => x
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}

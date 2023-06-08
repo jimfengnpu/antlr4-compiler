@@ -1,32 +1,3 @@
 digraph{ nodesep = 1; node[shape = record];
-M9[label="M9 |DEF i.0\nDEF tmp.0\nDIV .t45, len.0, 2\nSUB .t46, .t45, 1\nASSIGN i.1, .t46\n"];
-M10[label="M10 |        PHI i.2 (M9)i.1  (L2)i.6 
-        PHI tmp.1 (M9)tmp.0  (L2)tmp.7 
-GT .t47, i.2, -1\n"];
-M9 -> M10;
-L2 -> M10;
-M9 -> M10[color="red"];
-L2[label="L2 |SUB .t48, len.0, 1\nASSIGN tmp.6, .t48\nARR .t49, arr, 0\nPARAM, tmp.6\nPARAM, i.2\nPARAM, .t49\nCALL .t50, @heap_ajust\nASSIGN tmp.7, .t50\nSUB .t51, i.2, 1\nASSIGN i.6, .t51\n"];
-M10 -> L2;
-M10 -> L2[color="red"];
-M11[label="M11 |SUB .t52, len.0, 1\nASSIGN i.3, .t52\n"];
-M10 -> M11;
-M10 -> M11[color="red"];
-M12[label="M12 |        PHI i.4 (M11)i.3  (L3)i.5 
-        PHI tmp.2 (M11)tmp.1  (L3)tmp.5 
-        PHI tmp0.0 (L3)tmp0.2 
-GT .t53, i.4, 0\n"];
-M11 -> M12;
-L3 -> M12;
-M11 -> M12[color="red"];
-L3[label="L3 |DEF tmp0.1\nASSIGN tmp0.2, 0\nARR .t54, arr, 0\nPARAM, i.4\nPARAM, tmp0.2\nPARAM, .t54\nCALL .t55, @swap\nASSIGN tmp.3, .t55\nSUB .t56, i.4, 1\nASSIGN tmp.4, .t56\nARR .t57, arr, 0\nPARAM, tmp.4\nPARAM, tmp0.2\nPARAM, .t57\nCALL .t58, @heap_ajust\nASSIGN tmp.5, .t58\nSUB .t59, i.4, 1\nASSIGN i.5, .t59\n"];
-M12 -> L3;
-M12 -> L3[color="red"];
-M13[label="M13 |ASSIGN .t60, 0\n"];
-M12 -> M13;
-M12 -> M13[color="red"];
-M14[label="M14 |RET .t60\n"];
-M13 -> M14;
-M13 -> M14[color="red"];
 
 }

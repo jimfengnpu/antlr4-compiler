@@ -15,6 +15,7 @@ public:
         return obj->name + "." + to_string(renamedId[obj]++);
     }
     void fillSuccPhi(pBlock block, pBlock from);
+    virtual void processDependency(IRProcessors* procs);
     virtual void apply(ASTVisitor& visitor){
         map<pIRValObj, set<pBlock> > phiDef;// define point
         set<pIRValObj> phiUse; // val used between blocks (union of useObj)
@@ -46,7 +47,7 @@ public:
                         for(auto df: b->domFrontier){
                             if(!phiFlag[df]&& df->liveIn.find(obj) != df->liveIn.end()){
                                 phiFlag[df] = true;
-                                df->phiOrigin.push_back(obj);
+                                df->phiOrigin.insert(obj);
                                 blocks.insert(df);
                             }
                         }
@@ -68,13 +69,12 @@ public:
         }
     }
     pIRValObj findUsingObj(pIRValObj origin);
-    pIRObj renameObj(pBlock block, pIRObj operand);
+    pIRObj renameObj(pBlock block, pIRObj operand, pIRObj useSource);
 };
 
 class SSAFinalizer: public IRProcessor{
 public:
     SSAFinalizer(){}
-    virtual pBlock visit(pBlock block);
     virtual void apply(ASTVisitor& visitor){
         // possibly add new block in the iteration, 
         // use another container here to avoid change during loop

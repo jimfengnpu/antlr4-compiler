@@ -3,16 +3,40 @@
 
 // base class for optimize processor
 class Optimizer: public IRProcessor{
+    bool changed;
+    deque<pBlock> workList;
+    map<pBlock, bool> visited;
 public:
     Optimizer(){}
-    virtual void applyIR(pSysYIR struction)=0;
+    virtual void applyBlock(pBlock block)=0;
     virtual void apply(ASTVisitor& visitor){
         for(auto& func: visitor.functions){
-            for(auto p: func->blocks){
-                for(auto& ir: p->structions){
-                    applyIR(ir);
-                }
+            if(func->entry){
+                do{
+                    workList.clear();
+                    visited.clear();
+                    workList.push_back(func->entry);
+                    changed = false;
+                    while(workList.size()){
+                        auto p = workList.front();
+                        workList.pop_front();
+                        visited[p] = true;
+                        applyBlock(p);
+                        if(p->nextNormal && (!visited[p->nextNormal]))
+                            workList.push_back(p->nextNormal);
+                        if(p->nextBranch && (!visited[p->nextBranch]))
+                            workList.push_back(p->nextBranch);
+                    }
+                }while(changed);
             }
         }
     }
+};
+
+class ConstBroadcast: public Optimizer{
+    map<pBlock, map<pIRScalValObj, int> > constState;
+public:
+    ConstBroadcast(){}
+    void setConstState(pIRObj obj);
+    virtual void applyBlock(pBlock block);
 };

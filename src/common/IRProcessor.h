@@ -2,10 +2,12 @@
 #include "../frontend/ASTVisitor.h"
 
 
+class IRProcessors;
 class IRProcessor{
 public:
     IRProcessor()=default;
     virtual void apply(ASTVisitor& visitor)=0;
+    virtual void processDependency(IRProcessors* procs){};
     virtual pBlock visit(pBlock root){
         return nullptr;
     };
@@ -13,16 +15,21 @@ public:
 
 class IRProcessors{
 public:
-    vector<IRProcessor*> processors;
+    deque<IRProcessor*> processors;
     ASTVisitor& visitor;
     IRProcessors(ASTVisitor& visitor): visitor(visitor){}
     void apply(){
-        for(auto proc: processors){
+        while(processors.size()){
+            auto proc = processors.front();
+            processors.pop_front();
+            cout << typeid(decltype(proc)).name()<< endl;
             proc->apply(visitor);
+            delete proc;
         }
     }
     void add(IRProcessor* proc){
         processors.push_back(proc);
+        proc->processDependency(this);
     }
 };
 
@@ -31,6 +38,7 @@ class BlockPruner: public IRProcessor{
 public:
     BlockPruner()=default;
     bool checkRemoveEmptyBlock(pBlock block);
+    virtual void processDependency(IRProcessors* procs);
     virtual void apply(ASTVisitor& visitor){
         for(auto& f: visitor.functions){
             deleted.clear();

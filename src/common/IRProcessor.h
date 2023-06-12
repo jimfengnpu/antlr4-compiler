@@ -22,7 +22,6 @@ public:
         while(processors.size()){
             auto proc = processors.front();
             processors.pop_front();
-            cout << typeid(decltype(proc)).name()<< endl;
             proc->apply(visitor);
             delete proc;
         }

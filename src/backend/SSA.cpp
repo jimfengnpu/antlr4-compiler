@@ -9,12 +9,10 @@ pIRValObj SSAMaker::findUsingObj(pIRValObj origin){
         }catch(...){
         }
     }
-    // cout <<endl;
-    assert(0);
     return nullptr;
 }
 
-pIRObj SSAMaker::renameObj(pBlock block, pIRObj operand, pIRObj useSource){
+pIRObj SSAMaker::renameObj(pIRObj operand, pIRObj useSource){
     // cout << "rename "<< operand->name <<endl;
     pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(operand);
     pIRValObj out_obj;
@@ -22,23 +20,22 @@ pIRObj SSAMaker::renameObj(pBlock block, pIRObj operand, pIRObj useSource){
     if(obj->scopeSymbols->isGlobal || obj->fa != nullptr)return operand;
     if(obj->isConstant()&&(!obj->isIdent))return operand;
     out_obj = findUsingObj(obj);
-    out_obj->useStructions.insert(useSource);
     assert(out_obj != nullptr);
+    out_obj->useStructions.insert(useSource);
     return out_obj;
 }
 
 void SSAMaker::fillSuccPhi(pBlock block, pBlock from){
     for(auto& obj: block->phiOrigin){
-        auto found = findUsingObj(obj);
-        found->useStructions.insert(block);
-        // if(found)
-        block->phiList[obj].insert({from, found});
+        auto found = dynamic_pointer_cast<IRValObj>(renameObj(obj, from));
+        if(found){
+            block->phiList[obj].insert({from, found});
+        }
     }
 }
 
-pBlock SSAMaker::visit(pBlock block){
+pBlock SSAMaker::visit(pBlock block){   
     visitStack.push_back(block);
-    visited[block] = true;
     for(auto& obj : block->phiOrigin){
         if(!renamedObj[block][obj]){
             pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(obj);
@@ -54,8 +51,11 @@ pBlock SSAMaker::visit(pBlock block){
     }
     for(auto& ir: block->structions){
         // cout << *ir.get() << endl;
-        if(ir->opt1)ir->opt1= renameObj(block, ir->opt1, ir);
-        if(ir->opt2)ir->opt2 = renameObj(block, ir->opt2, ir);
+        if(ir->opt1)ir->opt1= renameObj(ir->opt1, ir);
+        if(ir->opt2)ir->opt2 = renameObj(ir->opt2, ir);
+        if(ir->type == IRType::RET){
+            block->function->returnVal = dynamic_pointer_cast<IRValObj>(ir->opt1);
+        }
         if(ir->type == IRType::IDX)continue;
         pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(ir->target), newObj = nullptr;
         if(targ){
@@ -64,15 +64,15 @@ pBlock SSAMaker::visit(pBlock block){
             }else {
                 newObj = make_shared<IRScalValObj>(*targ.get());
                 newObj->name = getNewName(targ);
+                newObj->defStruction = ir;
                 ir->target = newObj;
             }
             // cout << "add "<< targ->name << " in "<< block<<endl;
             renamedObj[block][targ] = newObj;
-            newObj->defStruction = ir;
         }
     }
     if(block->branchVal){
-        block->branchVal = dynamic_pointer_cast<IRScalValObj>(renameObj(block, block->branchVal, block));
+        block->branchVal = dynamic_pointer_cast<IRScalValObj>(renameObj(block->branchVal, block));
     }
     if(block->nextNormal){
         fillSuccPhi(block->nextNormal, block);

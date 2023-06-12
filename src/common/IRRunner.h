@@ -27,7 +27,9 @@ public:
         visit(visitor.globalData);
         auto frame = new DataFrame();
         frameStack.push_back(frame);
-        returnVal = runFunc(std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main")));
+        auto mainEntry = std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main"));
+        if(nullptr == mainEntry)throw runtime_error("no main func");
+        returnVal = runFunc(mainEntry);
         frameStack.pop_back();
         delete frame;
         if(needNewLine)fout <<endl;

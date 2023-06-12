@@ -86,34 +86,24 @@ void SysYIR::print(std::ostream& os) const{
     os << IRTypeName(type);
     if(target != nullptr)
         os << " " << target.get()->name;
-    if(auto scal=dynamic_pointer_cast<IRScalValObj>(target)){
-        if(scal->constState==IR_CONST)
-        os << "(" << scal->value<<")";
-    }
     if(opt1 != nullptr)
         os << ", " << opt1.get()->name;
-    if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt1)){
-        if(scal->constState==IR_CONST)
-        os << "(" << scal->value<<")";
-    }
     if(opt2 != nullptr)
         os << ", " << opt2.get()->name;
-    if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt2)){
-        if(scal->constState==IR_CONST)
-        os << "(" << scal->value<<")";
-    }
+    // if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt2)){
+    //     if(scal->constState==IR_CONST)
+    //     os << "(" << scal->value<<")";
+    // }
     if(removedMask)
         os << "     --m";
 }
 
 void IRBlock::print(std::ostream& os) const{
-    os << name << ":\n";
-    // os << name << "[label=\"" << name << " |";
-    // if(structions.size() > 4){ 
-    //     os << *structions[0].get() <<"\\|";
-    //     os << *structions[1].get() <<"\\|...\\|";
-    //     os << *structions[structions.size() -1].get() <<"\\|";
-    // }else{
+    #ifdef VAL_CFGDOM
+        os << name << "[label=\"" << name << " |";
+    #else
+        os << "\n" << name << ":\n";
+    #ifdef VAL_LIVE
     os << "live in:";
     for(auto& p: liveIn){
         if(p)
@@ -138,51 +128,69 @@ void IRBlock::print(std::ostream& os) const{
         os << " " << p->name;
     }
     os << endl;
+    os << "df:";
+    for(auto& df: domFrontier){
+        os << " " << df->name;
+    }
+    os << endl;
+    #endif
+    #endif
     for(auto& [obj, vec]: phiList){
         auto scal = dynamic_pointer_cast<IRScalValObj>(phiObj.at(obj));
-        os << "\tPHI " << scal->name;
+        #ifdef VAL_CFGDOM
+            os << "\\n";
+        #else
+            os << "\n\t";
+        #endif
+        os << "PHI " << scal->name;
         if(scal->constState==IR_CONST)
         os << "(" << scal->value<<")";
         for(auto f: vec){
             os << " ("<< f.first->name << ")"<<f.second->name<<" ";
-            if(auto scal=dynamic_pointer_cast<IRScalValObj>(f.second)){
-                if(scal->constState==IR_CONST)
-                os << "(" << scal->value<<")";
-            }
         }
         os << endl;
     }
     for(auto &ir: structions) {
-        // os << *ir.get() << "\\n";
-        os << "\t" << *ir.get() << std::endl;
+        #ifdef VAL_CFGDOM
+            os << "\\n";
+        #else
+            os << "\n\t";
+        #endif
+        os << *ir.get();
     }
-    // }
     if(nullptr != nextBranch){
-        os << "\tIF " << branchVal->name << " GOTO " 
-            << nextBranch.get()->name << endl;
+        #ifdef VAL_CFGDOM
+            os << "\\n";
+        #else
+            os << "\n\t";
+        #endif
+        os << "IF " << branchVal->name << " GOTO " 
+            << nextBranch.get()->name;
     }
-    if(nullptr != nextNormal)
-        os << "\tGOTO " << nextNormal.get()->name << endl;
-    // else
-    //     os << "\tEND" << endl;
-    // os << "\"];"<<endl;
+
+    if(nullptr != nextNormal){
+        #ifdef VAL_CFGDOM
+            os << "\\n";
+        #else
+            os << "\n\t";
+        #endif
+        os << "GOTO " << nextNormal.get()->name;
+    }
     // cfg
+    #ifdef VAL_CFGDOM
+    os << "\"];" << endl;
     for(auto p: from){
         os << p->name << " -> " << name << ";" << endl;
     }
     // dom
     if(domFa != nullptr)
         os << domFa->name << " -> " << name << "[color=\"red\"];" << endl;
-    os << "df:";
-    for(auto& df: domFrontier){
-        os << " " << df->name;
-    }
-    os << endl;
+    #endif
 }
 
 void IRFunc::print(std::ostream& os) const{
-    os << name << ":" << endl;
+    os << name << ":";
     for(auto blk: blocks) {
-        os << *blk.get();
+        os << endl << *blk.get();
     }
 }

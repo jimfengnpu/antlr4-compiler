@@ -49,7 +49,7 @@ void DomMaker::makeDom(pIRFunc func){
         if(p->from.size() > 1){
             for(pBlock pp: p->from){
                 pBlock runner = pp;
-                while(runner != p->domFa){
+                while(runner && runner != p->domFa){
                     runner->domFrontier.insert(p);
                     runner = runner->domFa;
                 }
@@ -57,3 +57,7 @@ void DomMaker::makeDom(pIRFunc func){
         }
     }
 }
+
+void DomMaker::processDependency(IRProcessors* procs){
+    procs->add(new LiveCalculator());
+};

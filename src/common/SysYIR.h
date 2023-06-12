@@ -25,7 +25,13 @@ using namespace std;
 #define IR_NAC   2
 #define CONST_OP(x, y) ((x)==1&&(y)==1)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
+
 // #define VAL_IR 1
+#define VAL_LIVE 1
+// #define VAL_CFGDOM 1
+
+#define VAL_RUN 1
+
 // class IRObj;
 // class IRValObj;
 class IRScalValObj;
@@ -73,7 +79,7 @@ public:
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
     bool phiDef=false;
-    pIRObj defStruction;
+    pIRObj defStruction;// for no-ssa val=>nullptr; phi=>pBlock; common=>pIR
     set<pIRObj> useStructions;
 
     IRValObj() {}
@@ -125,15 +131,14 @@ class IRScalValObj : public IRValObj
 {
 public:
     // <lv 4> const folding
-    int constState=IR_NAC;
-
+    int constState;
     int value;
     IRScalValObj() {}
     IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)), constState(IR_CONST){
     }
-    IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name){
+    IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name), constState(IR_NAC){
     }
-    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name){}
+    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name), constState(IR_NAC){}
     virtual void print(ostream& os) const override;
 };
 
@@ -259,6 +264,7 @@ public:
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
     set<pBlock> from;
+    pIRFunc function;
     // dom <lv 1>
     vector<pBlock> domChild;
     set<pBlock> domFrontier;

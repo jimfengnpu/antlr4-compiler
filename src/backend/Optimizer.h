@@ -3,10 +3,10 @@
 
 // base class for optimize processor
 class Optimizer: public IRProcessor{
-    bool changed;
     deque<pBlock> workList;
     map<pBlock, bool> visited;
 public:
+    bool changed;
     Optimizer(){}
     virtual void applyBlock(pBlock block)=0;
     virtual void apply(ASTVisitor& visitor){
@@ -38,5 +38,6 @@ class ConstBroadcast: public Optimizer{
 public:
     ConstBroadcast(){}
     void setConstState(pIRObj obj);
+    virtual void processDependency(IRProcessors* procs);
     virtual void applyBlock(pBlock block);
 };

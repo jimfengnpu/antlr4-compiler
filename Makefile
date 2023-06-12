@@ -24,7 +24,7 @@ gen_tree:
 	antlr4-parse ${GRAMMAR_RULE} ${START_RULE} -gui test_input.c
 
 gen_graph:
-	./${TARGET_FILE} test_input.c | awk '/^@/ {p=0} /^@.*${FUNC}/ {p=1} p' | xargs ./make_graph.sh > test.dot
+	./${TARGET_FILE} test_input.c | awk '/^@/ {p=0} /^@.*${FUNC}/ {p=1} p'
 
 
 run: ${TARGET_FILE}

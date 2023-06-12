@@ -3,7 +3,6 @@
 #include <deque>
 
 class SSAMaker: public IRProcessor{
-    map<pBlock, bool> visited;
     map<pBlock, map<pIRValObj, pIRValObj> > renamedObj;
     map<pIRValObj, int> renamedId;
     vector<pBlock> visitStack;
@@ -24,7 +23,6 @@ public:
             if(func->entry){
                 //init
                 renamedObj.clear();
-                visited.clear();
                 renamedId.clear();
                 visitStack.clear();
                 phiUse.clear();
@@ -69,7 +67,7 @@ public:
         }
     }
     pIRValObj findUsingObj(pIRValObj origin);
-    pIRObj renameObj(pBlock block, pIRObj operand, pIRObj useSource);
+    pIRObj renameObj(pIRObj operand, pIRObj useSource);
 };
 
 class SSAFinalizer: public IRProcessor{

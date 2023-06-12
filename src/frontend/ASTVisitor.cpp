@@ -34,11 +34,15 @@ std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
     visit(blockCtx);
     if(curFunc->exit == nullptr){
         curFunc->exit = curBlock;
-        curBlock = nullptr;
-    }else 
+    }else{
+        if(curFunc->returnType != IR_VOID)
+            insertIR(IRType::ASSIGN, curFunc->returnVal, 
+            newObj<IRScalValObj>(0), nullptr);
         finishBB(curFunc->exit);
-    curFunc->exit->insertIR(IRType::RET, nullptr, curFunc->returnVal, nullptr);
-    curFunc->blocks.insert(curFunc->exit);
+        curBlock = curFunc->exit;
+    }
+    insertIR(IRType::RET, nullptr, curFunc->returnVal, nullptr);
+    finishBB(nullptr);
     curBlock = globalData;
     return nullptr;
 }
@@ -328,16 +332,18 @@ std::any ASTVisitor::visitCondStmt(SysYParser::CondStmtContext* ctx) {
     pBlock condFinal = newFuncBlock(IR_NORMAL);
     auto condCtx = ctx->cond();
     condCtx->branchs = {condFalse, condTrue};
-    visit(condCtx);
-    curBlock = condTrue;
-    visit(ctx->stmt(0));
-    finishBB(condFinal);
-    curBlock = condFalse;
-    if(ctx->stmt().size() > 1){
-        visit(ctx->stmt(1));
+    if(nullptr != curBlock){
+        visit(condCtx);
+        curBlock = condTrue;
+        visit(ctx->stmt(0));
+        finishBB(condFinal);
+        curBlock = condFalse;
+        if(ctx->stmt().size() > 1){
+            visit(ctx->stmt(1));
+        }
+        finishBB(condFinal);
+        curBlock = condFinal;
     }
-    finishBB(condFinal);
-    curBlock = condFinal;
     return nullptr;
 }
 
@@ -348,13 +354,15 @@ std::any ASTVisitor::visitLoopStmt(SysYParser::LoopStmtContext* ctx) {
     auto condCtx = ctx->cond();
     ctx->loopEntry = condBranch;
     condCtx->branchs = {condOut, condLoop};
-    finishBB(condBranch);
-    curBlock = condBranch;
-    visit(condCtx);
-    curBlock = condLoop;
-    visit(ctx->stmt());
-    finishBB(condBranch);
-    curBlock = condOut;
+    if(nullptr != curBlock){
+        finishBB(condBranch);
+        curBlock = condBranch;
+        visit(condCtx);
+        curBlock = condLoop;
+        visit(ctx->stmt());
+        finishBB(condBranch);
+        curBlock = condOut;
+    }
     return nullptr;
 }
 

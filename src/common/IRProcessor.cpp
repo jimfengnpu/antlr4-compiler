@@ -21,6 +21,11 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
             }
             succ.insert(fa);
         }
+        block->nextNormal->phiOrigin.insert(block->phiOrigin.begin(), block->phiOrigin.end());
+        block->nextNormal->phiList.insert(block->phiList.begin(), block->phiList.end());
+        block->nextNormal->phiDef.insert(block->phiDef.begin(), block->phiDef.end());
+        block->nextNormal->phiKey.insert(block->phiKey.begin(), block->phiKey.end());
+        block->nextNormal->phiObj.insert(block->phiObj.begin(), block->phiObj.end());
         return true;
     }
     if(block->from.size() > 1)return false;
@@ -45,22 +50,22 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
 }
 
 void BlockPruner::processDependency(IRProcessors* procs){
-    cout << "add dom";
     procs->add(new DomMaker());
 }
 
 void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;
+    int sz = from->liveOut.size();
     from->liveOut.insert(block->liveIn.begin(), block->liveIn.end());
     for(auto& origin: block->phiOrigin){
-        if(from->liveOut.find(block->phiList[origin][from]) == from->liveOut.end())
-            changed = true;
         from->liveOut.insert(block->phiList[origin][from]);
     }
+    if(from->liveOut.size() != sz)
+        changed = true;
 }
 
 pBlock LiveCalculator::visit(pBlock block){
-    vector<pIRValObj> diff;
+    vector<pIRValObj> diff{};
     mergeSuccLivein(block->nextBranch, block);
     mergeSuccLivein(block->nextNormal, block);
     set_difference(block->liveOut.begin(), block->liveOut.end(),

@@ -26,7 +26,7 @@ public:
         find(p);
         return setV[p];
     }
-
+    virtual void processDependency(IRProcessors* procs);
     virtual pBlock visit(pBlock r){
         dfn[r] = ++visitId;
         visitBlocks.push_back(r);

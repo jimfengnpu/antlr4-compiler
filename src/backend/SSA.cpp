@@ -86,7 +86,3 @@ pBlock SSAMaker::visit(pBlock block){
     visitStack.pop_back();
     return nullptr;
 }
-
-void SSAMaker::processDependency(IRProcessors* procs){
-    procs->add(new LiveCalculator());
-}

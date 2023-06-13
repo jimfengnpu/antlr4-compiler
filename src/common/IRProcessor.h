@@ -5,9 +5,11 @@
 class IRProcessors;
 class IRProcessor{
 public:
+    IRProcessors* procs=nullptr;
+    deque<IRProcessor*> triggers;
     IRProcessor()=default;
     virtual void apply(ASTVisitor& visitor)=0;
-    virtual void processDependency(IRProcessors* procs){};
+    virtual void addTriggers();
     virtual pBlock visit(pBlock root){
         return nullptr;
     };
@@ -28,31 +30,10 @@ public:
     }
     void add(IRProcessor* proc){
         processors.push_back(proc);
-        proc->processDependency(this);
+        proc->procs = this;
     }
 };
 
-class BlockPruner: public IRProcessor{
-    vector<pBlock> deleted;
-public:
-    BlockPruner()=default;
-    bool checkRemoveEmptyBlock(pBlock block);
-    virtual void processDependency(IRProcessors* procs);
-    virtual void apply(ASTVisitor& visitor){
-        for(auto& f: visitor.functions){
-            deleted.clear();
-            for(auto block: f->blocks){
-                if(block != f->entry && block != f->exit){
-                    if(checkRemoveEmptyBlock(block))
-                        deleted.push_back(block);
-                }
-            }
-            for(auto p: deleted){
-                f->blocks.erase(p);
-            }
-        }
-    }
-};
 
 class LiveCalculator: public IRProcessor{
     bool changed;

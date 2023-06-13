@@ -7,14 +7,15 @@ class SSAMaker: public IRProcessor{
     map<pIRValObj, int> renamedId;
     vector<pBlock> visitStack;
 public:
-    SSAMaker(){}
+    SSAMaker(){
+        triggers.push_back(new LiveCalculator());
+    }
     // rename
     virtual pBlock visit(pBlock block);
     string getNewName(pIRValObj obj){
         return obj->name + "." + to_string(renamedId[obj]++);
     }
     void fillSuccPhi(pBlock block, pBlock from);
-    virtual void processDependency(IRProcessors* procs);
     virtual void apply(ASTVisitor& visitor){
         map<pIRValObj, set<pBlock> > phiDef;// define point
         set<pIRValObj> phiUse; // val used between blocks (union of useObj)
@@ -65,6 +66,7 @@ public:
                 visit(func->entry);
             }
         }
+        addTriggers();
     }
     pIRValObj findUsingObj(pIRValObj origin);
     pIRObj renameObj(pIRObj operand, pIRObj useSource);

@@ -56,10 +56,10 @@ int main(int argc, char** argv) {
     // runner.apply();
     IRProcessors processors(visitor);
     // model list:
-    // DomMaker: generate dom tree in pBlock, dependency: 
+    // DomMaker: generate dom tree in pBlock, triggers: 
     processors.add(new BlockPruner());
     processors.add(new SSAMaker());
-    // processors.add(new ConstBroadcast());
+    processors.add(new ConstBroadcast());
     #ifdef VAL_RUN
     processors.add(new SSAFinalizer());
     processors.add(new IRRunner(cin, cout));
@@ -72,6 +72,7 @@ int main(int argc, char** argv) {
         for(auto &f : visitor.functions){
             cout << endl << *f;
         }
+        cout << endl;
     #endif
     // }catch(...){
     //     cout << "open file failed" << endl;

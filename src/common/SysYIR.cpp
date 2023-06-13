@@ -132,7 +132,6 @@ void IRBlock::print(std::ostream& os) const{
     for(auto& df: domFrontier){
         os << " " << df->name;
     }
-    os << endl;
     #endif
     #endif
     for(auto& [obj, vec]: phiList){
@@ -148,7 +147,6 @@ void IRBlock::print(std::ostream& os) const{
         for(auto f: vec){
             os << " ("<< f.first->name << ")"<<f.second->name<<" ";
         }
-        os << endl;
     }
     for(auto &ir: structions) {
         #ifdef VAL_CFGDOM
@@ -191,6 +189,6 @@ void IRBlock::print(std::ostream& os) const{
 void IRFunc::print(std::ostream& os) const{
     os << name << ":";
     for(auto blk: blocks) {
-        os << endl << *blk.get();
+        os << *blk.get();
     }
 }

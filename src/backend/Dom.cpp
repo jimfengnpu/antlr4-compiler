@@ -57,7 +57,3 @@ void DomMaker::makeDom(pIRFunc func){
         }
     }
 }
-
-void DomMaker::processDependency(IRProcessors* procs){
-    procs->add(new LiveCalculator());
-};

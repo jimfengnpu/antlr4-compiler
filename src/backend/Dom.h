@@ -13,8 +13,11 @@ public:
     map<pBlock, vector<pBlock> > bucket;
     vector<pBlock> visitBlocks;
     int visitId;
-    DomMaker(){}
+    DomMaker(){
+        triggers.push_back(new LiveCalculator());
+    }
     virtual void apply(ASTVisitor& visitor){
+        addTriggers();
         for(auto& func: visitor.functions){
             if(func->entry)
             makeDom(func);
@@ -26,7 +29,6 @@ public:
         find(p);
         return setV[p];
     }
-    virtual void processDependency(IRProcessors* procs);
     virtual pBlock visit(pBlock r){
         dfn[r] = ++visitId;
         visitBlocks.push_back(r);

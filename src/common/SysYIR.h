@@ -26,11 +26,11 @@ using namespace std;
 #define CONST_OP(x, y) ((x)==1&&(y)==1)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
-// #define VAL_IR 1
+#define VAL_IR 1
 #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
 
-#define VAL_RUN 1
+// #define VAL_RUN 1
 
 // class IRObj;
 // class IRValObj;
@@ -293,6 +293,16 @@ public:
         nextBranch = next_branch;
         branchVal = branch_val;
         return true;
+    }
+    // is block empty (all structions removed)
+    inline int size(){
+        int removedCnt = 0;
+        for(auto& ir: structions){
+            if(ir->removedMask){
+                removedCnt++;
+            }
+        }
+        return structions.size() - removedCnt;
     }
 
     // bool dominate(pBlock block, bool strict=true){

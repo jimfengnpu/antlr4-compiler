@@ -132,22 +132,13 @@ void IRBlock::print(std::ostream& os) const{
     for(auto& df: domFrontier){
         os << " " << df->name;
     }
-    #endif
-    #endif
-    for(auto& [obj, vec]: phiList){
-        auto scal = dynamic_pointer_cast<IRScalValObj>(phiObj.at(obj));
-        #ifdef VAL_CFGDOM
-            os << "\\n";
-        #else
-            os << "\n\t";
-        #endif
-        os << "PHI " << scal->name;
-        if(scal->constState==IR_CONST)
-        os << "(" << scal->value<<")";
-        for(auto f: vec){
-            os << " ("<< f.first->name << ")"<<f.second->name<<" ";
-        }
+    os << endl;
+    os << "domChild:";
+    for(auto& child: domChild){
+        os << " " << child->name;
     }
+    #endif
+    #endif
     for(auto &ir: structions) {
         #ifdef VAL_CFGDOM
             os << "\\n";
@@ -155,6 +146,11 @@ void IRBlock::print(std::ostream& os) const{
             os << "\n\t";
         #endif
         os << *ir.get();
+        if(ir->type == IRType::PHI){
+            for(auto& [from, use]: phiList.at(ir->target)){
+                os << " ("<< from->name << ")"<< use->name<<" ";
+            }
+        }
     }
     if(nullptr != nextBranch){
         #ifdef VAL_CFGDOM

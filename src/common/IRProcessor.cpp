@@ -3,14 +3,19 @@
 void IRProcessor::addTriggers(){
     procs->processors.insert(procs->processors.begin(),
         triggers.begin(), triggers.end());
+    for(auto t: triggers){
+        t->procs = procs;
+    }
 }
 
 void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;
     int sz = from->liveOut.size();
     from->liveOut.insert(block->liveIn.begin(), block->liveIn.end());
-    for(auto& origin: block->phiOrigin){
-        from->liveOut.insert(block->phiList[origin][from]);
+    for(auto& ir: block->structions){
+        if(ir->type == IRType::PHI){
+            from->liveOut.insert(block->phiList[ir->target][from]);
+        }
     }
     if(from->liveOut.size() != sz)
         changed = true;
@@ -37,9 +42,9 @@ void LiveCalculator::makeLive(pIRFunc& func){
         auto& liveUse = block->useObj;
         auto& liveDef = block->defObj;
         pIRValObj op1, op2, targ;
-        for(auto& obj: block->phiOrigin){
-            liveDef.insert(block->phiObj[obj]);
-        }
+        // for(auto& obj: block->phiOrigin){
+        //     liveDef.insert(block->phiObj[obj]);
+        // }
         for(auto& ir: block->structions){
             if(!ir->removedMask){
                 op1 = dynamic_pointer_cast<IRValObj>(ir->opt1);

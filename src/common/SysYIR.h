@@ -3,6 +3,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <deque>
 #include <set>
 #include <map>
 #include <memory>
@@ -79,8 +80,8 @@ public:
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
     bool phiDef=false;
-    pIRObj defStruction;// for no-ssa val=>nullptr; phi=>pBlock; common=>pIR
-    set<pIRObj> useStructions;
+    pSysYIR defStruction;// for no-ssa val=>nullptr; phi=>pBlock; common=>pIR
+    set<pIRObj> useStructions; //... common=>pIR; branch=>pBlock; phi=> obj
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
@@ -182,11 +183,12 @@ enum class IRType : int
     CALL = 17,
     PARAM = 18,
     RET = 19,
-    DEF = 20
+    DEF = 20,
+    PHI = 21
 };
 static map<string, IRType> opfinder[2]={
     {
-        {"+", IRType::NOP},
+        {"+", IRType::ASSIGN},
         {"-", IRType::NEG},
         {"!", IRType::NOT}
     },
@@ -228,6 +230,7 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::PARAM)
         ENUM_TO_STRING(IRType::RET)
         ENUM_TO_STRING(IRType::DEF)
+        ENUM_TO_STRING(IRType::PHI)
     default:
         return "unknown";
     }
@@ -238,10 +241,10 @@ class SysYIR: public IRObj
 public:
     bool removedMask=false;
     IRType type;
-    pIRObj target;
+    pIRValObj target;
     pIRObj opt1;
     pIRObj opt2;
-    SysYIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
+    SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
 };
@@ -258,7 +261,7 @@ class IRBlock : public IRObj
     static int branchId;
 public:
     // basic & CFG <lv 0>
-    vector<shared_ptr<SysYIR> > structions;
+    deque<shared_ptr<SysYIR> > structions;
     int blockType; // 0 normal 1 branch 2 loop
     pIRScalValObj branchVal = nullptr;
     pBlock nextNormal = nullptr;
@@ -266,7 +269,7 @@ public:
     set<pBlock> from;
     pIRFunc function;
     // dom <lv 1>
-    vector<pBlock> domChild;
+    set<pBlock> domChild;
     set<pBlock> domFrontier;
     pBlock domFa;
     // live interval <lv 2>
@@ -275,15 +278,11 @@ public:
     set<pIRValObj> liveIn;  // 当前block开头处活跃的值(当前块或后面块用到但是定值点在前面block)不包含phi指令用到的
     set<pIRValObj> liveOut; // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
     // SSA <lv3>
-    set<pIRValObj> phiOrigin; // (SSA之前)需要应用phi指令的操作数 x
-    set<pIRValObj> phiDef; // SSA define 的值 x(k)
-    map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x => [ fromBlock => x(i)]
-    map<pIRValObj, pIRValObj> phiObj; // x => x(k)
-    map<pIRValObj, pIRValObj> phiKey; // x(k) => x
+    map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x(k) => [ fromBlock => x(i)]
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
-    void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2)
+    void insertIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
     {
         structions.push_back(make_shared<SysYIR>(type, t, op1, op2));
     }

@@ -1,5 +1,10 @@
 #include "SSA.h"
 
+
+SSAMaker::SSAMaker(){
+    triggers.push_back(new LiveCalculator());
+}
+
 pIRValObj SSAMaker::findUsingObj(pIRValObj origin){
     // cout << "find "<<origin->name <<" in ";
     for(auto block=visitStack.rbegin(); block!=visitStack.rend();block++){
@@ -26,29 +31,31 @@ pIRObj SSAMaker::renameObj(pIRObj operand, pIRObj useSource){
 }
 
 void SSAMaker::fillSuccPhi(pBlock block, pBlock from){
-    for(auto& obj: block->phiOrigin){
-        auto found = dynamic_pointer_cast<IRValObj>(renameObj(obj, from));
-        if(found){
-            block->phiList[obj].insert({from, found});
-        }
+    for(auto& ir: block->structions){
+        if(ir->type == IRType::PHI){
+            auto defObj = dynamic_pointer_cast<IRValObj>(ir->target);
+            auto origin = phiOrigin[block][defObj];
+            if(origin == nullptr) origin = defObj;
+            auto found = dynamic_pointer_cast<IRValObj>(
+                renameObj(origin, ir));
+            phiList[block][origin][from] = found;
+        }else break;
     }
 }
 
 pBlock SSAMaker::visit(pBlock block){   
     visitStack.push_back(block);
-    for(auto& obj : block->phiOrigin){
-        if(!renamedObj[block][obj]){
-            pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(obj);
-            auto newObj = block->phiObj[obj] = make_shared<IRScalValObj>(*targ.get());
-            newObj->name = getNewName(obj);
-            // cout << "add "<< obj->name << " in "<< block<<endl;
-            renamedObj[block][obj] = newObj;
-            newObj->phiDef = true;
-            newObj->defStruction = block;
-            block->phiDef.insert(newObj);
-            block->phiKey[newObj] = obj;
-        }
-    }
+    // for(auto& obj : block->phiOrigin){
+    //     if(!renamedObj[block][obj]){
+    //         pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(obj);
+    //         auto newObj = block->phiObj[obj] = make_shared<IRScalValObj>(*targ.get());
+    //         newObj->name = getNewName(obj);
+    //         // cout << "add "<< obj->name << " in "<< block<<endl;
+    //         renamedObj[block][obj] = newObj;
+    //         newObj->phiDef = true;
+    //         newObj->defStruction = block;
+    //     }
+    // }
     for(auto& ir: block->structions){
         // cout << *ir.get() << endl;
         if(ir->opt1)ir->opt1= renameObj(ir->opt1, ir);
@@ -67,6 +74,10 @@ pBlock SSAMaker::visit(pBlock block){
                 newObj->defStruction = ir;
                 ir->target = newObj;
             }
+            if(ir->type == IRType::PHI){
+                phiOrigin[block][newObj] = targ;
+                ir->target->phiDef = true;
+            }
             // cout << "add "<< targ->name << " in "<< block<<endl;
             renamedObj[block][targ] = newObj;
         }
@@ -81,6 +92,7 @@ pBlock SSAMaker::visit(pBlock block){
         fillSuccPhi(block->nextBranch, block);
     }
     for(auto child: block->domChild){
+        
         visit(child);
     }
     visitStack.pop_back();

@@ -1,5 +1,10 @@
 #include "Dom.h"
 
+
+DomMaker::DomMaker(){
+    triggers.push_back(new LiveCalculator());
+}
+
 pBlock DomMaker::find(pBlock p){
     if(setFa[p] == p)return p;
     pBlock r = find(setFa[p]);
@@ -21,6 +26,9 @@ void DomMaker::makeDom(pIRFunc func){
     for(auto p: func->blocks){
         setFa[p] = p;
         setV[p] = p;
+        p->domChild.clear();
+        p->domFrontier.clear();
+        p->domFa = nullptr;
     }
     visit(func->entry);
     for(auto ip = visitBlocks.rbegin(); ip+1 != visitBlocks.rend(); ip++){
@@ -42,7 +50,7 @@ void DomMaker::makeDom(pIRFunc func){
         p = visitBlocks[i];
         idom[p] = idom[p]==visitBlocks[sdno[p] - 1]? idom[p]:idom[idom[p]];
         p->domFa = idom[p];
-        idom[p]->domChild.push_back(p);
+        idom[p]->domChild.insert(p);
     }
     for(int i=0; i < visitId; i++){
         p = visitBlocks[i];

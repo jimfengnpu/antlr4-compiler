@@ -13,9 +13,7 @@ public:
     map<pBlock, vector<pBlock> > bucket;
     vector<pBlock> visitBlocks;
     int visitId;
-    DomMaker(){
-        triggers.push_back(new LiveCalculator());
-    }
+    DomMaker();
     virtual void apply(ASTVisitor& visitor){
         addTriggers();
         for(auto& func: visitor.functions){

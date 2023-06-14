@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
     // model list:
     // DomMaker: generate dom tree in pBlock, triggers: 
     processors.add(new BlockPruner());
+    processors.add(new DomMaker());
     processors.add(new SSAMaker());
     processors.add(new ConstBroadcast());
     #ifdef VAL_RUN

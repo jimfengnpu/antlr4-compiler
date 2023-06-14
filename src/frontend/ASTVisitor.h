@@ -93,7 +93,7 @@ public:
         return obj;
     }
 
-    void insertIR(IRType type, pIRObj t, pIRObj op1, pIRObj op2){
+    void insertIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2){
         if(curBlock != nullptr){
             curBlock->insertIR(type, t, op1, op2);
         }

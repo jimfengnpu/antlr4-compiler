@@ -45,9 +45,7 @@ public:
 class BlockPruner: public Optimizer{
     vector<pBlock> deleted;
 public:
-    BlockPruner(){
-        triggers.push_back(new LiveCalculator());
-    }
+    BlockPruner();
     bool checkRemoveEmptyBlock(pBlock block);
     virtual void applyBlock(pBlock block);
     virtual void applyFunc(pIRFunc func){
@@ -65,9 +63,14 @@ public:
 class ConstBroadcast: public Optimizer{
     map<pBlock, map<pIRScalValObj, int> > constState;
 public:
-    ConstBroadcast(){
-        triggers.push_back(new BlockPruner());
-    }
-    void setConstState(pIRObj obj);
+    ConstBroadcast();
+    void setConstState(pBlock block, pIRObj obj);
+    virtual void applyBlock(pBlock block);
+};
+
+class CodeCleaner: public Optimizer{
+public:
+    CodeCleaner();
+    void checkObjUse(pIRObj obj);
     virtual void applyBlock(pBlock block);
 };

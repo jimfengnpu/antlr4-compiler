@@ -4,12 +4,12 @@
 
 class SSAMaker: public IRProcessor{
     map<pBlock, map<pIRValObj, pIRValObj> > renamedObj;
+    map<pBlock, map<pIRValObj, pIRValObj> > phiOrigin;
+    map<pBlock, map<pIRValObj, map<pBlock, pIRValObj> > > phiList;
     map<pIRValObj, int> renamedId;
     vector<pBlock> visitStack;
 public:
-    SSAMaker(){
-        triggers.push_back(new LiveCalculator());
-    }
+    SSAMaker();
     // rename
     virtual pBlock visit(pBlock block);
     string getNewName(pIRValObj obj){
@@ -28,6 +28,8 @@ public:
                 visitStack.clear();
                 phiUse.clear();
                 phiDef.clear();
+                phiOrigin.clear();
+                phiList.clear();
                 //insert phi
                 for(auto b: func->blocks){
                     for(auto& obj: b->defObj){
@@ -46,7 +48,8 @@ public:
                         for(auto df: b->domFrontier){
                             if(!phiFlag[df]&& df->liveIn.find(obj) != df->liveIn.end()){
                                 phiFlag[df] = true;
-                                df->phiOrigin.insert(obj);
+                                df->structions.push_front(
+                                    make_shared<SysYIR>(IRType::PHI, obj, nullptr, nullptr));
                                 blocks.insert(df);
                             }
                         }
@@ -64,6 +67,17 @@ public:
                     }
                 }
                 visit(func->entry);
+                for(auto b: func->blocks){
+                    for(auto& ir: b->structions){
+                        if(ir->type == IRType::PHI){
+                            auto origin = phiOrigin[b][ir->target];
+                            for(auto [from, use]: phiList[b][origin]){
+                                assert(use != nullptr);
+                                b->phiList[ir->target][from] = use;
+                            }
+                        }else break;
+                    }
+                }
             }
         }
         addTriggers();
@@ -82,25 +96,31 @@ public:
         for(auto& func: visitor.functions){
             newBlocks.clear();
             for(auto block: func->blocks){
-                for(auto& origin: block->phiOrigin){
-                    for(auto& f: block->from){
-                        pBlock insertBlock = f, newBlock = nullptr;
-                        // if predecessor(f) has defined phi val in live out, 
-                        // then add another bb insert assign statement to avoid lost copy
-                        if(f->liveOut.find(block->phiObj[origin])!=f->liveOut.end()){
-                            newBlock = make_shared<IRBlock>(IR_NORMAL);
-                            newBlock->finishBB(block);
-                            newBlocks.insert(newBlock);
-                            if(f->nextBranch == block){
-                                f->nextBranch = newBlock;
-                            }else{
-                                f->nextNormal = newBlock;
+                for(auto& ir: block->structions){
+                    if(!ir->removedMask){
+                        if(ir->type == IRType::PHI){
+                            auto phiDefObj = ir->target;
+                            for(auto& f: block->from){
+                                pBlock insertBlock = f, newBlock = nullptr;
+                                // if predecessor(f) has defined phi val in live out, 
+                                // then add another bb insert assign statement to avoid lost copy
+                                if(f->liveOut.find(phiDefObj)!=f->liveOut.end()){
+                                    newBlock = make_shared<IRBlock>(IR_NORMAL);
+                                    newBlock->finishBB(block);
+                                    newBlocks.insert(newBlock);
+                                    if(f->nextBranch == block){
+                                        f->nextBranch = newBlock;
+                                    }else{
+                                        f->nextNormal = newBlock;
+                                    }
+                                    insertBlock = newBlock;
+                                }
+                                insertBlock->insertIR(
+                                    IRType::ASSIGN, phiDefObj, 
+                                    block->phiList[phiDefObj][f], nullptr);
                             }
-                            insertBlock = newBlock;
+                            ir->removedMask = true;
                         }
-                        insertBlock->insertIR(
-                            IRType::ASSIGN, block->phiObj[origin], 
-                            block->phiList[origin][f], nullptr);
                     }
                 }
             }

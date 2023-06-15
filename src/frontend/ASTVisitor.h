@@ -52,11 +52,11 @@ public:
     }
 
     pBlock newFuncBlock(int blockType, string name=string("")) {
-        pBlock block = newObj<IRBlock>(blockType, name);
+        pBlock block = make_shared<IRBlock>(blockType, name);
         return block;
     }
 
-    //the last arg must be str name
+    // generate new val obj add symboltable info
     template<typename _Tp, typename... _Args>
     inline shared_ptr<_Tp> newObj(_Args&&... __args) {
         auto obj = make_shared<_Tp>(std::forward<_Args>(__args)...);

@@ -51,7 +51,8 @@ pBlock IRRunner::visit(pBlock block){
         if(!ir->removedMask)
             runSysY(*(ir));
     }
-    if(block->nextBranch && getValue(block->branchVal) != 0)return block->nextBranch;
+    if(block->nextBranch && getValue(block->branchVal) != 0)
+        return block->nextBranch;
     return block->nextNormal;
 }
 

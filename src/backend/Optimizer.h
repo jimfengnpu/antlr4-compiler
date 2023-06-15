@@ -16,6 +16,7 @@ public:
             workList.push_back(block->nextBranch);
     }
     virtual void applyFunc(pIRFunc func){}
+    virtual void prepareTriggers(){}
     virtual void apply(ASTVisitor& visitor){
         bool triggerNeeded = false;
         for(auto& func: visitor.functions){
@@ -26,51 +27,54 @@ public:
                     workList.push_back(func->entry);
                     changed = false;
                     while(workList.size()){
-                        auto p = workList.front();
+                        // for(auto x: workList){
+                        //     cout << x->name << " ";
+                        // }
+                        // cout << endl;
+                        auto block = workList.front();
+                        // if(block->name == "M3"){
+                        //     cout << "break";
+                        // }
                         workList.pop_front();
-                        if(visited[p])continue;
-                        visited[p] = true;
-                        applyBlock(p);
-                        applyNextBlock(p);
+                        if(!visited[block]){
+                            visited[block] = true;
+                            applyBlock(block);
+                        }
+                        applyNextBlock(block);
                     }
                     applyFunc(func);
                     triggerNeeded |= changed;
                 }while(changed);
             }
         }
-        if(triggerNeeded) addTriggers();
+        if(triggerNeeded){
+            prepareTriggers();
+            addTriggers();
+        }
     }
 };
 
 class BlockPruner: public Optimizer{
     vector<pBlock> deleted;
 public:
-    BlockPruner();
+    BlockPruner(){}
     bool checkRemoveEmptyBlock(pBlock block);
-    virtual void applyBlock(pBlock block);
-    virtual void applyFunc(pIRFunc func){
-        for(auto p: func->blocks){
-            if(!visited[p])deleted.push_back(p);
-        }
-        if(deleted.size() > 0)changed = true;
-        for(auto p: deleted){
-            func->blocks.erase(p);
-        }
-        deleted.clear();
-    }
+    virtual void applyBlock(pBlock block){}
+    virtual void applyFunc(pIRFunc func);
+    virtual void prepareTriggers();
 };
 
 class ConstBroadcast: public Optimizer{
-    map<pBlock, map<pIRScalValObj, int> > constState;
 public:
-    ConstBroadcast();
+    ConstBroadcast(){}
     void setConstState(pBlock block, pIRObj obj);
     virtual void applyBlock(pBlock block);
+    virtual void prepareTriggers();
 };
 
 class CodeCleaner: public Optimizer{
 public:
-    CodeCleaner();
-    void checkObjUse(pIRObj obj);
+    CodeCleaner(){}
     virtual void applyBlock(pBlock block);
+    virtual void prepareTriggers();
 };

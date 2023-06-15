@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     processors.add(new BlockPruner());
     processors.add(new DomMaker());
     processors.add(new SSAMaker());
-    processors.add(new ConstBroadcast());
+    processors.add(new ConstBroadcast());// auto clean
     #ifdef VAL_RUN
     processors.add(new SSAFinalizer());
     processors.add(new IRRunner(cin, cout));

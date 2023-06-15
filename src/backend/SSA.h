@@ -83,7 +83,7 @@ public:
         addTriggers();
     }
     pIRValObj findUsingObj(pIRValObj origin);
-    pIRObj renameObj(pIRObj operand, pIRObj useSource);
+    pIRObj renameObj(pIRObj operand, pSysYIR useSource);
 };
 
 class SSAFinalizer: public IRProcessor{

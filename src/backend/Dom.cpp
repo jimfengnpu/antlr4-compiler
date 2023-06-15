@@ -1,9 +1,6 @@
 #include "Dom.h"
 
 
-DomMaker::DomMaker(){
-    triggers.push_back(new LiveCalculator());
-}
 
 pBlock DomMaker::find(pBlock p){
     if(setFa[p] == p)return p;

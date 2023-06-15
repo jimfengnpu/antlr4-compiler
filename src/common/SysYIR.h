@@ -24,14 +24,14 @@ using namespace std;
 #define IR_UNDEF 0
 #define IR_CONST 1
 #define IR_NAC   2
-#define CONST_OP(x, y) ((x)==1&&(y)==1)
+#define CONST_OP(x, y) (((x)==1&&(y)==1)?1:2)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
-#define VAL_IR 1
+// #define VAL_IR 1
 #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
 
-// #define VAL_RUN 1
+#define VAL_RUN 1
 
 // class IRObj;
 // class IRValObj;
@@ -80,8 +80,8 @@ public:
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
     bool phiDef=false;
-    pSysYIR defStruction;// for no-ssa val=>nullptr; phi=>pBlock; common=>pIR
-    set<pIRObj> useStructions; //... common=>pIR; branch=>pBlock; phi=> obj
+    pSysYIR defStruction;// for no-ssa val=>nullptr; common=>pIR
+    set<pSysYIR> useStructions; //... common=>pIR; branch=>pBlock.branchIR;
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
@@ -184,7 +184,8 @@ enum class IRType : int
     PARAM = 18,
     RET = 19,
     DEF = 20,
-    PHI = 21
+    PHI = 21,
+    BR = 22
 };
 static map<string, IRType> opfinder[2]={
     {
@@ -231,6 +232,7 @@ static string IRTypeName(IRType type)
         ENUM_TO_STRING(IRType::RET)
         ENUM_TO_STRING(IRType::DEF)
         ENUM_TO_STRING(IRType::PHI)
+        ENUM_TO_STRING(IRType::BR)
     default:
         return "unknown";
     }
@@ -263,6 +265,7 @@ public:
     // basic & CFG <lv 0>
     deque<shared_ptr<SysYIR> > structions;
     int blockType; // 0 normal 1 branch 2 loop
+    shared_ptr<SysYIR> branchIR;
     pIRScalValObj branchVal = nullptr;
     pBlock nextNormal = nullptr;
     pBlock nextBranch = nullptr;
@@ -291,6 +294,7 @@ public:
         nextNormal = next_normal; 
         nextBranch = next_branch;
         branchVal = branch_val;
+        branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
         return true;
     }
     // is block empty (all structions removed)
@@ -304,6 +308,14 @@ public:
         return structions.size() - removedCnt;
     }
 
+    bool hasPhi(){
+        for(auto ir: structions){
+            if(ir->type == IRType::PHI){
+                return true;
+            }else break;
+        }
+        return false;
+    }
     // bool dominate(pBlock block, bool strict=true){
     //     if(block && strict){
     //         block = block->domFa;

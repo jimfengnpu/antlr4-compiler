@@ -158,8 +158,8 @@ void IRBlock::print(std::ostream& os) const{
         #else
             os << "\n\t";
         #endif
-        os << "IF " << branchVal->name << " GOTO " 
-            << nextBranch.get()->name;
+        os << *branchIR.get();
+        os << " GOTO " << nextBranch.get()->name;
     }
 
     if(nullptr != nextNormal){

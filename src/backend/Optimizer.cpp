@@ -2,15 +2,19 @@
 #include "Dom.h"
 
 
-BlockPruner::BlockPruner(){
+void BlockPruner::prepareTriggers(){
+    triggers.push_back(new ConstBroadcast());
+    triggers.push_back(new CodeCleaner());
     triggers.push_back(new DomMaker());
 }
 
-
-void changePhiFrom(pBlock block, pBlock from, pBlock now){
+// change phi use of %block% from %from% to %now%(if %now% not nullptr, otherwise just erase %from%)
+void changeErasePhiFrom(pBlock block, pBlock from, pBlock now){
     for(auto& ir: block->structions){
         if(ir->type == IRType::PHI){
-            block->phiList[ir->target][now] = block->phiList[ir->target][from];
+            if(nullptr != now){
+                block->phiList[ir->target][now] = block->phiList[ir->target][from];
+            }
             block->phiList[ir->target].erase(from);
         }else break;
     }
@@ -18,6 +22,13 @@ void changePhiFrom(pBlock block, pBlock from, pBlock now){
 
 bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
     if(block->size() > 0)return false;
+    if(block->from.size() > 0){
+        if(block->nextNormal->hasPhi()||
+            block->nextBranch && block->nextBranch->hasPhi())
+        {
+            return false;
+        }
+    }
     if(block->nextBranch == nullptr){
         /*
         *B1-->B2
@@ -28,19 +39,21 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
         auto& succ = block->nextNormal->from;
         succ.erase(block);
         for(auto fa: block->from){
+            assert(fa != nullptr);
             if(fa->nextNormal == block){
                 fa->nextNormal = block->nextNormal;
-            }else{
+            }
+            if(fa->nextBranch == block){
                 fa->nextBranch = block->nextNormal;
             }
             succ.insert(fa);
-            changePhiFrom(block->nextNormal, block, fa);
+            changeErasePhiFrom(block->nextNormal, block, fa);
         }
         return true;
     }
     if(block->from.size() > 1)return false;
     auto fa = *(block->from.begin());
-    if(fa->nextBranch != nullptr)return false;
+    if(nullptr == fa || fa->nextBranch != nullptr)return false;
     assert(fa->nextBranch == nullptr);
     /*
     B0-->*B1-->x:B2,B3
@@ -52,34 +65,60 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block){
     fa->branchVal = block->branchVal;
     block->nextNormal->from.erase(block);
     block->nextNormal->from.insert(fa);
-    changePhiFrom(block->nextNormal, block, fa);
+    changeErasePhiFrom(block->nextNormal, block, fa);
     if(block->nextBranch){
         block->nextBranch->from.erase(block);
         block->nextBranch->from.insert(fa);
-        changePhiFrom(block->nextBranch, block, fa);
+        changeErasePhiFrom(block->nextBranch, block, fa);
     }
     return true;
 }
 
-void BlockPruner::applyBlock(pBlock block){
-    if(checkRemoveEmptyBlock(block))
-        deleted.push_back(block);
+void BlockPruner::applyFunc(pIRFunc func){
+    deleted.clear();
+    for(pBlock block: func->blocks){
+        if(!visited[block] || 
+            (block != func->entry && 
+            block != func->exit && 
+            checkRemoveEmptyBlock(block)))
+        {
+            deleted.push_back(block);
+            if(!visited[block]){
+                changeErasePhiFrom(block->nextNormal, block, nullptr);
+                if(block->nextBranch)
+                changeErasePhiFrom(block->nextBranch, block, nullptr);
+            }
+        }
+    }
+    if(deleted.size() > 0)changed = true;
+    for(auto block: deleted){
+        func->blocks.erase(block);
+    }
 }
 
-ConstBroadcast::ConstBroadcast(){
-    triggers.push_back(new BlockPruner());
+
+void ConstBroadcast::prepareTriggers(){
+    triggers.push_back(new CodeCleaner());
+}
+
+void clearConstUse(pSysYIR ir, pIRObj obj){
+    auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
+    if(nullptr == scalObj)return;
+    if(scalObj->fa != nullptr)return;
+    if(scalObj->constState == IR_CONST){
+        scalObj->useStructions.erase(ir);
+    }
 }
 
 void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
-    if(!obj)return;
     auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
-    if(!scalObj)return;
+    if(nullptr == scalObj)return;
     if(scalObj->fa != nullptr)return;
     // immediate number
     if(scalObj->isConstant() && !scalObj->isIdent){
         scalObj->constState = IR_CONST;
     }else if(auto defIr = scalObj->defStruction){
-        int constState = IR_NAC;
+        int constState = IR_UNDEF;
         int value = 0;
         // if( = dynamic_pointer_cast<SysYIR>(scalObj->defStruction)){
             // define in normal struction
@@ -103,25 +142,25 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
             case IRType::CALL:
             case IRType::IDX:
             case IRType::RET:
+                constState = IR_NAC;
                 break;
             default: //usual cal
                 constState = IR_CONST;
                 auto op1 = dynamic_pointer_cast<IRScalValObj>(defIr->opt1);
                 auto op2 = dynamic_pointer_cast<IRScalValObj>(defIr->opt2);
-                if(op1)constState = CONST_OP(constState, op1->constState);
-                if(op2)constState = CONST_OP(constState, op2->constState);
+                if(op1){
+                    constState = CONST_OP(constState, op1->constState);
+                }
+                if(op2){
+                    constState = CONST_OP(constState, op2->constState);
+                }
                 if(constState == IR_CONST){
                     value = CalConstExp(defIr->type, op1->value, op2?op2->value:0);
                 }
         }
-        if(constState == IR_CONST){
-            defIr->removedMask = true;
-        }
         scalObj->constState = constState;
         if(constState == IR_CONST){
             scalObj->value = value;
-            scalObj->defStruction = nullptr;
-            scalObj->useStructions.clear();
             scalObj->name = to_string(value);
             scalObj->isConst = true;
             scalObj->isIdent = false;
@@ -131,30 +170,62 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
 }
 
 void ConstBroadcast::applyBlock(pBlock block){
-    for(auto& ir: block->structions){
+    for(auto& ir: block->structions)
         if(!ir->removedMask)
-            setConstState(block, ir->target);
+    {
+        setConstState(block, ir->target);
+        clearConstUse(ir, ir->opt1);
+        clearConstUse(ir, ir->opt2);
+        if(IRType::PHI == ir->type){
+            for(auto [from, use]: block->phiList[ir->target]){
+                clearConstUse(ir, use);
+            }
+        }
     }
+    clearConstUse(block->branchIR, block->branchVal);
 }
 
-CodeCleaner::CodeCleaner(){
+void CodeCleaner::prepareTriggers(){
     triggers.push_back(new BlockPruner());
 }
 
-void CodeCleaner::checkObjUse(pIRObj obj){
-    if(!obj)return;
+bool checkObjUseEmpty(pIRObj obj){
     auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
-    if(!scalObj)return;
-    if(scalObj->fa != nullptr)return;
+    if(scalObj)
+    if(scalObj->fa == nullptr)
+    if(auto defIr = scalObj->defStruction)
+    {
+        return scalObj->useStructions.empty();
+    }
+    return false;
 }
 
 void CodeCleaner::applyBlock(pBlock block){
     for(auto& ir: block->structions){
         if(!ir->removedMask){
-            checkObjUse(ir->target);
+            if(IRType::CALL != ir->type && checkObjUseEmpty(ir->target)){
+                ir->removedMask = true;
+                changed = true;
+            }
         }
     }
     if(block->branchVal){
-        checkObjUse(block->branchVal);
+        if(checkObjUseEmpty(block->branchVal)){
+            if(0 != block->branchVal->value){// always branch
+                block->nextNormal->from.erase(block);
+                changeErasePhiFrom(block->nextNormal, block, nullptr);
+                block->nextNormal = block->nextBranch;
+            }else{
+                block->nextBranch->from.erase(block);
+                changeErasePhiFrom(block->nextBranch, block, nullptr);
+            }
+            block->branchVal = nullptr;
+            block->nextBranch = nullptr;
+            changed = true;
+        }else if(block->nextBranch == block->nextNormal){
+            block->branchVal = nullptr;
+            block->nextBranch = nullptr;
+            changed = true;
+        }
     }
 }

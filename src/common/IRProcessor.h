@@ -3,6 +3,7 @@
 
 
 class IRProcessors;
+
 class IRProcessor{
 public:
     IRProcessors* procs=nullptr;
@@ -22,10 +23,21 @@ public:
     IRProcessors(ASTVisitor& visitor): visitor(visitor){}
     void apply(){
         while(processors.size()){
+            // for(auto pr: processors){
+            //     cout << pr << " ";
+            // }
+            // cout << endl;
             auto proc = processors.front();
             processors.pop_front();
             proc->apply(visitor);
-            delete proc;
+            #ifdef VAL_IR
+                cout << "IR:";
+                cout << *(visitor.globalData.get());
+                for(auto &f : visitor.functions){
+                    cout << endl << *f;
+                }
+                cout << endl;
+            #endif
         }
     }
     void add(IRProcessor* proc){
@@ -38,7 +50,7 @@ public:
 class LiveCalculator: public IRProcessor{
     bool changed;
 public:
-    LiveCalculator(){}
+    LiveCalculator();
     void makeLive(pIRFunc& func);
     void mergeSuccLivein(pBlock block, pBlock from);
     virtual pBlock visit(pBlock block);

@@ -17,7 +17,7 @@ pIRValObj SSAMaker::findUsingObj(pIRValObj origin){
     return nullptr;
 }
 
-pIRObj SSAMaker::renameObj(pIRObj operand, pIRObj useSource){
+pIRObj SSAMaker::renameObj(pIRObj operand, pSysYIR useSource){
     // cout << "rename "<< operand->name <<endl;
     pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(operand);
     pIRValObj out_obj;
@@ -83,7 +83,9 @@ pBlock SSAMaker::visit(pBlock block){
         }
     }
     if(block->branchVal){
-        block->branchVal = dynamic_pointer_cast<IRScalValObj>(renameObj(block->branchVal, block));
+        block->branchIR->opt1 = block->branchVal = 
+        dynamic_pointer_cast<IRScalValObj>(
+            renameObj(block->branchVal, block->branchIR));
     }
     if(block->nextNormal){
         fillSuccPhi(block->nextNormal, block);
@@ -92,7 +94,6 @@ pBlock SSAMaker::visit(pBlock block){
         fillSuccPhi(block->nextBranch, block);
     }
     for(auto child: block->domChild){
-        
         visit(child);
     }
     visitStack.pop_back();

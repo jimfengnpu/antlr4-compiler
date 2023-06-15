@@ -1,4 +1,5 @@
 #include "IRProcessor.h"
+#include "../backend/Optimizer.h"
 
 void IRProcessor::addTriggers(){
     procs->processors.insert(procs->processors.begin(),
@@ -7,6 +8,9 @@ void IRProcessor::addTriggers(){
         t->procs = procs;
     }
 }
+
+
+LiveCalculator::LiveCalculator(){}
 
 void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;

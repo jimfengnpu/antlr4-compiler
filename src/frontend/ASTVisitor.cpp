@@ -259,39 +259,31 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
         return (pIRValObj)scalObj;
     }else if(auto arrObj = dynamic_pointer_cast<IRArrValObj>(obj)){
         assert(arrObj != nullptr);
+        if(curFunc == nullptr)throw runtime_error("lVal array reference global");
         auto dim = arrObj.get()->dims;
         int size = arrObj.get()->size;
-        // auto off = newObj<IRScalValObj>(false, "");
-        // auto tmp = newObj<IRScalValObj>(false, "");
-        pIRScalValObj off = nullptr, tmp = nullptr;
-        // auto sub = SysYParser::ExpContext()
+        auto arrCtxs = ctx->arrAccess();
+        pIRScalValObj off = newObj<IRScalValObj>(0), tmp = nullptr;
         auto iter = dim.begin();
-        if(curFunc == nullptr)throw runtime_error("lVal array reference global");
-        if(ctx->arrAccess().size()){
-            for(auto arrCtx: ctx->arrAccess()) {
-                int childSize = size/(*iter);
-                // ctx->addChild()
-                // insertIR(IRType::MUL, tmp, 
-                //     newObj<IRScalValObj>(childSize), 
-                //     any_cast<pIRValObj>(visit()));
-                // insertIR(IRType::ADD, off, off, tmp);
-                if(nullptr == off){
-                    off = newObj<IRScalValObj>(0);
-                }
-                auto dimExp = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visit(arrCtx->exp())));
-                tmp = calcExp(IRType::MUL, newObj<IRScalValObj>(childSize), dimExp, dimExp->isConstant());
-                off = calcExp(IRType::ADD, off, tmp, off->isConstant()&& tmp->isConstant());
-                iter++;
-                size = childSize;
+        auto arrEndIter = dim.begin();
+        auto arrIter = arrCtxs.begin();
+        while(iter != dim.end()){
+            pIRScalValObj dimExp = newObj<IRScalValObj>(0);
+            tmp = calcExp(IRType::MUL, newObj<IRScalValObj>(*iter), off, off->isConstant());
+            if(arrIter != arrCtxs.end()){
+                dimExp = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visit((*arrIter)->exp())));
+                arrIter ++;
+                arrEndIter++;
             }
-        }else {
-            off = newObj<IRScalValObj>(0);
+            off = calcExp(IRType::ADD, dimExp, tmp, dimExp->isConstant()&& tmp->isConstant());
+            iter++;
         }
-        if(iter != dim.end()){
+        
+        if(arrEndIter != dim.end()){
             vector<int> new_dim;
-            while(iter != dim.end()){
-                new_dim.push_back(*iter);
-                iter++;
+            while(arrEndIter != dim.end()){
+                new_dim.push_back(*arrEndIter);
+                arrEndIter++;
             }
             auto newArr = newObj<IRArrValObj>(arrObj, new_dim,"");
             insertIR(IRType::ARR, newArr, arrObj, off);

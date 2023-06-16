@@ -28,8 +28,8 @@ using namespace std;
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
 // #define VAL_IR 1
-#define VAL_LIVE 1
-// #define VAL_CFGDOM 1
+// #define VAL_LIVE 1
+#define VAL_CFGDOM 1
 
 #define VAL_RUN 1
 
@@ -163,29 +163,12 @@ typedef shared_ptr<IRStrValObj> pIRStrValObj;
         return #x + 8;
 enum class IRType : int
 {
-    NOP = 0,
-    ASSIGN = 1,
-    ADD = 2,
-    SUB = 3,
-    MUL = 4,
-    DIV = 5,
-    MOD = 6,
-    NEG = 7,
-    NOT = 8,
-    EQ = 9,
-    NEQ = 10,
-    GT = 11,
-    LT = 12,
-    GE = 13,
-    LE = 14,
-    ARR = 15,
-    IDX = 16,
-    CALL = 17,
-    PARAM = 18,
-    RET = 19,
-    DEF = 20,
-    PHI = 21,
-    BR = 22
+    NOP, ASSIGN,
+    ADD, SUB, MUL, DIV, MOD, NEG,
+    NOT, EQ, NEQ, GT, LT, GE, LE,
+    ARR, IDX,
+    CALL, PARAM, RET, BR,
+    DEF, PHI,
 };
 static map<string, IRType> opfinder[2]={
     {

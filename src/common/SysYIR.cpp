@@ -1,4 +1,3 @@
-
 #include "SysYIR.h"
 
 int IRValObj::tmpValId = 0;

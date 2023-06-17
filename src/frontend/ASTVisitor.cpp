@@ -59,7 +59,7 @@ std::any ASTVisitor::visitFuncFParam(SysYParser::FuncFParamContext* ctx) {
     if(auto arrParam = ctx->funcArrParam()) {
         vector<int> dim = {1};
         for(auto arrAccess: arrParam->arrAccess()) {
-            pIRScalValObj val = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visit(arrAccess->exp())));
+            pIRScalValObj val = toScal(any_cast<pIRValObj>(visit(arrAccess->exp())));
             dim.push_back(val.get()->value);
         }
         fParamVal = make_shared<IRArrValObj>(false, dim, identity);
@@ -90,7 +90,7 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj, i
     for(auto initVal: ctx->initVal()) {
         if(start - s >= size)break;
         if(auto exp = initVal->exp()){
-            pIRScalValObj expVal = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visitExp(exp)));
+            pIRScalValObj expVal = toScal(any_cast<pIRValObj>(visitExp(exp)));
             pIRScalValObj arrMemVal = newObj<IRScalValObj>(obj, "");
             assert(nullptr != curBlock);
             insertIR(IRType::IDX, arrMemVal, obj, newObj<IRScalValObj>(start));
@@ -108,8 +108,8 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj, i
 
 std::any ASTVisitor::visitInitVal(SysYParser::InitValContext* ctx, pIRValObj obj) {
     // cout<< "enter initVal"<<endl;
-    if(auto valObj = dynamic_pointer_cast<IRScalValObj>(obj)){
-        pIRScalValObj expVal = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visitExp(ctx->exp())));
+    if(auto valObj = toScal(obj)){
+        pIRScalValObj expVal = toScal(any_cast<pIRValObj>(visitExp(ctx->exp())));
         assert(nullptr != curBlock);
         if(expVal->isConst)valObj->value = expVal->value;
         insertIR(IRType::ASSIGN, valObj, expVal, nullptr);
@@ -133,7 +133,7 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
     }else{
         vector<int> dims;
         for(int i=0; i<arrVec.size(); i++) {
-            pIRScalValObj val = dynamic_pointer_cast<IRScalValObj>(
+            pIRScalValObj val = toScal(
                 any_cast<pIRValObj>(visit(arrVec[i]->exp())));
             if(!val->isConst)throw runtime_error("array size must be const");
             int s = val.get()->value;
@@ -197,10 +197,10 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             int op_idx = ctx->exp().size() - 1;
             // cout << "exp "<< num_op <<endl;
             IRType type = opfinder[op_idx][op];
-            pIRScalValObj exp1 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(0)->obj);
+            pIRScalValObj exp1 = toScal(ctx->exp(0)->obj);
             pIRScalValObj exp2 = nullptr;
             if(op_idx == 1)
-                exp2 = dynamic_pointer_cast<IRScalValObj>(ctx->exp(1)->obj);
+                exp2 = toScal(ctx->exp(1)->obj);
             ctx->obj = calcExp(type, exp1, exp2, is_const);
         }else if(auto func = ctx->Ident()){
             ctx->obj = newObj<IRScalValObj>(false, "");
@@ -245,7 +245,7 @@ std::any ASTVisitor::visitCond(SysYParser::CondContext* ctx) {
     }else{
         pIRScalValObj result;
         visit(ctx->exp());
-        result = dynamic_pointer_cast<IRScalValObj>(ctx->exp()->obj);
+        result = toScal(ctx->exp()->obj);
         assert(result != nullptr);
         finishBB(ctx->branchs.first, ctx->branchs.second, result);
     }
@@ -255,7 +255,7 @@ std::any ASTVisitor::visitCond(SysYParser::CondContext* ctx) {
 std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
     string name = ctx->Ident()->getText();
     auto obj = findSymbol(name);
-    if(auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj)){
+    if(auto scalObj = toScal(obj)){
         return (pIRValObj)scalObj;
     }else if(auto arrObj = dynamic_pointer_cast<IRArrValObj>(obj)){
         assert(arrObj != nullptr);
@@ -271,7 +271,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
             pIRScalValObj dimExp = newObj<IRScalValObj>(0);
             tmp = calcExp(IRType::MUL, newObj<IRScalValObj>(*iter), off, off->isConstant());
             if(arrIter != arrCtxs.end()){
-                dimExp = dynamic_pointer_cast<IRScalValObj>(any_cast<pIRValObj>(visit((*arrIter)->exp())));
+                dimExp = toScal(any_cast<pIRValObj>(visit((*arrIter)->exp())));
                 arrIter ++;
                 arrEndIter++;
             }

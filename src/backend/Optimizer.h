@@ -19,6 +19,7 @@ public:
     virtual void prepareTriggers(){}
     virtual void apply(ASTVisitor& visitor){
         bool triggerNeeded = false;
+        applyBlock(visitor.globalData);
         for(auto& func: visitor.functions){
             if(func->entry){
                 do{

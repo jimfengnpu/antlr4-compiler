@@ -33,7 +33,7 @@ public:
                 //insert phi
                 for(auto b: func->blocks){
                     for(auto& obj: b->defObj){
-                        if(auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj)){
+                        if(auto scalObj = toScal(obj)){
                             phiDef[obj].insert(b);
                         }
                     }
@@ -48,8 +48,8 @@ public:
                         for(auto df: b->domFrontier){
                             if(!phiFlag[df]&& df->liveIn.find(obj) != df->liveIn.end()){
                                 phiFlag[df] = true;
-                                df->structions.push_front(
-                                    make_shared<SysYIR>(IRType::PHI, obj, nullptr, nullptr));
+                                auto phiIR = df->insertIRFront(IRType::PHI, obj, nullptr, nullptr);
+                                phiIR->block = df;
                                 blocks.insert(df);
                             }
                         }
@@ -58,7 +58,7 @@ public:
                 //rename
                 //rename func param
                 for(auto& param: func->params){
-                    pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(param);
+                    pIRScalValObj obj = toScal(param);
                     if(obj){
                         auto newObj = make_shared<IRScalValObj>(*obj.get());
                         newObj->name = getNewName(obj);
@@ -115,11 +115,11 @@ public:
                                     }
                                     insertBlock = newBlock;
                                 }
-                                insertBlock->insertIR(
+                                insertBlock->insertIRBack(
                                     IRType::ASSIGN, phiDefObj, 
                                     block->phiList[phiDefObj][f], nullptr);
                             }
-                            ir->removedMask = true;
+                            ir->remove();
                         }
                     }
                 }

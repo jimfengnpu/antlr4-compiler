@@ -10,6 +10,7 @@
 #include <utility>
 #include <algorithm>
 #include <iostream>
+#include "../backend/arch/Arch.h"
 
 using namespace std;
 
@@ -27,11 +28,19 @@ using namespace std;
 #define CONST_OP(x, y) (((x)==1&&(y)==1)?1:2)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
-// #define VAL_IR 1
-// #define VAL_LIVE 1
-#define VAL_CFGDOM 1
 
-#define VAL_RUN 1
+#define ENUM_STR(x, offset) \
+    #x + (offset)
+
+#define ENUMCASE_TO_STRING(x, offset) \
+    case x:               \
+        return ENUM_STR(x, offset);
+
+#define VAL_IR 1
+// #define VAL_LIVE 1
+// #define VAL_CFGDOM 1
+
+// #define VAL_RUN 1
 
 // class IRObj;
 // class IRValObj;
@@ -79,9 +88,10 @@ public:
     int offset;
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
-    bool phiDef=false;
+    bool ssaDef=false;
     pSysYIR defStruction;// for no-ssa val=>nullptr; common=>pIR
     set<pSysYIR> useStructions; //... common=>pIR; branch=>pBlock.branchIR;
+    vReg regInfo;
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
@@ -96,7 +106,7 @@ public:
     }
     virtual void print(ostream& os) const override;
     virtual string getDefaultName() {
-        return ".t" + to_string(++tmpValId);
+        return "%t" + to_string(++tmpValId);
     }
 };
 typedef shared_ptr<IRValObj> pIRValObj;
@@ -143,6 +153,10 @@ public:
     virtual void print(ostream& os) const override;
 };
 
+inline pIRScalValObj toScal(pIRObj obj){
+    return dynamic_pointer_cast<IRScalValObj>(obj);
+}
+
 class IRStrValObj : public IRValObj
 {
     static int constStrId;
@@ -158,9 +172,9 @@ public:
 };
 typedef shared_ptr<IRStrValObj> pIRStrValObj;
 
-#define ENUM_TO_STRING(x) \
-    case x:               \
-        return #x + 8;
+#define IR_TO_STRING(x) \
+    ENUMCASE_TO_STRING(x, 8)
+
 enum class IRType : int
 {
     NOP, ASSIGN,
@@ -194,32 +208,34 @@ static string IRTypeName(IRType type)
 {
     switch (type)
     {
-        ENUM_TO_STRING(IRType::ASSIGN)
-        ENUM_TO_STRING(IRType::ADD)
-        ENUM_TO_STRING(IRType::SUB)
-        ENUM_TO_STRING(IRType::MUL)
-        ENUM_TO_STRING(IRType::DIV)
-        ENUM_TO_STRING(IRType::MOD)
-        ENUM_TO_STRING(IRType::NEG)
-        ENUM_TO_STRING(IRType::NOT)
-        ENUM_TO_STRING(IRType::EQ)
-        ENUM_TO_STRING(IRType::NEQ)
-        ENUM_TO_STRING(IRType::GT)
-        ENUM_TO_STRING(IRType::LT)
-        ENUM_TO_STRING(IRType::GE)
-        ENUM_TO_STRING(IRType::LE)
-        ENUM_TO_STRING(IRType::ARR)
-        ENUM_TO_STRING(IRType::IDX)
-        ENUM_TO_STRING(IRType::CALL)
-        ENUM_TO_STRING(IRType::PARAM)
-        ENUM_TO_STRING(IRType::RET)
-        ENUM_TO_STRING(IRType::DEF)
-        ENUM_TO_STRING(IRType::PHI)
-        ENUM_TO_STRING(IRType::BR)
+        IR_TO_STRING(IRType::ASSIGN)
+        IR_TO_STRING(IRType::ADD)
+        IR_TO_STRING(IRType::SUB)
+        IR_TO_STRING(IRType::MUL)
+        IR_TO_STRING(IRType::DIV)
+        IR_TO_STRING(IRType::MOD)
+        IR_TO_STRING(IRType::NEG)
+        IR_TO_STRING(IRType::NOT)
+        IR_TO_STRING(IRType::EQ)
+        IR_TO_STRING(IRType::NEQ)
+        IR_TO_STRING(IRType::GT)
+        IR_TO_STRING(IRType::LT)
+        IR_TO_STRING(IRType::GE)
+        IR_TO_STRING(IRType::LE)
+        IR_TO_STRING(IRType::ARR)
+        IR_TO_STRING(IRType::IDX)
+        IR_TO_STRING(IRType::CALL)
+        IR_TO_STRING(IRType::PARAM)
+        IR_TO_STRING(IRType::RET)
+        IR_TO_STRING(IRType::DEF)
+        IR_TO_STRING(IRType::PHI)
+        IR_TO_STRING(IRType::BR)
     default:
         return "unknown";
     }
 }
+class IRBlock;
+typedef shared_ptr<IRBlock> pBlock;
 
 class SysYIR: public IRObj
 {
@@ -229,15 +245,27 @@ public:
     pIRValObj target;
     pIRObj opt1;
     pIRObj opt2;
+    shared_ptr<SysYIR> prev=nullptr;
+    shared_ptr<SysYIR> next=nullptr;
+    pBlock block=nullptr;
+    bool asmRemovedMask=false;
+    vector<ASMInstr> asmInstrs;
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
+    void remove(){
+        if(prev){
+            prev->next = next;
+        }
+        if(next){
+            next->prev = prev;
+        }
+        removedMask = true;
+    }
 };
 
 int CalConstExp(IRType type, int exp1Val, int exp2Val=0);
 
-class IRBlock;
-typedef shared_ptr<IRBlock> pBlock;
 class IRBlock : public IRObj
 { //Basic Block
     
@@ -268,16 +296,41 @@ public:
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
-    void insertIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
+    shared_ptr<SysYIR> insertIRBack(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
     {
-        structions.push_back(make_shared<SysYIR>(type, t, op1, op2));
+        auto newIR = make_shared<SysYIR>(type, t, op1, op2);
+        if(structions.size()){
+            newIR->prev = structions.back();
+            structions.back()->next = newIR;
+        }
+        structions.push_back(newIR);
+        if(branchIR != nullptr){
+            newIR->next = branchIR;
+            branchIR->prev = newIR;
+        }
+        return newIR;
     }
+
+    shared_ptr<SysYIR> insertIRFront(IRType type, pIRValObj t, pIRObj op1, pIRObj op2){
+        auto newIR = make_shared<SysYIR>(type, t, op1, op2);
+        if(structions.size()){
+            structions.front()->prev = newIR;
+            newIR->next = structions.front();
+        }
+        structions.push_front(newIR);
+        return newIR;
+    }
+
     bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr) {
         if(nextNormal != nullptr)return false;
         nextNormal = next_normal; 
         nextBranch = next_branch;
         branchVal = branch_val;
         branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
+        if(structions.size()){
+            branchIR->prev = structions.back();
+            structions.back()->next = branchIR;
+        }
         return true;
     }
     // is block empty (all structions removed)
@@ -357,12 +410,16 @@ class IRFunc: public IRObj
 public:
     vector<pIRValObj> params;
     set<pBlock> blocks;
-    set<pIRValObj> vals;
     pBlock entry;
     pBlock exit;
-    SymbolTable* symbolTable;
     int returnType;
     pIRValObj returnVal;
+
+    set<pIRValObj> vals;
+    vector<ASMInstr> initInstrs;
+    vReg stackSpaceImm;
+
+    SymbolTable* symbolTable;
     // table == nullptr : lib function
     IRFunc(int returnType, string name, vector<pIRValObj> params, SymbolTable* table):
         IRObj(true, name), returnType(returnType), symbolTable(table), params(params) {

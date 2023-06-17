@@ -89,7 +89,7 @@ void SysYIR::print(std::ostream& os) const{
         os << ", " << opt1.get()->name;
     if(opt2 != nullptr)
         os << ", " << opt2.get()->name;
-    // if(auto scal=dynamic_pointer_cast<IRScalValObj>(opt2)){
+    // if(auto scal=toScal(opt2)){
     //     if(scal->constState==IR_CONST)
     //     os << "(" << scal->value<<")";
     // }
@@ -101,7 +101,7 @@ void IRBlock::print(std::ostream& os) const{
     #ifdef VAL_CFGDOM
         os << name << "[label=\"" << name << " |";
     #else
-        os << "\n" << name << ":\n";
+        os << "\n" << name << ":";
     #ifdef VAL_LIVE
     os << "live in:";
     for(auto& p: liveIn){

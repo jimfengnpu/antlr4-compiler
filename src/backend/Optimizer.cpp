@@ -101,17 +101,20 @@ void ConstBroadcast::prepareTriggers(){
     triggers.push_back(new CodeCleaner());
 }
 
-void clearConstUse(pSysYIR ir, pIRObj obj){
-    auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
-    if(nullptr == scalObj)return;
-    if(scalObj->fa != nullptr)return;
+bool clearConstUse(pSysYIR ir, pIRObj obj, int& value){
+    auto scalObj = toScal(obj);
+    if(nullptr == scalObj)return false;
+    if(scalObj->fa != nullptr)return false;
     if(scalObj->constState == IR_CONST){
         scalObj->useStructions.erase(ir);
+        value = scalObj->value;
+        return true;
     }
+    return false;
 }
 
 void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
-    auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
+    auto scalObj = toScal(obj);
     if(nullptr == scalObj)return;
     if(scalObj->fa != nullptr)return;
     // immediate number
@@ -128,7 +131,7 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
                 break;
             case IRType::PHI:
                 for(auto& [from, use]: block->phiList.at(scalObj)){
-                    auto op = dynamic_pointer_cast<IRScalValObj>(use);
+                    auto op = toScal(use);
                     if(constState == IR_CONST && op->constState == IR_CONST && value == op->value){
                         constState = IR_CONST;
                     }else{
@@ -146,8 +149,8 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
                 break;
             default: //usual cal
                 constState = IR_CONST;
-                auto op1 = dynamic_pointer_cast<IRScalValObj>(defIr->opt1);
-                auto op2 = dynamic_pointer_cast<IRScalValObj>(defIr->opt2);
+                auto op1 = toScal(defIr->opt1);
+                auto op2 = toScal(defIr->opt2);
                 if(op1){
                     constState = CONST_OP(constState, op1->constState);
                 }
@@ -170,19 +173,28 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
 }
 
 void ConstBroadcast::applyBlock(pBlock block){
+    int value;
     for(auto& ir: block->structions)
         if(!ir->removedMask)
     {
         setConstState(block, ir->target);
-        clearConstUse(ir, ir->opt1);
-        clearConstUse(ir, ir->opt2);
+        if(clearConstUse(ir, ir->opt1, value)){
+            ir->opt1 = make_shared<IRScalValObj>(value);
+        }
+        if(clearConstUse(ir, ir->opt2, value)){
+            ir->opt2 = make_shared<IRScalValObj>(value);
+        }
         if(IRType::PHI == ir->type){
             for(auto [from, use]: block->phiList[ir->target]){
-                clearConstUse(ir, use);
+                if(clearConstUse(ir, use, value)){
+                    block->phiList[ir->target][from] = make_shared<IRScalValObj>(value);
+                }
             }
         }
     }
-    clearConstUse(block->branchIR, block->branchVal);
+    if(clearConstUse(block->branchIR, block->branchVal, value)){
+        block->branchVal = make_shared<IRScalValObj>(value);
+    }
 }
 
 void CodeCleaner::prepareTriggers(){
@@ -190,7 +202,7 @@ void CodeCleaner::prepareTriggers(){
 }
 
 bool checkObjUseEmpty(pIRObj obj){
-    auto scalObj = dynamic_pointer_cast<IRScalValObj>(obj);
+    auto scalObj = toScal(obj);
     if(scalObj)
     if(scalObj->fa == nullptr)
     if(auto defIr = scalObj->defStruction)
@@ -204,7 +216,7 @@ void CodeCleaner::applyBlock(pBlock block){
     for(auto& ir: block->structions){
         if(!ir->removedMask){
             if(IRType::CALL != ir->type && checkObjUseEmpty(ir->target)){
-                ir->removedMask = true;
+                ir->remove();
                 changed = true;
             }
         }

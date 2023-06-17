@@ -19,11 +19,11 @@ pIRValObj SSAMaker::findUsingObj(pIRValObj origin){
 
 pIRObj SSAMaker::renameObj(pIRObj operand, pSysYIR useSource){
     // cout << "rename "<< operand->name <<endl;
-    pIRScalValObj obj = dynamic_pointer_cast<IRScalValObj>(operand);
+    pIRScalValObj obj = toScal(operand);
     pIRValObj out_obj;
     if(!obj)return operand;
-    if(obj->scopeSymbols->isGlobal || obj->fa != nullptr)return operand;
     if(obj->isConstant()&&(!obj->isIdent))return operand;
+    if(obj->scopeSymbols->isGlobal || obj->fa != nullptr)return operand;
     out_obj = findUsingObj(obj);
     assert(out_obj != nullptr);
     out_obj->useStructions.insert(useSource);
@@ -47,7 +47,7 @@ pBlock SSAMaker::visit(pBlock block){
     visitStack.push_back(block);
     // for(auto& obj : block->phiOrigin){
     //     if(!renamedObj[block][obj]){
-    //         pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(obj);
+    //         pIRScalValObj targ = toScal(obj);
     //         auto newObj = block->phiObj[obj] = make_shared<IRScalValObj>(*targ.get());
     //         newObj->name = getNewName(obj);
     //         // cout << "add "<< obj->name << " in "<< block<<endl;
@@ -64,7 +64,7 @@ pBlock SSAMaker::visit(pBlock block){
             block->function->returnVal = dynamic_pointer_cast<IRValObj>(ir->opt1);
         }
         if(ir->type == IRType::IDX)continue;
-        pIRScalValObj targ = dynamic_pointer_cast<IRScalValObj>(ir->target), newObj = nullptr;
+        pIRScalValObj targ = toScal(ir->target), newObj = nullptr;
         if(targ){
             if(targ->scopeSymbols->isGlobal || targ->fa != nullptr){
                 newObj = targ;
@@ -72,11 +72,11 @@ pBlock SSAMaker::visit(pBlock block){
                 newObj = make_shared<IRScalValObj>(*targ.get());
                 newObj->name = getNewName(targ);
                 newObj->defStruction = ir;
+                newObj->ssaDef = true;
                 ir->target = newObj;
             }
             if(ir->type == IRType::PHI){
                 phiOrigin[block][newObj] = targ;
-                ir->target->phiDef = true;
             }
             // cout << "add "<< targ->name << " in "<< block<<endl;
             renamedObj[block][targ] = newObj;
@@ -84,7 +84,7 @@ pBlock SSAMaker::visit(pBlock block){
     }
     if(block->branchVal){
         block->branchIR->opt1 = block->branchVal = 
-        dynamic_pointer_cast<IRScalValObj>(
+        toScal(
             renameObj(block->branchVal, block->branchIR));
     }
     if(block->nextNormal){

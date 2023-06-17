@@ -90,7 +90,7 @@ int IRRunner::getAddr(pIRValObj obj){
 }
 
 int IRRunner::getValue(pIRObj obj){
-    auto valObj = dynamic_pointer_cast<IRScalValObj>(obj);
+    auto valObj = toScal(obj);
     int rt = 0;
     bool flag = false;
     if(valObj->isConst&&(!valObj->isIdent)){
@@ -131,7 +131,7 @@ void IRRunner::alloc(pIRValObj obj){
         cout << "add "<< obj<<"("<< obj->name<<") ";
     #endif
     DataFrame* curFrame = (frameStack.empty())? (&globalData):frameStack.back();
-    if(auto val = dynamic_pointer_cast<IRScalValObj>(obj)){
+    if(auto val = toScal(obj)){
         curFrame->frameData[val] = addrTop++;
     }else{
         auto arr = dynamic_pointer_cast<IRArrValObj>(obj);
@@ -144,7 +144,7 @@ void IRRunner::operateScalObj(IRType type, pIRObj target, pIRObj opt1, pIRObj op
     pIRScalValObj targ = nullptr;
     int exp1Val, exp2Val = 0;
     int value = 0;
-    targ = dynamic_pointer_cast<IRScalValObj>(target);
+    targ = toScal(target);
     exp1Val = getValue(opt1);
     if(opt2 != nullptr){
         exp2Val = getValue(opt2);
@@ -196,7 +196,7 @@ void IRRunner::runSysY(const SysYIR& instr){
         paramsBuf.push_back(param);
         break;
     case IRType::CALL:
-        targ = dynamic_pointer_cast<IRScalValObj>(instr.target);
+        targ = toScal(instr.target);
         int rt;
         func = dynamic_pointer_cast<IRFunc>(instr.opt1);
         if(func->symbolTable == nullptr){
@@ -206,8 +206,8 @@ void IRRunner::runSysY(const SysYIR& instr){
             auto frame = new DataFrame();
             for(auto& obj: func->params){
                 // *(obj.get()) = *(*(rParam)).get();
-                if(auto arg = dynamic_pointer_cast<IRScalValObj>(*rParam) ){
-                    auto valObj = dynamic_pointer_cast<IRScalValObj>(obj);
+                if(auto arg = toScal(*rParam) ){
+                    auto valObj = toScal(obj);
                     frame->frameData[valObj] = addrTop++;
                     addr2val[frame->frameData[valObj]] = getValue(arg);
                 }else {
@@ -233,7 +233,7 @@ void IRRunner::runSysY(const SysYIR& instr){
         frameStack.back()->frameData[arr] = getAddr(arrTarg) + arr->offset;
         break;
     case IRType::IDX:
-        targ = dynamic_pointer_cast<IRScalValObj>(instr.target);
+        targ = toScal(instr.target);
         // cout << targ->fa<< " " <<endl;
         targ->offset = getValue(instr.opt2);
         break;

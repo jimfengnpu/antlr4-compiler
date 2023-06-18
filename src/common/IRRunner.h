@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IRRUNNER_H
+#define IRRUNNER_H
 #include "IRProcessor.h"
 
 
@@ -45,3 +46,4 @@ public:
     void alloc(pIRValObj obj);
     int getAddr(pIRValObj obj);
 };
+#endif

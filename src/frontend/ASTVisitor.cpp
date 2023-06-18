@@ -1,5 +1,5 @@
 #include "ASTVisitor.h"
-#include "../common/SysYIR.h"
+#include "SysYIR.h"
 
 std::any ASTVisitor::visitChildren(antlr4::tree::ParseTree *ctx) {
     for(auto child: ctx->children) {

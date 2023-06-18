@@ -1,7 +1,8 @@
-#pragma once
+#ifndef ASTVISITOR_H
+#define ASTVISITOR_H
 #include "antlr4-runtime.h"
-#include "generated/SysYBaseVisitor.h"
-#include "../common/SysYIR.h"
+#include "SysYBaseVisitor.h"
+#include "SysYIR.h"
 
 
 class ASTVisitor: public SysYBaseVisitor{
@@ -137,3 +138,4 @@ public:
     virtual std::any visitContStmt(SysYParser::ContStmtContext* ctx)override;
     virtual std::any visitReturnStmt(SysYParser::ReturnStmtContext* ctx)override;
 };
+#endif

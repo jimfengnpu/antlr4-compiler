@@ -1,44 +1,8 @@
-#pragma once 
-#include <string>
-#include <initializer_list>
-#include "../common/SysYIR.h"
+#ifndef ARCH_H
+#define ARCH_H
+#include "SysYIR.h"
 using namespace std;
 
-
-#define REG_IMM 0
-#define REG_R 1
-#define REG_M 2
-
-//EM define refered from `elf.h`
-#define EM_RISCV 243
-
-#define EM_ARCH EM_RISCV
-
-#define REG_STR(x) #x
-
-class vReg{
-public:
-    int regType;
-    union{
-        int immVal;
-        int regId;
-        int memAddrId;
-    } _val;
-    pIRValObj var=nullptr;
-    vReg()=default;
-    vReg(int immVal): regType(REG_IMM){_val.immVal = immVal;}
-};
-
-class ASMInstr{
-public:
-    string name;
-    vector<vReg*> op;
-    ASMInstr(string name, initializer_list<vReg*> oprands): name(name){
-        for(auto opArg: oprands){
-            op.push_back(opArg);
-        }
-    }
-};
 
 class BaseArch{
 public:
@@ -47,7 +11,7 @@ public:
     vector<int> genRegsId;
     int stackPointerRegId;
     int memByteAlign;
-    BaseArch()=default;
+    BaseArch(){}
     virtual void defineArchInfo()=0;
     void addMatchers(IRType type, initializer_list<int (*)(pSysYIR)> newMatchers){
         for(auto matcher: newMatchers){
@@ -100,6 +64,8 @@ class RISCV: public BaseArch{
         regs[t5] = REG_STR(t5);
         regs[t6] = REG_STR(t6);
         regs[pc] = REG_STR(pc);
+        defineArchInfo();
     }
     virtual void defineArchInfo();
 };
+#endif

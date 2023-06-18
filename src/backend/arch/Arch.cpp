@@ -19,7 +19,7 @@ void RISCV::defineArchInfo(){
     addMatchers(IRType::ADD,
     {
         [](pSysYIR ir)->int{
-            
+            return 0;
         },
     });
 }

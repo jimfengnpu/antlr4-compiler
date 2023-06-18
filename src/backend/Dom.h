@@ -1,5 +1,6 @@
-#pragma once
-#include "../common/IRProcessor.h"
+#ifndef DOM_H_
+#define DOM_H_
+#include "IRProcessor.h"
 
 
 class DomMaker: public IRProcessor{
@@ -43,3 +44,4 @@ public:
         return nullptr;
     }
 };
+#endif

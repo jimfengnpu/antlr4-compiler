@@ -7,7 +7,7 @@
 #include "antlr4-runtime.h"
 
 
-#include "../../common/SysYIR.h"
+#include "SysYIR.h"
 
 
 

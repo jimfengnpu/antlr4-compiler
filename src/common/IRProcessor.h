@@ -1,5 +1,6 @@
-#pragma once
-#include "../frontend/ASTVisitor.h"
+#ifndef IRPROCESSOR_H
+#define IRPROCESSOR_H
+#include "ASTVisitor.h"
 
 
 class IRProcessors;
@@ -62,3 +63,4 @@ public:
         }
     }
 };
+#endif

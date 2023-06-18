@@ -1,5 +1,6 @@
-#pragma once
-#include "../common/IRProcessor.h"
+#ifndef OPTIMIZER_H
+#define OPTIMIZER_H
+#include "IRProcessor.h"
 
 // base class for optimize processor
 class Optimizer: public IRProcessor{
@@ -79,3 +80,4 @@ public:
     virtual void applyBlock(pBlock block);
     virtual void prepareTriggers();
 };
+#endif

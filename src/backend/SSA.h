@@ -1,5 +1,6 @@
-#pragma once
-#include "../common/IRProcessor.h"
+#ifndef SSA_H
+#define SSA_H
+#include "IRProcessor.h"
 #include <deque>
 
 class SSAMaker: public IRProcessor{
@@ -128,3 +129,4 @@ public:
         }
     }
 };
+#endif

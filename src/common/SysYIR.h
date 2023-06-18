@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SYSYIR_H
+#define SYSYIR_H
 
 #include <ostream>
 #include <string>
@@ -10,9 +11,20 @@
 #include <utility>
 #include <algorithm>
 #include <iostream>
-#include "../backend/arch/Arch.h"
+#include <initializer_list>
 
 using namespace std;
+
+// #define VAL_IR 1
+// #define VAL_LIVE 1
+// #define VAL_CFGDOM 1
+
+// #define VAL_RUN 1
+
+//EM defination refered from `elf.h`
+#define EM_RISCV 243
+
+#define EM_ARCH EM_RISCV
 
 #define IR_VOID 0
 #define IR_INT 1
@@ -28,6 +40,11 @@ using namespace std;
 #define CONST_OP(x, y) (((x)==1&&(y)==1)?1:2)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
+#define REG_IMM 0
+#define REG_R 1
+#define REG_M 2
+
+#define REG_STR(x) #x
 
 #define ENUM_STR(x, offset) \
     #x + (offset)
@@ -36,14 +53,9 @@ using namespace std;
     case x:               \
         return ENUM_STR(x, offset);
 
-#define VAL_IR 1
-// #define VAL_LIVE 1
-// #define VAL_CFGDOM 1
-
-// #define VAL_RUN 1
-
 // class IRObj;
-// class IRValObj;
+class IRValObj;
+typedef shared_ptr<IRValObj> pIRValObj;
 class IRScalValObj;
 typedef shared_ptr<IRScalValObj> pIRScalValObj;
 class IRArrValObj;
@@ -56,7 +68,29 @@ class SymbolTable;
 typedef shared_ptr<IRFunc> pIRFunc;
 // class BlockContext;
 
+class vReg{
+public:
+    int regType;
+    union{
+        int immVal;
+        int regId;
+        int memAddrId;
+    } _val;
+    shared_ptr<IRValObj> var=nullptr;
+    vReg()=default;
+    vReg(int immVal): regType(REG_IMM){_val.immVal = immVal;}
+};
 
+class ASMInstr{
+public:
+    string name;
+    vector<vReg*> op;
+    ASMInstr(string name, initializer_list<vReg*> oprands): name(name){
+        for(auto opArg: oprands){
+            op.push_back(opArg);
+        }
+    }
+};
 class IRObj
 {
 public:
@@ -109,7 +143,6 @@ public:
         return "%t" + to_string(++tmpValId);
     }
 };
-typedef shared_ptr<IRValObj> pIRValObj;
 
 
 class IRArrValObj : public IRValObj
@@ -237,6 +270,7 @@ static string IRTypeName(IRType type)
 class IRBlock;
 typedef shared_ptr<IRBlock> pBlock;
 
+class ASMInstr;
 class SysYIR: public IRObj
 {
 public:
@@ -249,7 +283,7 @@ public:
     shared_ptr<SysYIR> next=nullptr;
     pBlock block=nullptr;
     bool asmRemovedMask=false;
-    vector<ASMInstr> asmInstrs;
+    vector<ASMInstr*> asmInstrs;
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
@@ -434,3 +468,4 @@ public:
     
     virtual void print(ostream& os) const override;
 };
+#endif

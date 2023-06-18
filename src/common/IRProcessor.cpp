@@ -1,5 +1,5 @@
 #include "IRProcessor.h"
-#include "../backend/Optimizer.h"
+#include "Optimizer.h"
 
 void IRProcessor::addTriggers(){
     procs->processors.insert(procs->processors.begin(),

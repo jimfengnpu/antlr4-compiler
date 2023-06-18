@@ -33,4 +33,8 @@
 build/
 CMakeFiles/
 _deps/
-test_input.c
+antlr4-runtime/
+compiler2021/
+test_input.sy
+test.gv
+

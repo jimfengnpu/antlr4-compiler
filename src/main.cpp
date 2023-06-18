@@ -7,8 +7,8 @@
 #include "backend/Dom.h"
 #include "backend/SSA.h"
 #include "backend/Optimizer.h"
-#include "iostream"
-#include "fstream"
+#include <iostream>
+#include <fstream>
 
 using namespace antlr4;
 using namespace std;
@@ -67,14 +67,14 @@ int main(int argc, char** argv) {
     #endif
 
     processors.apply();
-    #ifdef VAL_IR
+    // #ifdef VAL_IR
         cout << "IR:";
         cout << *(visitor.globalData.get());
         for(auto &f : visitor.functions){
             cout << endl << *f;
         }
         cout << endl;
-    #endif
+    // #endif
     // }catch(...){
     //     cout << "open file failed" << endl;
     //     return -1;

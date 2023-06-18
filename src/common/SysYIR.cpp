@@ -182,7 +182,13 @@ void IRBlock::print(std::ostream& os) const{
 }
 
 void IRFunc::print(std::ostream& os) const{
+    #ifdef VAL_CFGDOM
+        os << "#";
+    #endif
     os << name << ":";
+    #ifdef VAL_CFGDOM
+        os << endl;
+    #endif
     for(auto blk: blocks) {
         os << *blk.get();
     }

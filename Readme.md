@@ -18,7 +18,7 @@ SUB y, x, 0 => ASSIGN y, x
 MUL y, x(1), 1(x) => ASSIGN y, x
 DIV y, x, 1 => ASSIGN y, x
 MUL z, x, 2**y(+imm) => SL z, x, y
-DIV z, x, 2**y(+imm) => SR 
+DIV z, x, 2**y(+imm) => {...}
 MUL z, x, -2**y(+imm) => MUL t, x, 2**y; NEG z, t
 DIV z, x, -2**y(+imm) => DIV t, x, 2**y; NEG z, t
 MOD z, x, -2**y(+imm) => MOD t, x, 2**y; NEG z, t
@@ -43,7 +43,7 @@ AND, => andi((op1|op2)=imm); and;
 OR, => ori((op1|op2)=imm); or;
 SL, => slli(op2=imm); sll;
 SR, => srai(op2=imm); sra;
-NOT,BR => bne
+NOT,BR => beqz;
 EQ, BR => beq; beqz(op1|op2=imm(0));
 NEQ, BR => bne; bnez(op1|op2=imm(0));
 GT, BR => bgt; bgtz[op2=imm(0)];

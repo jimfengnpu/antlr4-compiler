@@ -15,26 +15,47 @@ bool BaseArch::matchIR(pSysYIR ir){
     return false;
 }
 
-inline bool isImm(pIRObj obj, int limit){
-    auto scal = toScal(obj);
-    if(!scal)return false;
-    if(!scal->isConst)return false;
-    int v = scal->value;
-    return (v < (1<<(limit-1)) && (v >= -(1<<(limit-1))));
-}
-
-bool isInstrImm(pIRObj obj){
-    return isImm(obj, 12);
-}
-
 void processIdxStore(pIRValObj obj, pSysYIR ir){
     if(!obj || obj->fa == nullptr)return;
     assert(obj->offsetObj != nullptr);
     ir->addASMBack("sw", {obj, obj->offsetObj});
 }
 
-int matchCalImmInstr(string name, pSysYIR ir, 
-    int (*transVal)(int) = [](int v)->int{return v;}){
+inline bool isImm(pIRScalValObj scal){
+    if(!scal)return false;
+    if(!scal->isConst)return false;
+    return true;
+}
+
+inline bool isImm(pIRObj obj){
+    return isImm(toScal(obj));
+}
+
+inline bool isImmInLimit(pIRObj obj, int limit){
+    auto scal = toScal(obj);
+    if(!isImm(scal))return false;
+    int v = scal->value;
+    return (v < (1<<(limit-1)) && (v >= -(1<<(limit-1))));
+}
+
+bool isInstrImm(pIRObj obj){
+    return isImmInLimit(obj, 12);
+}
+
+bool checkDoubleOpImm(pSysYIR ir, pIRScalValObj& immScal, pIRValObj& regObj){
+    if(isImm(ir->opt1)){
+        immScal = toScal(ir->opt1);
+        regObj = toVal(ir->opt2);
+    }else if(isImm(ir->opt2)){
+        immScal = toScal(ir->opt2);
+        regObj = toVal(ir->opt1);
+    }else{
+        return false;
+    }
+    return true;
+}
+
+int matchCalImmInstr(string name, pSysYIR ir){
     pIRValObj immObj=nullptr, regObj=nullptr;
     if(isInstrImm(ir->opt1)){
         immObj=toVal(ir->opt1);regObj=toVal(ir->opt2);
@@ -42,8 +63,7 @@ int matchCalImmInstr(string name, pSysYIR ir,
         immObj=toVal(ir->opt2);regObj=toVal(ir->opt1);
     }
     if(nullptr != immObj){
-        immObj->regInfo.regType = REG_IMM;
-        immObj->regInfo._val.immVal = transVal(toScal(immObj)->value);
+        immObj->setImmRegWithVal(toScal(immObj)->value);
         ir->addASMBack(name, {ir->target, regObj, immObj});
         return 1;
     }
@@ -53,6 +73,33 @@ int matchCalImmInstr(string name, pSysYIR ir,
 int matchCalInstr(string name, pSysYIR ir){
     ir->addASMBack(name, {ir->target, toVal(ir->opt1), toVal(ir->opt2)});
     return 1;
+}
+
+int matchBrZeroInstr(string name, pSysYIR brValDef, 
+    pSysYIR ir, pBlock target)
+{
+    map<string, string>oppoBranch={
+        {"bgt", "blt"},
+        {"blt", "bgt"},
+        {"bge", "ble"},
+        {"ble", "bge"}
+    };
+    pIRScalValObj imm=nullptr;
+    pIRValObj reg=nullptr;
+    if(checkDoubleOpImm(brValDef, imm, reg) && imm->value == 0){
+        if(brValDef->type==IRType::EQ 
+            || brValDef->type==IRType::NEQ){
+            ir->addASMBack(name + "z", {reg}, target);
+        }else{
+            if(imm == brValDef->opt1){
+                name = oppoBranch[name];
+            }
+            ir->addASMBack(name + "z", {reg, imm}, target);
+        }
+    }
+    ir->addASMBack(name, {toVal(brValDef->opt1), toVal(brValDef->opt2)},
+        target);
+    return 2;
 }
 
 void RISCV::defineArchInfo(){
@@ -68,7 +115,7 @@ void RISCV::defineArchInfo(){
     addMatchers(IRType::ADD,
     {
         [](pSysYIR ir)->int{
-            int imm=matchCalImmInstr("addiw", ir);
+            int imm=matchCalImmInstr("addi", ir);
             if(imm)return imm;
             return matchCalInstr("add", ir);
         }
@@ -76,8 +123,12 @@ void RISCV::defineArchInfo(){
     addMatchers(IRType::SUB,
     {
         [](pSysYIR ir)->int{
-            int imm=matchCalImmInstr("addi", ir, [](int v)->int{return -v;});
-            if(imm)return imm;
+            pIRScalValObj immObj = toScal(ir->opt2);
+            if(nullptr != immObj && isInstrImm(immObj)){
+                immObj->setImmRegWithVal(-immObj->value);
+                ir->addASMBack("addi", {ir->target, toVal(ir->opt1), immObj});
+                return 1;
+            }
             return matchCalInstr("sub", ir);
         }
     });
@@ -99,7 +150,48 @@ void RISCV::defineArchInfo(){
             return matchCalInstr("rem", ir);
         }
     });
-    
+    addMatchers(IRType::AND,
+    {
+        [](pSysYIR ir)->int{
+            int imm=matchCalImmInstr("andi", ir);
+            if(imm)return imm;
+            return matchCalInstr("and", ir);
+        }
+    });
+    addMatchers(IRType::OR,
+    {
+        [](pSysYIR ir)->int{
+            int imm=matchCalImmInstr("ori", ir);
+            if(imm)return imm;
+            return matchCalInstr("or", ir);
+        }
+    });
+    addMatchers(IRType::SL,
+    {
+        [](pSysYIR ir)->int{
+            pIRScalValObj immObj = toScal(ir->opt2);
+            if(nullptr != immObj && isInstrImm(immObj)){
+                immObj->regInfo.regType = REG_IMM;
+                immObj->regInfo._val.immVal = immObj->value;
+                ir->addASMBack("slli", {ir->target, toVal(ir->opt1), immObj});
+                return 1;
+            }
+            return matchCalInstr("sll", ir);
+        }
+    });
+    addMatchers(IRType::SR,
+    {
+        [](pSysYIR ir)->int{
+            pIRScalValObj immObj = toScal(ir->opt2);
+            if(nullptr != immObj && isInstrImm(immObj)){
+                immObj->regInfo.regType = REG_IMM;
+                immObj->regInfo._val.immVal = immObj->value;
+                ir->addASMBack("srai", {ir->target, toVal(ir->opt1), immObj});
+                return 1;
+            }
+            return matchCalInstr("sra", ir);
+        }
+    });
     addMatchers(IRType::NEG,
     {
         [](pSysYIR ir)->int{
@@ -120,5 +212,72 @@ void RISCV::defineArchInfo(){
             return 1;
         }
     });
-
+    addMatchers(IRType::BR,
+    {
+        [](pSysYIR ir)->int{
+            pSysYIR brValDef = ir->prev;
+            pBlock target = ir->block->nextBranch;
+            
+            assert(toVal(ir->opt1)->defStruction == brValDef);
+            switch (brValDef->type)
+            {
+            case IRType::NOT:
+                ir->addASMBack("beqz", {toVal(brValDef->opt1)}, target);
+                break;
+            case IRType::EQ:
+                matchBrZeroInstr("beq", brValDef, ir, target);
+                break;
+            case IRType::NEQ:
+                matchBrZeroInstr("bne", brValDef, ir, target);
+                break;
+            case IRType::GT:
+                matchBrZeroInstr("bgt", brValDef, ir, target);
+                break;
+            case IRType::LT:
+                matchBrZeroInstr("blt", brValDef, ir, target);
+                break;
+            case IRType::GE:
+                matchBrZeroInstr("bge", brValDef, ir, target);
+                break;
+            case IRType::LE:
+                matchBrZeroInstr("ble", brValDef, ir, target);
+                break;
+            default:
+                break;
+            }
+            return 2;
+        }
+    });
+    addMatchers(IRType::CALL,
+    {
+        [](pSysYIR ir)->int{
+            int paramCnt = 0;
+            pSysYIR paramIr = ir->prev;
+            while(paramIr && paramIr->type == IRType::PARAM){
+                vReg* paramReg = new vReg();
+                if(paramCnt < 8){
+                    paramReg->regType = REG_R;
+                    paramReg->_val.regId = a0 + paramCnt;
+                }else{
+                    paramReg->regType = REG_M;
+                }
+                auto asmInstr = new ASMInstr("mv", {}, nullptr);
+                asmInstr->op.push_back(paramReg);
+                asmInstr->op.push_back(&toVal(ir->opt1)->regInfo);
+                ir->asmInstrs.push_front(asmInstr);
+                paramIr = paramIr->prev;
+            }
+            pIRFunc func = toFunc(ir->opt1);
+            ir->addASMBack("call", {}, func->entry);
+            if(func->returnType != IR_VOID){
+                auto asmInstr = new ASMInstr("mv", {ir->target}, nullptr);
+                auto retVal = new vReg();
+                retVal->regType = REG_R;
+                retVal->_val.regId = a0;
+                asmInstr->op.push_back(retVal);
+                ir->asmInstrs.push_back(asmInstr);
+            }
+            return paramCnt + 1;
+        }
+    });
 }

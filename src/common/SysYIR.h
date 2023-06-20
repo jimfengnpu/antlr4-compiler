@@ -63,7 +63,8 @@ class IRArrValObj;
 class SysYIR;
 typedef shared_ptr<SysYIR> pSysYIR;
 class FuncFrame;
-// class IRBlock;
+class IRBlock;
+typedef shared_ptr<IRBlock> pBlock;
 class IRFunc;
 class SymbolTable;
 typedef shared_ptr<IRFunc> pIRFunc;
@@ -82,17 +83,6 @@ public:
     vReg(int immVal): regType(REG_IMM){_val.immVal = immVal;}
 };
 
-class ASMInstr{
-public:
-    string name;
-    vector<pIRValObj> op;
-    SysYIR* ir=nullptr;
-    ASMInstr(string name, initializer_list<pIRValObj> oprands): name(name){
-        for(auto opArg: oprands){
-            op.push_back(opArg);
-        }
-    }
-};
 
 class IRObj
 {
@@ -142,6 +132,10 @@ public:
     inline bool isConstant(){
         return isConst&&(fa==nullptr);
     }
+    void setImmRegWithVal(int val){
+        regInfo.regType = REG_IMM;
+        regInfo._val.immVal = val;
+    }
     virtual void print(ostream& os) const override;
     virtual string getDefaultName() {
         return "%t" + to_string(++tmpValId);
@@ -150,6 +144,24 @@ public:
 inline pIRValObj toVal(pIRObj obj){
     return dynamic_pointer_cast<IRValObj>(obj);
 }
+
+class ASMInstr{
+public:
+    string name;
+    vector<vReg*> op;
+    pBlock jTarget;
+    SysYIR* ir=nullptr;
+    ASMInstr(string name, initializer_list<pIRValObj> oprands, pBlock jBlock): 
+        name(name)
+    {
+        for(auto opArg: oprands){
+            op.push_back(&(opArg->regInfo));
+        }
+        if(jBlock){
+            jTarget = jBlock;
+        }
+    }
+};
 
 
 class IRArrValObj : public IRValObj
@@ -189,7 +201,8 @@ public:
     }
     IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name), constState(IR_NAC){
     }
-    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRValObj(arrParent, name), constState(IR_NAC){}
+    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): 
+        IRValObj(arrParent, name), constState(IR_NAC){}
     virtual void print(ostream& os) const override;
 };
 
@@ -298,13 +311,17 @@ public:
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
-    void addASMBack(string name, initializer_list<pIRValObj> oprands){
-        auto instr = new ASMInstr(name, oprands);
+    void addASMBack(string name, initializer_list<pIRValObj> oprands,
+                    pBlock target=nullptr)
+    {
+        auto instr = new ASMInstr(name, oprands, target);
         instr->ir = this;
         asmInstrs.push_back(instr);
     }
-    void addASMFront(string name, initializer_list<pIRValObj> oprands){
-        auto instr = new ASMInstr(name, oprands);
+    void addASMFront(string name, initializer_list<pIRValObj> oprands,
+        pBlock target=nullptr)
+    {
+        auto instr = new ASMInstr(name, oprands, target);
         instr->ir = this;
         asmInstrs.push_front(instr);
     }
@@ -434,15 +451,15 @@ public:
     virtual void print(ostream& os) const override;
 
     virtual string getDefaultName(int type) {
-        switch (type)
-        {
-        case IR_LOOP:
-            return "L" + to_string(++loopId);
-        case IR_BRANCH:
-            return "B" + to_string(++branchId);
-        default:
-            return "M" + to_string(++masterId);
-        }
+        // switch (type)
+        // {
+        // // case IR_LOOP:
+        // //     return "L" + to_string(++loopId);
+        // // case IR_BRANCH:
+        // //     return "B" + to_string(++branchId);
+        // // default:
+        // }
+        return "L" + to_string(++masterId);
     }
 };
 // False, True
@@ -502,4 +519,7 @@ public:
     
     virtual void print(ostream& os) const override;
 };
+inline pIRFunc toFunc(pIRObj obj){
+    return dynamic_pointer_cast<IRFunc>(obj);
+}
 #endif

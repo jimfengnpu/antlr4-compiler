@@ -22,7 +22,6 @@ public:
     bool matchIR(pSysYIR ir);
 };
 
-
 class RISCV: public BaseArch{
     enum REG{
         zero, ra, sp, gp, tp, t0, t1, t2, s0=8, fp=8, s1,

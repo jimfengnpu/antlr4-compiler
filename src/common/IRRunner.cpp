@@ -47,9 +47,8 @@ pBlock IRRunner::visit(pBlock block){
     #ifdef VAL_IR
         cout << "enter:" << block->name <<endl;
     #endif
-    for(auto& ir:block->structions) {
-        if(!ir->removedMask)
-            runSysY(*(ir));
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
+        runSysY(*(ir));
     }
     if(block->nextBranch && getValue(block->branchVal) != 0)
         return block->nextBranch;

@@ -31,13 +31,12 @@ pIRObj SSAMaker::renameObj(pIRObj operand, pSysYIR useSource){
 }
 
 void SSAMaker::fillSuccPhi(pBlock block, pBlock from){
-    for(auto& ir: block->structions){
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
         if(ir->type == IRType::PHI){
-            auto defObj = dynamic_pointer_cast<IRValObj>(ir->target);
+            auto defObj = toVal(ir->target);
             auto origin = phiOrigin[block][defObj];
             if(origin == nullptr) origin = defObj;
-            auto found = dynamic_pointer_cast<IRValObj>(
-                renameObj(origin, ir));
+            auto found = toVal(renameObj(origin, ir));
             phiList[block][origin][from] = found;
         }else break;
     }
@@ -56,7 +55,7 @@ pBlock SSAMaker::visit(pBlock block){
     //         newObj->defStruction = block;
     //     }
     // }
-    for(auto& ir: block->structions){
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
         // cout << *ir.get() << endl;
         if(ir->opt1)ir->opt1= renameObj(ir->opt1, ir);
         if(ir->opt2)ir->opt2 = renameObj(ir->opt2, ir);

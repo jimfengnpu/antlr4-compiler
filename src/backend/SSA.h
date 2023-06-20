@@ -49,7 +49,7 @@ public:
                         for(auto df: b->domFrontier){
                             if(!phiFlag[df]&& df->liveIn.find(obj) != df->liveIn.end()){
                                 phiFlag[df] = true;
-                                auto phiIR = df->insertIRFront(IRType::PHI, obj, nullptr, nullptr);
+                                auto phiIR = df->insertIR(IRType::PHI, obj, nullptr, nullptr, df->irHead);
                                 phiIR->block = df;
                                 blocks.insert(df);
                             }
@@ -69,7 +69,7 @@ public:
                 }
                 visit(func->entry);
                 for(auto b: func->blocks){
-                    for(auto& ir: b->structions){
+                    for(auto ir=b->irHead; ir!=nullptr; ir=ir->next){
                         if(ir->type == IRType::PHI){
                             auto origin = phiOrigin[b][ir->target];
                             for(auto [from, use]: phiList[b][origin]){
@@ -97,31 +97,29 @@ public:
         for(auto& func: visitor.functions){
             newBlocks.clear();
             for(auto block: func->blocks){
-                for(auto& ir: block->structions){
-                    if(!ir->removedMask){
-                        if(ir->type == IRType::PHI){
-                            auto phiDefObj = ir->target;
-                            for(auto& f: block->from){
-                                pBlock insertBlock = f, newBlock = nullptr;
-                                // if predecessor(f) has defined phi val in live out, 
-                                // then add another bb insert assign statement to avoid lost copy
-                                if(f->liveOut.find(phiDefObj)!=f->liveOut.end()){
-                                    newBlock = make_shared<IRBlock>(IR_NORMAL);
-                                    newBlock->finishBB(block);
-                                    newBlocks.insert(newBlock);
-                                    if(f->nextBranch == block){
-                                        f->nextBranch = newBlock;
-                                    }else{
-                                        f->nextNormal = newBlock;
-                                    }
-                                    insertBlock = newBlock;
+                for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
+                    if(ir->type == IRType::PHI){
+                        auto phiDefObj = ir->target;
+                        for(auto& f: block->from){
+                            pBlock insertBlock = f, newBlock = nullptr;
+                            // if predecessor(f) has defined phi val in live out, 
+                            // then add another bb insert assign statement to avoid lost copy
+                            if(f->liveOut.find(phiDefObj)!=f->liveOut.end()){
+                                newBlock = make_shared<IRBlock>(IR_NORMAL);
+                                newBlock->finishBB(block);
+                                newBlocks.insert(newBlock);
+                                if(f->nextBranch == block){
+                                    f->nextBranch = newBlock;
+                                }else{
+                                    f->nextNormal = newBlock;
                                 }
-                                insertBlock->insertIRBack(
-                                    IRType::ASSIGN, phiDefObj, 
-                                    block->phiList[phiDefObj][f], nullptr);
+                                insertBlock = newBlock;
                             }
-                            ir->remove();
+                            insertBlock->insertIR(
+                                IRType::ASSIGN, phiDefObj, 
+                                block->phiList[phiDefObj][f], nullptr);
                         }
+                        block->remove(ir);
                     }
                 }
             }

@@ -286,10 +286,12 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
                 arrEndIter++;
             }
             auto newArr = newObj<IRArrValObj>(arrObj, new_dim,"");
+            newArr->offsetObj = off;
             insertIR(IRType::ARR, newArr, arrObj, off);
             return (pIRValObj)newArr;
         }
         auto elem = newObj<IRScalValObj>(arrObj, "");
+        elem->offsetObj = off;
         insertIR(IRType::IDX, elem, arrObj, off);
         return (pIRValObj)elem;
     }

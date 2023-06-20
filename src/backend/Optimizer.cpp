@@ -10,7 +10,7 @@ void BlockPruner::prepareTriggers(){
 
 // change phi use of %block% from %from% to %now%(if %now% not nullptr, otherwise just erase %from%)
 void changeErasePhiFrom(pBlock block, pBlock from, pBlock now){
-    for(auto& ir: block->structions){
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
         if(ir->type == IRType::PHI){
             if(nullptr != now){
                 block->phiList[ir->target][now] = block->phiList[ir->target][from];
@@ -174,8 +174,7 @@ void ConstBroadcast::setConstState(pBlock block, pIRObj obj){
 
 void ConstBroadcast::applyBlock(pBlock block){
     int value;
-    for(auto& ir: block->structions)
-        if(!ir->removedMask)
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next)
     {
         setConstState(block, ir->target);
         if(clearConstUse(ir, ir->opt1, value)){
@@ -213,12 +212,10 @@ bool checkObjUseEmpty(pIRObj obj){
 }
 
 void CodeCleaner::applyBlock(pBlock block){
-    for(auto& ir: block->structions){
-        if(!ir->removedMask){
-            if(IRType::CALL != ir->type && checkObjUseEmpty(ir->target)){
-                ir->remove();
-                changed = true;
-            }
+    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
+        if(IRType::CALL != ir->type && checkObjUseEmpty(ir->target)){
+            block->remove(ir);
+            changed = true;
         }
     }
     if(block->branchVal){

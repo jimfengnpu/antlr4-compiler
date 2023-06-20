@@ -138,7 +138,7 @@ void IRBlock::print(std::ostream& os) const{
     }
     #endif
     #endif
-    for(auto &ir: structions) {
+    for(auto ir=irHead; ir!=nullptr; ir=ir->next){
         #ifdef VAL_CFGDOM
             os << "\\n";
         #else
@@ -150,15 +150,10 @@ void IRBlock::print(std::ostream& os) const{
                 os << " ("<< from->name << ")"<< use->name<<" ";
             }
         }
-    }
-    if(nullptr != nextBranch){
-        #ifdef VAL_CFGDOM
-            os << "\\n";
-        #else
-            os << "\n\t";
-        #endif
-        os << *branchIR.get();
-        os << " GOTO " << nextBranch.get()->name;
+        if(ir->type == IRType::BR){
+            assert(nextBranch != nullptr);
+            os << " GOTO " << nextBranch.get()->name;
+        }
     }
 
     if(nullptr != nextNormal){

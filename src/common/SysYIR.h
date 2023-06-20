@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iostream>
 #include <initializer_list>
+#include <assert.h>
 
 using namespace std;
 
@@ -70,7 +71,7 @@ typedef shared_ptr<IRFunc> pIRFunc;
 
 class vReg{
 public:
-    int regType;
+    int regType=REG_R;
     union{
         int immVal;
         int regId;
@@ -84,13 +85,15 @@ public:
 class ASMInstr{
 public:
     string name;
-    vector<vReg*> op;
-    ASMInstr(string name, initializer_list<vReg*> oprands): name(name){
+    vector<pIRValObj> op;
+    SysYIR* ir=nullptr;
+    ASMInstr(string name, initializer_list<pIRValObj> oprands): name(name){
         for(auto opArg: oprands){
             op.push_back(opArg);
         }
     }
 };
+
 class IRObj
 {
 public:
@@ -120,6 +123,7 @@ public:
     bool isConst;
     bool isTmp;
     int offset;
+    shared_ptr<IRScalValObj> offsetObj;
     shared_ptr<IRArrValObj> fa;
     // u-d <lv 3> **add within ssa rename**
     bool ssaDef=false;
@@ -143,6 +147,9 @@ public:
         return "%t" + to_string(++tmpValId);
     }
 };
+inline pIRValObj toVal(pIRObj obj){
+    return dynamic_pointer_cast<IRValObj>(obj);
+}
 
 
 class IRArrValObj : public IRValObj
@@ -211,7 +218,7 @@ typedef shared_ptr<IRStrValObj> pIRStrValObj;
 enum class IRType : int
 {
     NOP, ASSIGN,
-    ADD, SUB, MUL, DIV, MOD, NEG,
+    ADD, SUB, MUL, DIV, MOD, NEG, AND, OR, SL, SR,
     NOT, EQ, NEQ, GT, LT, GE, LE,
     ARR, IDX,
     CALL, PARAM, RET, BR,
@@ -248,6 +255,10 @@ static string IRTypeName(IRType type)
         IR_TO_STRING(IRType::DIV)
         IR_TO_STRING(IRType::MOD)
         IR_TO_STRING(IRType::NEG)
+        IR_TO_STRING(IRType::AND)
+        IR_TO_STRING(IRType::OR)
+        IR_TO_STRING(IRType::SL)
+        IR_TO_STRING(IRType::SR)
         IR_TO_STRING(IRType::NOT)
         IR_TO_STRING(IRType::EQ)
         IR_TO_STRING(IRType::NEQ)
@@ -270,7 +281,7 @@ static string IRTypeName(IRType type)
 class IRBlock;
 typedef shared_ptr<IRBlock> pBlock;
 
-class ASMInstr;
+
 class SysYIR: public IRObj
 {
 public:
@@ -283,18 +294,19 @@ public:
     shared_ptr<SysYIR> next=nullptr;
     pBlock block=nullptr;
     bool asmRemovedMask=false;
-    vector<ASMInstr*> asmInstrs;
+    deque<ASMInstr*> asmInstrs;
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
-    void remove(){
-        if(prev){
-            prev->next = next;
-        }
-        if(next){
-            next->prev = prev;
-        }
-        removedMask = true;
+    void addASMBack(string name, initializer_list<pIRValObj> oprands){
+        auto instr = new ASMInstr(name, oprands);
+        instr->ir = this;
+        asmInstrs.push_back(instr);
+    }
+    void addASMFront(string name, initializer_list<pIRValObj> oprands){
+        auto instr = new ASMInstr(name, oprands);
+        instr->ir = this;
+        asmInstrs.push_front(instr);
     }
 };
 
@@ -306,9 +318,10 @@ class IRBlock : public IRObj
     static int masterId;
     static int loopId;
     static int branchId;
+    vector<shared_ptr<SysYIR> > structions;
 public:
+    pSysYIR irHead, irTail;
     // basic & CFG <lv 0>
-    deque<shared_ptr<SysYIR> > structions;
     int blockType; // 0 normal 1 branch 2 loop
     shared_ptr<SysYIR> branchIR;
     pIRScalValObj branchVal = nullptr;
@@ -330,28 +343,33 @@ public:
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
-    shared_ptr<SysYIR> insertIRBack(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
-    {
+    // insert before %ir%(if %ir% ==nullptr,insert tail, just before branch ir)
+    shared_ptr<SysYIR> insertIR(IRType type, pIRValObj t,
+        pIRObj op1, pIRObj op2, pSysYIR ir=nullptr){
         auto newIR = make_shared<SysYIR>(type, t, op1, op2);
-        if(structions.size()){
-            newIR->prev = structions.back();
-            structions.back()->next = newIR;
+        if(ir == nullptr){
+            ir = branchIR;
+        }
+        if(ir != nullptr){
+            newIR->prev = ir->prev;
+            if(ir->prev){
+                ir->prev->next = newIR;
+                ir->prev = newIR;
+            }
+        }else{
+            newIR->prev = irTail;
+            if(irTail){
+                irTail->next = newIR;
+            }
+        }
+        newIR->next = ir;
+        if(ir == branchIR){
+            irTail = newIR;
+        }
+        if(ir == irHead){
+            irHead = newIR;
         }
         structions.push_back(newIR);
-        if(branchIR != nullptr){
-            newIR->next = branchIR;
-            branchIR->prev = newIR;
-        }
-        return newIR;
-    }
-
-    shared_ptr<SysYIR> insertIRFront(IRType type, pIRValObj t, pIRObj op1, pIRObj op2){
-        auto newIR = make_shared<SysYIR>(type, t, op1, op2);
-        if(structions.size()){
-            structions.front()->prev = newIR;
-            newIR->next = structions.front();
-        }
-        structions.push_front(newIR);
         return newIR;
     }
 
@@ -360,26 +378,42 @@ public:
         nextNormal = next_normal; 
         nextBranch = next_branch;
         branchVal = branch_val;
-        branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
-        if(structions.size()){
-            branchIR->prev = structions.back();
-            structions.back()->next = branchIR;
+        if(nullptr != branch_val){
+            branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
+            branchIR->prev = irTail;
+            irTail->next = branchIR;
         }
         return true;
     }
-    // is block empty (all structions removed)
-    inline int size(){
-        int removedCnt = 0;
-        for(auto& ir: structions){
-            if(ir->removedMask){
-                removedCnt++;
-            }
+
+    void remove(pSysYIR ir){
+        if(ir->prev){
+            ir->prev->next = ir->next;
         }
-        return structions.size() - removedCnt;
+        if(ir->next){
+            ir->next->prev = ir->prev;
+        }
+        if(ir == irTail){
+            irTail = irTail->prev;
+        }
+        if(ir == irHead){
+            irHead = irHead->next;
+        }
+        ir->removedMask = true;
+    }
+
+    // block structions size (jump excluded)
+    inline int size(){
+        int cnt = 0;
+        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
+            if(ir->type == IRType::BR)break;
+            cnt++;
+        }
+        return cnt;
     }
 
     bool hasPhi(){
-        for(auto ir: structions){
+        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
             if(ir->type == IRType::PHI){
                 return true;
             }else break;

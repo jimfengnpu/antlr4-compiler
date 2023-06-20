@@ -96,7 +96,7 @@ public:
 
     void insertIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2){
         if(curBlock != nullptr){
-            auto ir = curBlock->insertIRBack(type, t, op1, op2);
+            auto ir = curBlock->insertIR(type, t, op1, op2);
             ir->block = curBlock;
         }
     }

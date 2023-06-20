@@ -16,7 +16,7 @@ void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;
     int sz = from->liveOut.size();
     from->liveOut.insert(block->liveIn.begin(), block->liveIn.end());
-    for(auto& ir: block->structions){
+    for(auto ir=block->irHead; ir!=nullptr; ir=ir->next){
         if(ir->type == IRType::PHI){
             from->liveOut.insert(block->phiList[ir->target][from]);
         }
@@ -49,7 +49,7 @@ void LiveCalculator::makeLive(pIRFunc& func){
         // for(auto& obj: block->phiOrigin){
         //     liveDef.insert(block->phiObj[obj]);
         // }
-        for(auto& ir: block->structions){
+        for(auto ir=block->irHead; ir!=nullptr; ir=ir->next){
             if(!ir->removedMask){
                 op1 = dynamic_pointer_cast<IRValObj>(ir->opt1);
                 op2 = dynamic_pointer_cast<IRValObj>(ir->opt2);

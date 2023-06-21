@@ -12,6 +12,16 @@ void IRProcessor::addTriggers(){
 
 LiveCalculator::LiveCalculator(){}
 
+void checkLiveUse(pIRValObj obj, set<pIRValObj>& def, set<pIRValObj>& use){
+    if(!obj)return;
+    if(obj->isConstant()&&(!obj->isIdent)){
+        def.insert(obj);
+    }
+    if(def.find(obj) == def.end()){
+        use.insert(obj);
+    }
+}
+
 void LiveCalculator::mergeSuccLivein(pBlock block, pBlock from){
     if(!block)return;
     int sz = from->liveOut.size();
@@ -50,13 +60,9 @@ void LiveCalculator::makeLive(pIRFunc& func){
         //     liveDef.insert(block->phiObj[obj]);
         // }
         for(auto ir=block->irHead; ir!=nullptr; ir=ir->next){
-            op1 = toVal(ir->opt1);
-            op2 = toVal(ir->opt2);
             targ = toVal(ir->target);
-            if(op1 && (!op1->isConstant()||(op1->isIdent)) 
-                && liveDef.find(op1) == liveDef.end())liveUse.insert(op1);
-            if(op2 && (!op2->isConstant()||(op2->isIdent)) 
-                && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
+            checkLiveUse(toVal(ir->opt1), liveDef, liveUse);
+            checkLiveUse(toVal(ir->opt2), liveDef, liveUse);
             if(targ && !targ->scopeSymbols->isGlobal)liveDef.insert(targ);
         }
         block->liveIn.insert(liveUse.begin(), liveUse.end());

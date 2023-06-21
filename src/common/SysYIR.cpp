@@ -145,7 +145,7 @@ void IRBlock::print(std::ostream& os) const{
         os << *ir.get();
         if(ir->type == IRType::PHI){
             for(auto& [from, use]: phiList.at(ir->target)){
-                os << " ("<< from->name << ")"<< use->name<<" ";
+                os << " (" << from->name << ")" << use->name<<" ";
             }
         }
         if(ir->type == IRType::BR){

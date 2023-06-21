@@ -15,11 +15,23 @@ using namespace antlr4;
 using namespace std;
 
 int main(int argc, char** argv) {
-    
+    string src="", out="out.s";
+    bool outOption = false;
+    for(int i=0; i < argc; i++){
+        if(argv[i] == "-o")outOption=true;
+        else{
+            if(outOption){
+                out = string(argv[i]);
+                outOption = false;
+            }else{
+                src = string(argv[i]);
+            }
+        }
+    }
     string input_file;
-    if(argc > 1){
+    if(!src.empty()){
         try{
-            ifstream fin(argv[1]);
+            ifstream fin(src);
             fin.unsetf(ios::skipws);
             input_file = string((istreambuf_iterator<char>(fin)),istreambuf_iterator<char>());
             fin.close();
@@ -57,7 +69,7 @@ int main(int argc, char** argv) {
     #endif
     processors.add(new InstrMatcher(&riscv_arch));
     processors.apply();
-    // #ifdef VAL_IR
+    #ifdef VAL_IR
         cout << "IR:";
         cout << *(visitor.globalData.get());
         for(auto &f : visitor.functions){
@@ -66,7 +78,7 @@ int main(int argc, char** argv) {
             }
         }
         cout << endl;
-    // #endif
+    #endif
     // }catch(...){
     //     cout << "open file failed" << endl;
     //     return -1;

@@ -16,8 +16,8 @@
 
 using namespace std;
 
-// #define VAL_IR 1
-// #define VAL_LIVE 1
+#define VAL_IR 1
+#define VAL_LIVE 1
 // #define VAL_CFGDOM 1
 
 // #define VAL_RUN 1

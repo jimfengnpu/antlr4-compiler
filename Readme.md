@@ -22,10 +22,6 @@ DIV z, x, 2**y(+imm) => {...}
 MUL z, x, -2**y(+imm) => MUL t, x, 2**y; NEG z, t
 DIV z, x, -2**y(+imm) => DIV t, x, 2**y; NEG z, t
 MOD z, x, -2**y(+imm) => MOD t, x, 2**y; NEG z, t
-GT y, imm(0), x => LT y, x, imm(0)
-LT y, imm(0), x => GT y, x, imm(0)
-GE y, imm(0), x => LE y, x, imm(0)
-LE y, imm(0), x => GE y, x, imm(0)
 ```
 + Backend
     - Instr matcher:
@@ -46,10 +42,10 @@ SR, => srai(op2=imm); sra;
 NOT,BR => beqz;
 EQ, BR => beq; beqz(op1|op2=imm(0));
 NEQ, BR => bne; bnez(op1|op2=imm(0));
-GT, BR => bgt; bgtz[op2=imm(0)];
-LT, BR => blt; bltz[op2=imm(0)];
-GE, BR => bge; bgez[op2=imm(0)];
-LE, BR => ble; blez[op2=imm(0)];
+GT, BR => bgt; bgtz[op2=imm(0)]; bltz[op1=imm(0)];
+LT, BR => blt; bltz[op2=imm(0)]; bgtz[op1=imm(0)];
+GE, BR => bge; bgez[op2=imm(0)]; blez[op1=imm(0)];
+LE, BR => ble; blez[op2=imm(0)]; bgez[op1=imm(0)];
 ARR, => add
 IDX, => add 
 CALL, => call

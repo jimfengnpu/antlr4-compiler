@@ -191,9 +191,6 @@ void ConstBroadcast::applyBlock(pBlock block){
             }
         }
     }
-    if(clearConstUse(block->branchIR, block->branchVal, value)){
-        block->branchVal = make_shared<IRScalValObj>(value);
-    }
 }
 
 void CodeCleaner::prepareTriggers(){
@@ -214,24 +211,24 @@ bool checkObjUseEmpty(pIRObj obj){
 void CodeCleaner::applyBlock(pBlock block){
     for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
         if(IRType::CALL != ir->type && checkObjUseEmpty(ir->target)){
+            if(ir->type == IRType::BR){
+                if(0 != block->branchVal->value){// always branch
+                    block->nextNormal->from.erase(block);
+                    changeErasePhiFrom(block->nextNormal, block, nullptr);
+                    block->nextNormal = block->nextBranch;
+                }else{
+                    block->nextBranch->from.erase(block);
+                    changeErasePhiFrom(block->nextBranch, block, nullptr);
+                }
+                block->branchVal = nullptr;
+                block->nextBranch = nullptr;
+            }
             block->remove(ir);
             changed = true;
         }
     }
-    if(block->branchVal){
-        if(checkObjUseEmpty(block->branchVal)){
-            if(0 != block->branchVal->value){// always branch
-                block->nextNormal->from.erase(block);
-                changeErasePhiFrom(block->nextNormal, block, nullptr);
-                block->nextNormal = block->nextBranch;
-            }else{
-                block->nextBranch->from.erase(block);
-                changeErasePhiFrom(block->nextBranch, block, nullptr);
-            }
-            block->branchVal = nullptr;
-            block->nextBranch = nullptr;
-            changed = true;
-        }else if(block->nextBranch == block->nextNormal){
+    if(block->branchIR){
+        if(block->nextBranch == block->nextNormal){
             block->branchVal = nullptr;
             block->nextBranch = nullptr;
             changed = true;

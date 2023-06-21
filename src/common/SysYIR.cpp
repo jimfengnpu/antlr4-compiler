@@ -93,8 +93,6 @@ void SysYIR::print(std::ostream& os) const{
     //     if(scal->constState==IR_CONST)
     //     os << "(" << scal->value<<")";
     // }
-    if(removedMask)
-        os << "     --m";
 }
 
 void IRBlock::print(std::ostream& os) const{

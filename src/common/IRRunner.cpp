@@ -186,12 +186,12 @@ void IRRunner::runSysY(const SysYIR& instr){
         operateScalObj(instr.type, instr.target, instr.opt1, instr.opt2);
         break;
     case IRType::DEF:
-        param = dynamic_pointer_cast<IRValObj>(instr.target);
+        param = toVal(instr.target);
         // // cout << param <<endl;
         alloc(param);
         break;
     case IRType::PARAM:
-        param = dynamic_pointer_cast<IRValObj>(instr.opt1);
+        param = toVal(instr.opt1);
         paramsBuf.push_back(param);
         break;
     case IRType::CALL:

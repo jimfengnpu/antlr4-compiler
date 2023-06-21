@@ -204,7 +204,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             ctx->obj = calcExp(type, exp1, exp2, is_const);
         }else if(auto func = ctx->Ident()){
             ctx->obj = newObj<IRScalValObj>(false, "");
-            auto funcObj = dynamic_pointer_cast<IRFunc>(findSymbol("@" + func->getText()));
+            auto funcObj = dynamic_pointer_cast<IRFunc>(findSymbol(func->getText()));
             if(funcObj == nullptr)throw runtime_error("unknown function name");
             if(!expVec.empty()){
                 for(auto p = expVec.rbegin(); p!= expVec.rend(); p++) {

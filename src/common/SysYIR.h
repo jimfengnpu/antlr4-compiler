@@ -416,6 +416,9 @@ public:
         if(ir == irHead){
             irHead = irHead->next;
         }
+        if(ir == branchIR){
+            branchIR = nullptr;
+        }
         ir->removedMask = true;
     }
 
@@ -459,7 +462,7 @@ public:
         // //     return "B" + to_string(++branchId);
         // // default:
         // }
-        return "L" + to_string(++masterId);
+        return ".L" + to_string(++masterId);
     }
 };
 // False, True

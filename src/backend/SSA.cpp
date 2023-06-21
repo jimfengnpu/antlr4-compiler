@@ -60,7 +60,7 @@ pBlock SSAMaker::visit(pBlock block){
         if(ir->opt1)ir->opt1= renameObj(ir->opt1, ir);
         if(ir->opt2)ir->opt2 = renameObj(ir->opt2, ir);
         if(ir->type == IRType::RET){
-            block->function->returnVal = dynamic_pointer_cast<IRValObj>(ir->opt1);
+            block->function->returnVal = toVal(ir->opt1);
         }
         if(ir->type == IRType::IDX)continue;
         pIRScalValObj targ = toScal(ir->target), newObj = nullptr;
@@ -80,11 +80,6 @@ pBlock SSAMaker::visit(pBlock block){
             // cout << "add "<< targ->name << " in "<< block<<endl;
             renamedObj[block][targ] = newObj;
         }
-    }
-    if(block->branchVal){
-        block->branchIR->opt1 = block->branchVal = 
-        toScal(
-            renameObj(block->branchVal, block->branchIR));
     }
     if(block->nextNormal){
         fillSuccPhi(block->nextNormal, block);

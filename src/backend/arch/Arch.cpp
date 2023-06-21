@@ -201,6 +201,7 @@ void RISCV::defineArchInfo(){
     addMatchers(IRType::IDX,
     {
         [](pSysYIR ir)->int{
+            toVal(ir->target)->regInfo.regType = REG_M;
             ir->addASMBack("add", {toVal(ir->opt2), toVal(ir->opt1), toVal(ir->opt2)});
             return 1;
         }

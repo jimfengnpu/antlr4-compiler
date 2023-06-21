@@ -1,12 +1,13 @@
 #include "antlr4-runtime.h"
-#include "frontend/generated/SysYLexer.h"
-#include "frontend/generated/SysYParser.h"
-#include "frontend/ASTVisitor.h"
-#include "common/IRProcessor.h"
-#include "common/IRRunner.h"
-#include "backend/Dom.h"
-#include "backend/SSA.h"
-#include "backend/Optimizer.h"
+#include "SysYLexer.h"
+#include "SysYParser.h"
+#include "ASTVisitor.h"
+#include "IRProcessor.h"
+#include "IRRunner.h"
+#include "Dom.h"
+#include "SSA.h"
+#include "Optimizer.h"
+#include "InstrMatcher.h"
 #include <iostream>
 #include <fstream>
 
@@ -14,6 +15,7 @@ using namespace antlr4;
 using namespace std;
 
 int main(int argc, char** argv) {
+    
     string input_file;
     if(argc > 1){
         try{
@@ -40,21 +42,9 @@ int main(int argc, char** argv) {
     // std::cout << "Parse Tree: " << endl << s << std::endl;
     ASTVisitor visitor;
     bool exist_main =  any_cast<bool>(visitor.visit(tree));
-    // cout<< ".data"<<endl;
-    // for(auto& [name, value]: visitor.globalSymbolTable.symbols) {
-    //     if(auto sym = value.get())
-    //         cout << *(sym) <<endl;
-    // }
-    // assert(argc >= 3);
-    // try{
-    //     ofstream& foutput(string(argv[2]));
-    //     // tree = BuildAST(tree);
-    //     // s = tree->toStringTree(&parser, true);
-    //     // std::cout << "Parse Tree: " << s << std::endl;
-    //     ifstream finput(argv[3]);
-    // IRRunner runner(visitor, cin, cout);
-    // runner.apply();
+
     IRProcessors processors(visitor);
+    RISCV riscv_arch;
     // model list:
     // DomMaker: generate dom tree in pBlock, triggers: 
     processors.add(new BlockPruner());
@@ -65,13 +55,15 @@ int main(int argc, char** argv) {
     processors.add(new SSAFinalizer());
     processors.add(new IRRunner(cin, cout));
     #endif
-
+    processors.add(new InstrMatcher(&riscv_arch));
     processors.apply();
     // #ifdef VAL_IR
         cout << "IR:";
         cout << *(visitor.globalData.get());
         for(auto &f : visitor.functions){
-            cout << endl << *f;
+            if(f->entry != nullptr){
+                cout << endl << *f;
+            }
         }
         cout << endl;
     // #endif

@@ -50,19 +50,15 @@ void LiveCalculator::makeLive(pIRFunc& func){
         //     liveDef.insert(block->phiObj[obj]);
         // }
         for(auto ir=block->irHead; ir!=nullptr; ir=ir->next){
-            if(!ir->removedMask){
-                op1 = dynamic_pointer_cast<IRValObj>(ir->opt1);
-                op2 = dynamic_pointer_cast<IRValObj>(ir->opt2);
-                targ = dynamic_pointer_cast<IRValObj>(ir->target);
-                if(op1 && (!op1->isConstant()||(op1->isIdent)) 
-                    && liveDef.find(op1) == liveDef.end())liveUse.insert(op1);
-                if(op2 && (!op2->isConstant()||(op2->isIdent)) 
-                    && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
-                if(targ && !targ->scopeSymbols->isGlobal)liveDef.insert(targ);
-            }
+            op1 = toVal(ir->opt1);
+            op2 = toVal(ir->opt2);
+            targ = toVal(ir->target);
+            if(op1 && (!op1->isConstant()||(op1->isIdent)) 
+                && liveDef.find(op1) == liveDef.end())liveUse.insert(op1);
+            if(op2 && (!op2->isConstant()||(op2->isIdent)) 
+                && liveDef.find(op2) == liveDef.end())liveUse.insert(op2);
+            if(targ && !targ->scopeSymbols->isGlobal)liveDef.insert(targ);
         }
-        if(block->branchVal && liveDef.find(block->branchVal) == liveDef.end())
-            liveUse.insert(block->branchVal);
         block->liveIn.insert(liveUse.begin(), liveUse.end());
     }
     do{

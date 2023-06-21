@@ -37,6 +37,6 @@ asm_demo: ${TEST_INPUT}
 
 
 lines:
-	find src/* -path "src/frontend/generated" -prune -o -name "*.*" -print | xargs wc -l
+	@find src -type f -not -path "src/frontend/generated/*" | xargs wc -l 
 
 .PHONY:all clean run 

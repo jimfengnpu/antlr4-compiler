@@ -29,6 +29,7 @@ class RISCV: public BaseArch{
         s2, s3, s4, s5, s6, s7, s8, s9, s10, s11,
         t3, t4, t5, t6, pc
     };
+public:
     RISCV(){
         regs[zero] = REG_STR(zero);
         regs[ra] = REG_STR(ra);

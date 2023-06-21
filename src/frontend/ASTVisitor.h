@@ -18,7 +18,7 @@ public:
     pBlock creatFunction(string name, 
         SysYParser::BlockContext* blockContext,
         int returnType, vector<pIRValObj> args) {
-        auto func = make_shared<IRFunc>(returnType, "@" + name, args, 
+        auto func = make_shared<IRFunc>(returnType, name, args, 
             blockContext==nullptr? nullptr : &(blockContext->symbolTable));
         functions.push_back(func);
         globalSymbolTable.registerSymbol(func);
@@ -106,8 +106,10 @@ public:
         if(curBlock && curBlock->finishBB(next_normal, next_branch, branch_val)){
             if(next_normal)
                 next_normal->from.insert(curBlock);
-            if(next_branch)
+            if(next_branch){
                 next_branch->from.insert(curBlock);
+                curBlock->branchIR->block = curBlock;
+            }
             curFunc->blocks.insert(curBlock);
             curBlock->function = curFunc;
             return true;

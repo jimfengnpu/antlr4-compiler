@@ -76,7 +76,7 @@ public:
     union{
         int immVal;
         int regId;
-        int memAddrId;
+        int stackMemId;
     } _val;
     shared_ptr<IRValObj> var=nullptr;
     vReg()=default;
@@ -136,6 +136,9 @@ public:
         regInfo.regType = REG_IMM;
         regInfo._val.immVal = val;
     }
+    inline vReg* reg(){
+        return &regInfo;
+    }
     virtual void print(ostream& os) const override;
     virtual string getDefaultName() {
         return "%t" + to_string(++tmpValId);
@@ -151,15 +154,18 @@ public:
     vector<vReg*> op;
     pBlock jTarget;
     SysYIR* ir=nullptr;
-    ASMInstr(string name, initializer_list<pIRValObj> oprands, pBlock jBlock): 
+    ASMInstr(string name, initializer_list<vReg*> oprands, pBlock jBlock=nullptr): 
         name(name)
     {
         for(auto opArg: oprands){
-            op.push_back(&(opArg->regInfo));
+            op.push_back(opArg);
         }
         if(jBlock){
             jTarget = jBlock;
         }
+    }
+    void addOp(vReg* nOp){
+        op.push_back(nOp);
     }
 };
 
@@ -311,19 +317,34 @@ public:
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
-    void addASMBack(string name, initializer_list<pIRValObj> oprands,
+
+    ASMInstr* addASMBack(ASMInstr* instr){
+        if(instr != nullptr){
+            asmInstrs.push_back(instr);
+        }
+        return instr;
+    }
+    ASMInstr* addASMFront(ASMInstr* instr){
+        if(instr != nullptr){
+            asmInstrs.push_front(instr);
+        }
+        return instr;
+    }
+
+    ASMInstr* addASMBack(string name, initializer_list<vReg*> oprands,
                     pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
         instr->ir = this;
-        asmInstrs.push_back(instr);
+        return addASMBack(instr);
     }
-    void addASMFront(string name, initializer_list<pIRValObj> oprands,
+
+    ASMInstr* addASMFront(string name, initializer_list<vReg*> oprands,
         pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
         instr->ir = this;
-        asmInstrs.push_front(instr);
+        return addASMFront(instr);
     }
 };
 
@@ -371,8 +392,8 @@ public:
             newIR->prev = ir->prev;
             if(ir->prev){
                 ir->prev->next = newIR;
-                ir->prev = newIR;
             }
+            ir->prev = newIR;
         }else{
             newIR->prev = irTail;
             if(irTail){

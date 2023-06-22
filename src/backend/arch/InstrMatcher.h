@@ -10,6 +10,8 @@ public:
     InstrMatcher(BaseArch* arch):archInfo(arch){}
     virtual pBlock visit(pBlock block);
     virtual void apply(ASTVisitor& visitor){
+        triggers.push_back(new LiveCalculator());
+        addTriggers();
         for(auto& f: visitor.functions){
             if(f->entry){
                 for(pBlock block: f->blocks){

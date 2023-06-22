@@ -74,6 +74,14 @@ public:
     virtual void prepareTriggers();
 };
 
+class CommonExp: public Optimizer{
+    map<IRType, map<IRObj, map<IRObj, IRValObj> > > ops; 
+public:
+    CommonExp(){}
+    virtual void applyBlock(pBlock block);
+    virtual void prepareTriggers();
+};
+
 class CodeCleaner: public Optimizer{
 public:
     CodeCleaner(){}

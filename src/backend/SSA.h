@@ -115,9 +115,13 @@ public:
                                 }
                                 insertBlock = newBlock;
                             }
+                            pSysYIR tail = nullptr;
+                            if(insertBlock->branchIR){
+                                tail = insertBlock->irTail;
+                            }
                             insertBlock->insertIR(
                                 IRType::ASSIGN, phiDefObj, 
-                                block->phiList[phiDefObj][f], nullptr);
+                                block->phiList[phiDefObj][f], nullptr, tail);
                         }
                         block->remove(ir);
                     }

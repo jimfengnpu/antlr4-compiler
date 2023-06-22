@@ -152,6 +152,17 @@ void IRBlock::print(std::ostream& os) const{
             assert(nextBranch != nullptr);
             os << " GOTO " << nextBranch.get()->name;
         }
+        if(ir == irHead){
+            os << " << H";
+        }
+        if(ir == irTail){
+            os << " << T";
+        }
+        if(!ir->asmRemovedMask){
+            for(auto ins:ir->asmInstrs){
+                os << "\t" << ins->name;
+            }
+        }
     }
 
     if(nullptr != nextNormal){

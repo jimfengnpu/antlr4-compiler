@@ -19,8 +19,14 @@ class RegAllocator: public IRProcessor{
     priority_queue<pIRValObj, vector<pIRValObj>, ValComparator> checkList;
 public:
     RegAllocator(BaseArch* arch): archInfo(arch){}
+    void allocReg(pIRFunc func);
+    virtual pBlock visit(pBlock);
     virtual void apply(ASTVisitor& visitor){
-
+        for(auto func: visitor.functions){
+            if(func->entry != nullptr){
+                allocReg(func);
+            }
+        }
     }
 };
 #endif

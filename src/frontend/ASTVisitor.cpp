@@ -141,6 +141,9 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
         }
         ctx->obj = newObj<IRArrValObj>(declCtx->isConst, dims, identity);
     }
+    if(curScopeBlock == nullptr || (!arrVec.empty())){
+        ctx->obj->regInfo.regType = REG_M;
+    }
     insertIR(IRType::DEF, ctx->obj, nullptr, nullptr);
     if(ctx->initVal()) {
         visitInitVal(ctx->initVal(), ctx->obj);
@@ -278,7 +281,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
             off = calcExp(IRType::ADD, dimExp, tmp, dimExp->isConstant()&& tmp->isConstant());
             iter++;
         }
-        
+        insertIR(IRType::SL, off, off, newObj<IRScalValObj>(2));
         if(arrEndIter != dim.end()){
             vector<int> new_dim;
             while(arrEndIter != dim.end()){

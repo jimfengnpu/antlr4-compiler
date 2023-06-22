@@ -18,7 +18,11 @@ public:
             matchers[type].push_back(matcher);
         }
     }
-
+    void addGenRegs(initializer_list<int> regs){
+        for(int r: regs){
+            genRegsId.push_back(r);
+        }
+    }
     bool matchIR(pSysYIR ir);
 };
 

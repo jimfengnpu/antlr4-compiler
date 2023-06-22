@@ -8,6 +8,7 @@
 #include "SSA.h"
 #include "Optimizer.h"
 #include "InstrMatcher.h"
+#include "RegAlloc.h"
 #include <iostream>
 #include <fstream>
 
@@ -63,11 +64,12 @@ int main(int argc, char** argv) {
     processors.add(new DomMaker());
     processors.add(new SSAMaker());
     processors.add(new ConstBroadcast());// auto clean
-    #ifdef VAL_RUN
     processors.add(new SSAFinalizer());
+    #ifdef VAL_RUN
     processors.add(new IRRunner(cin, cout));
     #endif
     processors.add(new InstrMatcher(&riscv_arch));
+    // processors.add(new RegAllocator(&riscv_arch));
     processors.apply();
     #ifdef VAL_IR
         cout << "IR:";

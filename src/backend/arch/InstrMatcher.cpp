@@ -2,7 +2,7 @@
 
 
 pBlock InstrMatcher::visit(pBlock block){
-    for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){
+    for(auto ir=block->irHead; ir!=nullptr && ir->type != IRType::BR;ir=ir->next){
         archInfo->matchIR(ir);
     }
     return nullptr;

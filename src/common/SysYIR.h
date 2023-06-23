@@ -72,15 +72,22 @@ typedef shared_ptr<IRFunc> pIRFunc;
 
 class vReg{
 public:
+    /*
+     * REG_R: data usually in phy reg
+     *     regId: equals enum value of coresponding reg
+     * REG_M: data usually in mem (.data or stack)
+     *     var: == nullptr: stack mem, stackMemOff: offset with frame pointer(usually neg)
+     *          else:       var: base var of this mem(global name or arr fa) 
+     *                      stackMemOff: offset with fa      
+     */
     int regType=REG_R;
-    union{
-        int immVal;
-        int regId;
-        int stackMemId;
-    } _val;
+    int immVal=0;
+    int stackMemOff;
+    int regId=-1;
     shared_ptr<IRValObj> var=nullptr;
     vReg()=default;
-    vReg(int immVal): regType(REG_IMM){_val.immVal = immVal;}
+    vReg(int type, int immVal): regType(type){
+        immVal = immVal;}
 };
 
 
@@ -89,9 +96,9 @@ class IRObj
 public:
     string name; 
     SymbolTable* scopeSymbols=nullptr;
-    // for val/arr: ident | .t + index in CFG_val
+    // for val/arr: ident | %t + index in CFG_val
     // for CFG: function name ident
-    // for BB: entry: == func name else:.func name + .M/.B/.L + index in CFG_master/branch/loop
+    // for BB: .L + index in CFG_master/branch/loop
     
     bool isIdent;
     IRObj() {}
@@ -115,10 +122,11 @@ public:
     int offset;
     shared_ptr<IRScalValObj> offsetObj;
     shared_ptr<IRArrValObj> fa;
-    // u-d <lv 3> **add within ssa rename**
+    // ssa u-d <lv 3> **add within ssa rename**
     bool ssaDef=false;
     pSysYIR defStruction;// for no-ssa val=>nullptr; common=>pIR
     set<pSysYIR> useStructions; //... common=>pIR; branch=>pBlock.branchIR;
+    // machine info <lv 4> **arch associated**
     vReg regInfo;
 
     IRValObj() {}
@@ -134,7 +142,7 @@ public:
     }
     void setImmRegWithVal(int val){
         regInfo.regType = REG_IMM;
-        regInfo._val.immVal = val;
+        regInfo.immVal = val;
     }
     inline vReg* reg(){
         return &regInfo;
@@ -312,8 +320,10 @@ public:
     shared_ptr<SysYIR> prev=nullptr;
     shared_ptr<SysYIR> next=nullptr;
     pBlock block=nullptr;
+    // <lv 4> asm && arch
     bool asmRemovedMask=false;
     deque<ASMInstr*> asmInstrs;
+
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
@@ -321,12 +331,14 @@ public:
     ASMInstr* addASMBack(ASMInstr* instr){
         if(instr != nullptr){
             asmInstrs.push_back(instr);
+            instr->ir = this;
         }
         return instr;
     }
     ASMInstr* addASMFront(ASMInstr* instr){
         if(instr != nullptr){
             asmInstrs.push_front(instr);
+            instr->ir = this;
         }
         return instr;
     }
@@ -335,7 +347,6 @@ public:
                     pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
-        instr->ir = this;
         return addASMBack(instr);
     }
 
@@ -343,7 +354,6 @@ public:
         pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
-        instr->ir = this;
         return addASMFront(instr);
     }
 };
@@ -358,7 +368,6 @@ class IRBlock : public IRObj
     static int branchId;
     vector<shared_ptr<SysYIR> > structions;
 public:
-    pSysYIR irHead, irTail;
     // basic & CFG <lv 0>
     int blockType; // 0 normal 1 branch 2 loop
     shared_ptr<SysYIR> branchIR;
@@ -367,6 +376,7 @@ public:
     pBlock nextBranch = nullptr;
     set<pBlock> from;
     pIRFunc function;
+    pSysYIR irHead, irTail;
     // dom <lv 1>
     set<pBlock> domChild;
     set<pBlock> domFrontier;
@@ -378,6 +388,8 @@ public:
     set<pIRValObj> liveOut; // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
     // SSA <lv3>
     map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x(k) => [ fromBlock => x(i)]
+    // asm block order <lv 4>
+    pBlock asmNextBlock = nullptr;
 
     IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
         blockType(blockType){}
@@ -444,11 +456,21 @@ public:
     }
 
     // block structions size (jump excluded)
-    inline int size(){
+    int size(){
         int cnt = 0;
         for(auto ir=irHead; ir!=nullptr;ir=ir->next){
             if(ir->type == IRType::BR)break;
             cnt++;
+        }
+        return cnt;
+    }
+
+    int asmLen(){
+        int cnt = 0;
+        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
+            if(!ir->asmRemovedMask){
+                cnt += ir->asmInstrs.size();
+            }
         }
         return cnt;
     }

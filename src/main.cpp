@@ -76,7 +76,10 @@ int main(int argc, char** argv) {
         cout << *(visitor.globalData.get());
         for(auto &f : visitor.functions){
             if(f->entry != nullptr){
-                cout << endl << *f;
+                cout << endl << f->name << ":";
+                for(auto block=f->entry; block; block=block->asmNextBlock){
+                    cout << *block.get();
+                }
             }
         }
         cout << endl;

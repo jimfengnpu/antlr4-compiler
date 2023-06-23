@@ -53,4 +53,10 @@ PARAM, .skip
 RET, .skip
 DEF, .skip
 PHI, .skip
+
+//about vReg:
+IRValObj 的成员变量，指示数据存放位置的类型和信息，对于ArrObj，其数据为数组的起始地址，ScalObj为数据值
+REG_R: 数据通常放置在寄存器中
+REG_M: 数据通常放置在内存中
+REG_IMM:立即数
 ```

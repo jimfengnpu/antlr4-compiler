@@ -281,7 +281,7 @@ std::any ASTVisitor::visitLVal(SysYParser::LValContext* ctx) {
             off = calcExp(IRType::ADD, dimExp, tmp, dimExp->isConstant()&& tmp->isConstant());
             iter++;
         }
-        insertIR(IRType::SL, off, off, newObj<IRScalValObj>(2));
+        off = calcExp(IRType::SL, off, newObj<IRScalValObj>(2), off->isConstant());
         if(arrEndIter != dim.end()){
             vector<int> new_dim;
             while(arrEndIter != dim.end()){

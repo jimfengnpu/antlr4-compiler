@@ -17,6 +17,14 @@ public:
                 for(pBlock block: f->blocks){
                     visit(block);
                 }
+                pBlock last=nullptr;
+                for(pBlock block=f->entry; block;){
+                    if(last){
+                        last->asmNextBlock = block;
+                    }
+                    last = block;
+                    block = archInfo->matchBlockEnd(block);
+                }
             }
         }
     }

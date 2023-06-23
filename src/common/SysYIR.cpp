@@ -24,6 +24,10 @@ int CalConstExp(IRType type, int exp1Val, int exp2Val){
             case IRType::MOD:
                 if(exp2Val == 0)throw runtime_error("divided by zero");
                 value = exp1Val % exp2Val;break;
+            case IRType::SL:
+                value = exp1Val << exp2Val;break;
+            case IRType::SR:
+                value = exp1Val >> exp2Val;break;
             case IRType::NEG:
                 value = - exp1Val;break;
             case IRType::NOP:
@@ -162,6 +166,8 @@ void IRBlock::print(std::ostream& os) const{
             for(auto ins:ir->asmInstrs){
                 os << "\t" << ins->name;
             }
+        }else{
+            os << "--m";
         }
     }
 

@@ -9,8 +9,13 @@ public:
     map<int, string> regs;
     map<IRType, vector<int (*)(pSysYIR)> > matchers;
     vector<int> genRegsId;
+    set<int> callerSaveRegs;
+    set<int> caleeSaveRegs;
     int stackPointerRegId;
+    int framePointerRegId;
     int memByteAlign;
+    int frameByteAlign;
+    int branchBlockASMLimit;
     BaseArch(){}
     virtual void defineArchInfo()=0;
     void addMatchers(IRType type, initializer_list<int (*)(pSysYIR)> newMatchers){
@@ -24,6 +29,7 @@ public:
         }
     }
     bool matchIR(pSysYIR ir);
+    virtual pBlock matchBlockEnd(pBlock block)=0;
 };
 
 class RISCV: public BaseArch{
@@ -71,5 +77,6 @@ public:
         defineArchInfo();
     }
     virtual void defineArchInfo();
+    virtual pBlock matchBlockEnd(pBlock block);
 };
 #endif

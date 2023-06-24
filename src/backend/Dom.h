@@ -13,7 +13,7 @@ public:
     map<pBlock, pBlock> setV;
     map<pBlock, vector<pBlock> > bucket;
     vector<pBlock> visitBlocks;
-    int visitId;
+    int visitId=0;
     DomMaker(){}
     virtual void apply(ASTVisitor& visitor){
         triggers.push_back(new LiveCalculator());

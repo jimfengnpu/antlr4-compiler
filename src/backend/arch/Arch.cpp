@@ -144,10 +144,11 @@ int matchCalInstr(string name, pSysYIR ir){
     return 1;
 }
 
-pBlock RISCV::matchBlockEnd(pBlock block){
+void RISCV::matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks){
     pBlock brTarget = block->nextBranch;
     pBlock nxTarget = block->nextNormal;
     pSysYIR lastIr = block->irTail;
+    vector<pBlock> ret{};
     map<IRType, string> irBrAsm = {
         {IRType::NOT, "beqz"},
         {IRType::EQ, "beq"},
@@ -184,7 +185,10 @@ pBlock RISCV::matchBlockEnd(pBlock block){
         lastIr = ir;
         pSysYIR brValDef = toVal(ir->opt1)->defStruction;
         assert(toVal(ir->opt1)->defStruction == brValDef);
-        string name = irBrAsm[brValDef->type];
+        string name = "";
+        if(brValDef){
+            name = irBrAsm[brValDef->type];
+        }
         mask = 2;
         pIRScalValObj imm=nullptr;
         pIRValObj reg=nullptr;
@@ -211,7 +215,7 @@ pBlock RISCV::matchBlockEnd(pBlock block){
                 oprands.push_back(toVal(brValDef->opt2));
             }
         }
-        for(pBlock b = brTarget; b; b = b->asmNextBlock){
+        for(pBlock b = brTarget; b && (b->asmNextBlock|| b == block); b = b->asmNextBlock){
             cnt += b->asmLen();
         }
         if(cnt > branchBlockASMLimit){
@@ -228,7 +232,12 @@ pBlock RISCV::matchBlockEnd(pBlock block){
     for(auto maskIr=lastIr->prev; maskIr&&((--mask)>0);maskIr=maskIr->prev){
         maskIr->asmRemovedMask = true;
     }
-    return brTarget && (cnt == 0)? brTarget : nxTarget;
+    if(brTarget && cnt == 0){
+        nextBlocks.push_back(brTarget);
+    }
+    if(nxTarget){
+        nextBlocks.push_back(nxTarget);
+    }
 }
 
 void RISCV::defineArchInfo(){
@@ -359,11 +368,13 @@ void RISCV::defineArchInfo(){
         [](pSysYIR ir)->int{
             int paramCnt = 0;
             pSysYIR paramIr = ir->prev;
+            vector<vReg* > paramRegs{};
             while(paramIr && paramIr->type == IRType::PARAM){
                 vReg* paramReg = new vReg();
                 if(paramCnt < 8){
                     paramReg->regType = REG_R;
                     paramReg->regId = a0 + paramCnt;
+                    paramRegs.push_back(paramReg);
                 }else{
                     paramReg->regType = REG_M;
                 }
@@ -381,7 +392,7 @@ void RISCV::defineArchInfo(){
                 paramIr = paramIr->prev;
             }
             pIRFunc func = toFunc(ir->opt1);
-            ir->addASMBack("call", {}, func->entry);
+            ir->addASMBack("call", {paramRegs.begin(), paramRegs.end()}, func->entry);
             if(func->returnType != IR_VOID){
                 auto retVal = new vReg();
                 retVal->regType = REG_R;

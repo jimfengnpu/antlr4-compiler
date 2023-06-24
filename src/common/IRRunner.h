@@ -13,7 +13,7 @@ class IRRunner: public IRProcessor{
 public:
     ostream& fout;
     istream& fin;
-    int returnVal;
+    int returnVal = 0;
     bool needNewLine = false;
     pIRFunc curFunc = nullptr;
     vector<pIRValObj> paramsBuf;

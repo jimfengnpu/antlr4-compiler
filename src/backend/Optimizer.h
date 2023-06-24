@@ -7,8 +7,8 @@ class Optimizer: public IRProcessor{
 public:
     deque<pBlock> workList;
     map<pBlock, bool> visited;
-    bool changed;
-    Optimizer(){}
+    bool changed=false;
+    Optimizer()=default;
     virtual void applyBlock(pBlock block)=0;
     virtual void applyNextBlock(pBlock block){
         if(block->nextNormal && (!visited[block->nextNormal]))
@@ -61,31 +61,31 @@ class BlockPruner: public Optimizer{
 public:
     BlockPruner(){}
     bool checkRemoveEmptyBlock(pBlock block);
-    virtual void applyBlock(pBlock block){}
-    virtual void applyFunc(pIRFunc func);
-    virtual void prepareTriggers();
+    virtual void applyBlock(pBlock block)override{}
+    virtual void applyFunc(pIRFunc func)override;
+    virtual void prepareTriggers()override;
 };
 
 class ConstBroadcast: public Optimizer{
 public:
     ConstBroadcast(){}
     void setConstState(pBlock block, pIRObj obj);
-    virtual void applyBlock(pBlock block);
-    virtual void prepareTriggers();
+    virtual void applyBlock(pBlock block)override;
+    virtual void prepareTriggers()override;
 };
 
 class CommonExp: public Optimizer{
     map<IRType, map<IRObj, map<IRObj, IRValObj> > > ops; 
 public:
     CommonExp(){}
-    virtual void applyBlock(pBlock block);
-    virtual void prepareTriggers();
+    virtual void applyBlock(pBlock block)override;
+    virtual void prepareTriggers()override;
 };
 
 class CodeCleaner: public Optimizer{
 public:
     CodeCleaner(){}
-    virtual void applyBlock(pBlock block);
-    virtual void prepareTriggers();
+    virtual void applyBlock(pBlock block)override;
+    virtual void prepareTriggers()override;
 };
 #endif

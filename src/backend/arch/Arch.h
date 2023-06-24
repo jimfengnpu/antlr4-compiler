@@ -11,12 +11,12 @@ public:
     vector<int> genRegsId;
     set<int> callerSaveRegs;
     set<int> caleeSaveRegs;
-    int stackPointerRegId;
-    int framePointerRegId;
-    int memByteAlign;
-    int frameByteAlign;
-    int branchBlockASMLimit;
-    BaseArch(){}
+    int stackPointerRegId=-1;
+    int framePointerRegId=-1;
+    int memByteAlign=4;
+    int frameByteAlign=16;
+    int branchBlockASMLimit=512;
+    BaseArch()=default;
     virtual void defineArchInfo()=0;
     void addMatchers(IRType type, initializer_list<int (*)(pSysYIR)> newMatchers){
         for(auto matcher: newMatchers){
@@ -29,7 +29,7 @@ public:
         }
     }
     bool matchIR(pSysYIR ir);
-    virtual pBlock matchBlockEnd(pBlock block)=0;
+    virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks)=0;
 };
 
 class RISCV: public BaseArch{
@@ -76,7 +76,7 @@ public:
         regs[pc] = REG_STR(pc);
         defineArchInfo();
     }
-    virtual void defineArchInfo();
-    virtual pBlock matchBlockEnd(pBlock block);
+    virtual void defineArchInfo()override;
+    virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
 };
 #endif

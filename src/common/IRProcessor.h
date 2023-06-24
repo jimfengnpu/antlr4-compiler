@@ -51,11 +51,11 @@ public:
 class LiveCalculator: public IRProcessor{
     bool changed;
 public:
-    LiveCalculator();
+    LiveCalculator()=default;
     void makeLive(pIRFunc& func);
     void mergeSuccLivein(pBlock block, pBlock from);
-    virtual pBlock visit(pBlock block);
-    virtual void apply(ASTVisitor& visitor){
+    virtual pBlock visit(pBlock block)override;
+    virtual void apply(ASTVisitor& visitor)override{
         for(auto& f: visitor.functions){
             if(f->entry){
                 makeLive(f);

@@ -34,7 +34,7 @@ public:
                 //insert phi
                 for(auto b: func->blocks){
                     for(auto& obj: b->defObj){
-                        if(auto scalObj = toScal(obj)){
+                        if(toScal(obj)){
                             phiDef[obj].insert(b);
                         }
                     }

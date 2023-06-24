@@ -82,12 +82,12 @@ public:
      */
     int regType=REG_R;
     int immVal=0;
-    int stackMemOff;
+    int stackMemOff=0;
     int regId=-1;
     shared_ptr<IRValObj> var=nullptr;
     vReg()=default;
     vReg(int type, int immVal): regType(type){
-        immVal = immVal;}
+        this->immVal = immVal;}
 };
 
 
@@ -162,7 +162,7 @@ public:
     vector<vReg*> op;
     pBlock jTarget;
     SysYIR* ir=nullptr;
-    ASMInstr(string name, initializer_list<vReg*> oprands, pBlock jBlock=nullptr): 
+    ASMInstr(string name, vector<vReg*> oprands, pBlock jBlock=nullptr): 
         name(name)
     {
         for(auto opArg: oprands){
@@ -209,7 +209,7 @@ class IRScalValObj : public IRValObj
 public:
     // <lv 4> const folding
     int constState;
-    int value;
+    int value=0;
     IRScalValObj() {}
     IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)), constState(IR_CONST){
     }
@@ -343,14 +343,14 @@ public:
         return instr;
     }
 
-    ASMInstr* addASMBack(string name, initializer_list<vReg*> oprands,
+    ASMInstr* addASMBack(string name, vector<vReg*> oprands,
                     pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
         return addASMBack(instr);
     }
 
-    ASMInstr* addASMFront(string name, initializer_list<vReg*> oprands,
+    ASMInstr* addASMFront(string name, vector<vReg*> oprands,
         pBlock target=nullptr)
     {
         auto instr = new ASMInstr(name, oprands, target);
@@ -431,7 +431,9 @@ public:
         if(nullptr != branch_val){
             branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
             branchIR->prev = irTail;
-            irTail->next = branchIR;
+            if(irTail){
+                irTail->next = branchIR;
+            }
         }
         return true;
     }

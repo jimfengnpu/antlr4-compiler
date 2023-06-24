@@ -9,6 +9,7 @@
 #include "Optimizer.h"
 #include "InstrMatcher.h"
 #include "RegAlloc.h"
+#include "AsmEmit.h"
 #include <iostream>
 #include <fstream>
 
@@ -19,7 +20,7 @@ int main(int argc, char** argv) {
     string src="", out="out.s";
     bool outOption = false;
     for(int i=0; i < argc; i++){
-        if(argv[i] == "-o")outOption=true;
+        if(strcmp(argv[i], "-o") == 0)outOption=true;
         else{
             if(outOption){
                 out = string(argv[i]);
@@ -58,6 +59,7 @@ int main(int argc, char** argv) {
 
     IRProcessors processors(visitor);
     RISCV riscv_arch;
+    DataFrame globalData;
     // model list:
     // DomMaker: generate dom tree in pBlock, triggers: 
     processors.add(new BlockPruner());
@@ -70,7 +72,9 @@ int main(int argc, char** argv) {
     #endif
     processors.add(new InstrMatcher(&riscv_arch));
     // processors.add(new RegAllocator(&riscv_arch));
+    processors.add(new AsmEmitter(out, new IRRunner(cin, cout)));
     processors.apply();
+
     #ifdef VAL_IR
         cout << "IR:";
         cout << *(visitor.globalData.get());

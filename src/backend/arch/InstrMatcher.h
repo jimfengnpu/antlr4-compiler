@@ -3,9 +3,11 @@
 
 #include "IRProcessor.h"
 #include "Arch.h"
+#include <queue>
 
 class InstrMatcher: public IRProcessor{
     BaseArch* archInfo;
+    queue<pBlock> blocks{};
 public:
     InstrMatcher(BaseArch* arch):archInfo(arch){}
     virtual pBlock visit(pBlock block);
@@ -18,12 +20,25 @@ public:
                     visit(block);
                 }
                 pBlock last=nullptr;
-                for(pBlock block=f->entry; block;){
+                map<pBlock, bool> visited{};
+                vector<pBlock> vec{};
+                visited[f->entry] = true;
+                blocks.push(f->entry);
+                while(blocks.size())
+                {
+                    pBlock block = blocks.front();
                     if(last){
                         last->asmNextBlock = block;
                     }
-                    last = block;
-                    block = archInfo->matchBlockEnd(block);
+                    blocks.pop();
+                    vec.clear();
+                    archInfo->matchBlockEnd(block, vec);
+                    for(auto b: vec){
+                        if(!visited[b]){
+                            visited[b] = true;
+                            blocks.push(b);
+                        }
+                    }
                 }
             }
         }

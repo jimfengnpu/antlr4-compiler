@@ -10,8 +10,6 @@ void IRProcessor::addTriggers(){
 }
 
 
-LiveCalculator::LiveCalculator(){}
-
 void checkLiveUse(pIRValObj obj, set<pIRValObj>& def, set<pIRValObj>& use){
     if(!obj)return;
     if(obj->isConstant()&&(!obj->isIdent)){

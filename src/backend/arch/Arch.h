@@ -3,6 +3,11 @@
 #include "SysYIR.h"
 using namespace std;
 
+#if EM_ARCH == EM_RISCV
+#define storeOp "sw"
+#define loadOp  "lw"
+#define loadAddrOp "la"
+#endif
 
 class BaseArch{
 public:

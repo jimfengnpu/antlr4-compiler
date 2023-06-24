@@ -1,10 +1,5 @@
 #include "Arch.h"
 
-#if EM_ARCH == EM_RISCV
-string storeOp = "sw";
-string loadOp = "lw";
-string loadAddrOp = "la";
-#endif
 
 bool BaseArch::matchIR(pSysYIR ir){
     for(auto matcher: matchers[ir->type]){

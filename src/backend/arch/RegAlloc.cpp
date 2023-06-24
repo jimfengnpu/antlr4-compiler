@@ -40,7 +40,7 @@ void RegAllocator::makeGraph(pIRFunc func){
     //assembly add id
     for(pBlock block=func->entry;block;block=block->asmNextBlock){
         for(auto ir=block->irHead;ir;ir=ir->next){
-            for(auto s: ir->asmInstrs){
+            for(auto s=ir->asmHead; s; s=s->next){
                 for(auto v: s->op){
                     if(v->regType==REG_R)
                     vals.insert(v);
@@ -54,7 +54,7 @@ void RegAllocator::makeGraph(pIRFunc func){
         asmVec.clear();
         regLive.clear();
         for(auto ir=block->irHead;ir;ir=ir->next){
-            for(auto s: ir->asmInstrs){
+            for(auto s=ir->asmHead; s; s=s->next){
                 sid++;
                 asmVec.push_back(s);
             }
@@ -70,12 +70,14 @@ void RegAllocator::makeGraph(pIRFunc func){
             auto opDef=*((*s)->op.begin());
             if(vals.find(opDef) != vals.end()){
                 regLive[opDef].flip();
+                valCost[opDef] += blockFreq[block];
             }
             for(auto op=(*s)->op.begin() +1;op!=(*s)->op.end(); op++){
                 if(vals.find(*op) != vals.end()){
                     if(!regLive[*op][i]){
                         regLive[*op].flip(i);
                     }
+                    valCost[*op] += blockFreq[block];
                 }
             }
         }
@@ -96,12 +98,82 @@ void RegAllocator::makeGraph(pIRFunc func){
 
 void RegAllocator::allocReg(pIRFunc func){
     bool conficted;
+    map<vReg*, bool> colored;
+    map<vReg*, bool> removed;
+    map<vReg*, int> regIds;
+    deque<vReg*> regOrder;
+    int k = archInfo->genRegsId.size();
     do{
         while(!checkList.empty()){
             checkList.pop();
         }
+        colored.clear();
+        removed.clear();
+        regIds.clear();
+        regOrder.clear();
         conficted=false;
         makeGraph(func);
-
+        map<vReg* , unordered_set<vReg*> > bkConflict(conflictMap);
+        priority_queue<vReg*, vector<vReg*>, ValConflictComparator> qvals;
+        for(auto v: vals){
+            if(v->regId != -1){
+                colored[v] = true;
+                regIds[v] = v->regId;
+            }
+            qvals.push(v);
+        }
+        while(qvals.size()){
+            auto v=qvals.top();
+            if(conflictMap[v].size() < k){
+                for(auto adj: conflictMap[v]){
+                    conflictMap[adj].erase(v);
+                }
+                conflictMap[v].clear();
+            }
+            qvals.pop();
+            regOrder.push_front(v);
+        }
+        conflictMap = bkConflict;
+        for(auto v: regOrder){
+            if(!colored[v]){
+                set<int> scolor{};
+                for(auto adj: conflictMap[v]){
+                    if(colored[adj]){
+                        scolor.insert(regIds[adj]);
+                    }
+                }
+                for(auto c: archInfo->genRegsId){
+                    if(scolor.find(c) == scolor.end()){
+                        colored[v] = true;
+                        regIds[v] = c;
+                        break;
+                    }
+                }
+            }
+            if(!colored[v]){
+                checkList.push(v);
+            }
+        }
+        if(checkList.size()){
+            auto splited = checkList.top();
+            splited->regType = REG_M;
+            for(auto b: func->blocks){
+                for(auto ir=b->irHead;ir;ir=ir->next){
+                    for(auto s=ir->asmHead; s; s=s->next){
+                        for(int i=0;i<s->op.size();i++){
+                            if(s->op[i] == splited){
+                                vReg* mreg = new vReg();
+                                if(i){
+                                    ir->addASMFront(new ASMInstr(loadOp, {mreg, splited}), s);
+                                }else{
+                                    ir->addASMFront(new ASMInstr(storeOp, {mreg, splited}), s);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            conficted = true;
+        }
     }while(conficted);
 }

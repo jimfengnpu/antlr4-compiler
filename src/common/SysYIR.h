@@ -162,6 +162,8 @@ public:
     vector<vReg*> op;
     pBlock jTarget;
     SysYIR* ir=nullptr;
+    ASMInstr* next=nullptr;
+    ASMInstr* prev=nullptr;
     ASMInstr(string name, vector<vReg*> oprands, pBlock jBlock=nullptr): 
         name(name)
     {
@@ -311,6 +313,7 @@ typedef shared_ptr<IRBlock> pBlock;
 
 class SysYIR: public IRObj
 {
+    deque<ASMInstr*> asmInstrs;
 public:
     bool removedMask=false;
     IRType type;
@@ -320,23 +323,49 @@ public:
     shared_ptr<SysYIR> prev=nullptr;
     shared_ptr<SysYIR> next=nullptr;
     pBlock block=nullptr;
+    ASMInstr* asmHead=nullptr;
+    ASMInstr* asmTail=nullptr;
     // <lv 4> asm && arch
     bool asmRemovedMask=false;
-    deque<ASMInstr*> asmInstrs;
 
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
     virtual void print(ostream& os) const override;
 
-    ASMInstr* addASMBack(ASMInstr* instr){
+    ASMInstr* addASMBack(ASMInstr* instr, ASMInstr* end=nullptr){
+        if(end==nullptr)end = asmTail;
         if(instr != nullptr){
+            if(!asmHead)asmHead = instr;
+            if(end){
+                if(end->next){
+                    end->next->prev = instr;
+                    instr->next = end->next;
+                }
+                end->next = instr;
+            }
+            instr->prev = end;
+            if(end == asmTail){
+                asmTail = instr;
+            }
             asmInstrs.push_back(instr);
             instr->ir = this;
         }
         return instr;
     }
-    ASMInstr* addASMFront(ASMInstr* instr){
+    ASMInstr* addASMFront(ASMInstr* instr, ASMInstr* before=nullptr){
+        if(before == nullptr)before = asmHead;
         if(instr != nullptr){
+            if(!asmTail)asmTail = instr;
+            if(before){
+                if(before->prev){
+                    before->prev->next = instr;
+                    instr->prev = before->prev;
+                }
+                before->prev = instr;
+            }
+            instr->next = before;
+            if(before == asmHead)
+                asmHead = instr;
             asmInstrs.push_front(instr);
             instr->ir = this;
         }
@@ -355,6 +384,9 @@ public:
     {
         auto instr = new ASMInstr(name, oprands, target);
         return addASMFront(instr);
+    }
+    int asmSize(){
+        return asmInstrs.size();
     }
 };
 
@@ -471,7 +503,7 @@ public:
         int cnt = 0;
         for(auto ir=irHead; ir!=nullptr;ir=ir->next){
             if(!ir->asmRemovedMask){
-                cnt += ir->asmInstrs.size();
+                cnt += ir->asmSize();
             }
         }
         return cnt;

@@ -163,7 +163,7 @@ void IRBlock::print(std::ostream& os) const{
             os << " << T";
         }
         if(!ir->asmRemovedMask){
-            for(auto ins:ir->asmInstrs){
+            for(auto ins=ir->asmHead; ins; ins=ins->next){
                 os << "\t" << ins->name;
             }
         }else{

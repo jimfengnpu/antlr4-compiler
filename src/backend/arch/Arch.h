@@ -7,11 +7,11 @@ using namespace std;
  * storeOp use, memObj
  * loadOp def, memObj
  * callOp use... , target
- * others def, use... 
+ * others def, use...
  */
 #if EM_ARCH == EM_RISCV
 #define storeOp "sw"
-#define loadOp  "lw"
+#define loadOp "lw"
 #define loadAddrOp "la"
 #define callOp "call"
 #define SEC_RO ".section .rodata"
@@ -23,45 +23,77 @@ using namespace std;
 #define ASM_DATA_STR ".string"
 #endif
 
-class BaseArch{
-public:
+class BaseArch {
+   public:
     map<int, string> regs;
     map<IRType, vector<int (*)(pSysYIR)> > matchers;
     vector<int> genRegsId;
     set<int> callerSaveRegs;
     set<int> caleeSaveRegs;
-    int stackPointerRegId=-1;
-    int framePointerRegId=-1;
-    int memByteAlign=4;
-    int frameByteAlign=16;
-    int branchBlockASMLimit=512;
+    int stackPointerRegId = -1;
+    int framePointerRegId = -1;
+    int memByteAlign = 4;
+    int frameByteAlign = 16;
+    int branchBlockASMLimit = 512;
     int paramRegCnt;
-    BaseArch()=default;
-    virtual void defineArchInfo()=0;
-    void addMatchers(IRType type, initializer_list<int (*)(pSysYIR)> newMatchers){
-        for(auto matcher: newMatchers){
+    BaseArch() = default;
+    virtual void defineArchInfo() = 0;
+    void addMatchers(IRType type,
+                     initializer_list<int (*)(pSysYIR)> newMatchers) {
+        for (auto matcher : newMatchers) {
             matchers[type].push_back(matcher);
         }
     }
-    void addGenRegs(initializer_list<int> regs){
-        for(int r: regs){
+    void addGenRegs(initializer_list<int> regs) {
+        for (int r : regs) {
             genRegsId.push_back(r);
         }
     }
     bool matchIR(pSysYIR ir);
-    virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks)=0;
-    virtual void prepareFuncParamRegs(pIRFunc func)=0;
+    virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
+    virtual void prepareFuncParamRegs(pIRFunc func) = 0;
 };
 
-class RISCV: public BaseArch{
-    enum REG{
-        zero, ra, sp, gp, tp, t0, t1, t2, s0=8, fp=8, s1,
-        a0, a1, a2, a3, a4, a5, a6, a7, 
-        s2, s3, s4, s5, s6, s7, s8, s9, s10, s11,
-        t3, t4, t5, t6, pc
+class RISCV : public BaseArch {
+    enum REG {
+        zero,
+        ra,
+        sp,
+        gp,
+        tp,
+        t0,
+        t1,
+        t2,
+        s0 = 8,
+        fp = 8,
+        s1,
+        a0,
+        a1,
+        a2,
+        a3,
+        a4,
+        a5,
+        a6,
+        a7,
+        s2,
+        s3,
+        s4,
+        s5,
+        s6,
+        s7,
+        s8,
+        s9,
+        s10,
+        s11,
+        t3,
+        t4,
+        t5,
+        t6,
+        pc
     };
-public:
-    RISCV(){
+
+   public:
+    RISCV() {
         regs[zero] = REG_STR(zero);
         regs[ra] = REG_STR(ra);
         regs[sp] = REG_STR(sp);
@@ -97,7 +129,7 @@ public:
         regs[pc] = REG_STR(pc);
         defineArchInfo();
     }
-    virtual void defineArchInfo()override;
+    virtual void defineArchInfo() override;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
     virtual void prepareFuncParamRegs(pIRFunc func);
 };

@@ -1,18 +1,19 @@
 #ifndef SYSYIR_H
 #define SYSYIR_H
 
-#include <ostream>
-#include <string>
-#include <vector>
+#include <assert.h>
+
+#include <algorithm>
 #include <deque>
-#include <set>
+#include <initializer_list>
+#include <iostream>
 #include <map>
 #include <memory>
+#include <ostream>
+#include <set>
+#include <string>
 #include <utility>
-#include <algorithm>
-#include <iostream>
-#include <initializer_list>
-#include <assert.h>
+#include <vector>
 
 using namespace std;
 
@@ -22,7 +23,7 @@ using namespace std;
 
 // #define VAL_RUN 1
 
-//EM defination refered from `elf.h`
+// EM defination refered from `elf.h`
 #define EM_RISCV 243
 
 #define EM_ARCH EM_RISCV
@@ -37,8 +38,8 @@ using namespace std;
 
 #define IR_UNDEF 0
 #define IR_CONST 1
-#define IR_NAC   2
-#define CONST_OP(x, y) (((x)==1&&(y)==1)?1:2)
+#define IR_NAC 2
+#define CONST_OP(x, y) (((x) == 1 && (y) == 1) ? 1 : 2)
 #define CONST_STATE(x, y) (min(2, (x) + (y)))
 
 #define REG_IMM 0
@@ -47,11 +48,10 @@ using namespace std;
 
 #define REG_STR(x) #x
 
-#define ENUM_STR(x, offset) \
-    #x + (offset)
+#define ENUM_STR(x, offset) #x + (offset)
 
 #define ENUMCASE_TO_STRING(x, offset) \
-    case x:               \
+    case x:                           \
         return ENUM_STR(x, offset);
 
 // class IRObj;
@@ -70,217 +70,216 @@ class SymbolTable;
 typedef shared_ptr<IRFunc> pIRFunc;
 // class BlockContext;
 
-class vReg{
-public:
+class vReg {
+   public:
     /*
      * REG_R: data usually in phy reg
      *     regId: equals enum value of coresponding reg
      * REG_M: data usually in mem (.data or stack)
-     *     var: == nullptr: stack mem, stackMemOff: offset with frame pointer(usually neg)
-     *          else:       var: base var of this mem(global name or arr fa) 
-     *                      stackMemOff: offset with fa      
+     *     var: == nullptr: stack mem, stackMemOff: offset with frame
+     * pointer(usually neg) else:       var: base var of this mem(global name or
+     * arr fa) stackMemOff: offset with fa
      */
-    int regType=REG_R;
-    int immVal=0;
-    int stackMemOff=0;
-    int regId=-1;
-    shared_ptr<IRValObj> var=nullptr;
-    vReg()=default;
-    vReg(int type, int immVal): regType(type){
-        this->immVal = immVal;}
+    int regType = REG_R;
+    int immVal = 0;
+    int stackMemOff = 0;
+    int regId = -1;
+    shared_ptr<IRValObj> var = nullptr;
+    vReg() = default;
+    vReg(int type, int immVal) : regType(type) { this->immVal = immVal; }
 };
 
-
-class IRObj
-{
-public:
-    string name; 
-    SymbolTable* scopeSymbols=nullptr;
+class IRObj {
+   public:
+    string name;
+    SymbolTable *scopeSymbols = nullptr;
     // for val/arr: ident | %t + index in CFG_val
     // for CFG: function name ident
     // for BB: .L + index in CFG_master/branch/loop
-    
+
     bool isIdent;
     IRObj() {}
-    IRObj(bool isIndent, string name): isIdent(isIndent), name(name){
-    }
-    virtual void print(ostream& os) const;
-    friend ostream& operator <<(ostream& os, const IRObj& val){
+    IRObj(bool isIndent, string name) : isIdent(isIndent), name(name) {}
+    virtual void print(ostream &os) const;
+    friend ostream &operator<<(ostream &os, const IRObj &val) {
         val.print(os);
         return os;
     }
-    
 };
 typedef shared_ptr<IRObj> pIRObj;
 
-class IRValObj : public IRObj
-{
+class IRValObj : public IRObj {
     static int tmpValId;
-public:
+
+   public:
     bool isConst;
     bool isTmp;
     int offset;
     shared_ptr<IRScalValObj> offsetObj;
     shared_ptr<IRArrValObj> fa;
     // ssa u-d <lv 3> **add within ssa rename**
-    bool ssaDef=false;
-    pSysYIR defStruction;// for no-ssa val=>nullptr; common=>pIR
-    set<pSysYIR> useStructions; //... common=>pIR; branch=>pBlock.branchIR;
+    bool ssaDef = false;
+    pSysYIR defStruction;        // for no-ssa val=>nullptr; common=>pIR
+    set<pSysYIR> useStructions;  //... common=>pIR; branch=>pBlock.branchIR;
     // machine info <lv 4> **arch associated**
     vReg regInfo;
 
     IRValObj() {}
-    IRValObj(bool isConst, bool isIdent, string name) : IRObj(isIdent, name.empty()? getDefaultName(): name),isTmp(name.empty()),
-    fa(nullptr), isConst(isConst){
-    }
-    IRValObj(const shared_ptr<IRArrValObj>& arrParent, string name): IRObj(true, name.empty()? getDefaultName(): name),isTmp(name.empty()),
-        fa(arrParent),isConst(((IRValObj*)arrParent.get())->isConst){
-    }
-    //note: for const indent return true
-    inline bool isConstant(){
-        return isConst&&(fa==nullptr);
-    }
-    void setImmRegWithVal(int val){
+    IRValObj(bool isConst, bool isIdent, string name)
+        : IRObj(isIdent, name.empty() ? getDefaultName() : name),
+          isTmp(name.empty()),
+          fa(nullptr),
+          isConst(isConst) {}
+    IRValObj(const shared_ptr<IRArrValObj> &arrParent, string name)
+        : IRObj(true, name.empty() ? getDefaultName() : name),
+          isTmp(name.empty()),
+          fa(arrParent),
+          isConst(((IRValObj *)arrParent.get())->isConst) {}
+    // note: for const indent return true
+    inline bool isConstant() { return isConst && (fa == nullptr); }
+    void setImmRegWithVal(int val) {
         regInfo.regType = REG_IMM;
         regInfo.immVal = val;
     }
-    inline vReg* reg(){
-        return &regInfo;
-    }
-    virtual void print(ostream& os) const override;
-    virtual string getDefaultName() {
-        return "%t" + to_string(++tmpValId);
-    }
+    inline vReg *reg() { return &regInfo; }
+    virtual void print(ostream &os) const override;
+    virtual string getDefaultName() { return "%t" + to_string(++tmpValId); }
 };
-inline pIRValObj toVal(pIRObj obj){
+inline pIRValObj toVal(pIRObj obj) {
     return dynamic_pointer_cast<IRValObj>(obj);
 }
 
-class ASMInstr{
-public:
+class ASMInstr {
+   public:
     string name;
-    vector<vReg*> op;
+    vector<vReg *> op;
     pBlock jTarget;
-    SysYIR* ir=nullptr;
-    ASMInstr* next=nullptr;
-    ASMInstr* prev=nullptr;
-    ASMInstr(string name, vector<vReg*> oprands, pBlock jBlock=nullptr): 
-        name(name)
-    {
-        for(auto opArg: oprands){
-            if(opArg){
+    SysYIR *ir = nullptr;
+    ASMInstr *next = nullptr;
+    ASMInstr *prev = nullptr;
+    ASMInstr(string name, vector<vReg *> oprands, pBlock jBlock = nullptr)
+        : name(name) {
+        for (auto opArg : oprands) {
+            if (opArg) {
                 op.push_back(opArg);
             }
         }
-        if(jBlock){
+        if (jBlock) {
             jTarget = jBlock;
         }
     }
-    void addOp(vReg* nOp){
-        if(nOp){
+    void addOp(vReg *nOp) {
+        if (nOp) {
             op.push_back(nOp);
         }
     }
 };
 
-
-class IRArrValObj : public IRValObj
-{
-public:
-    map<int, shared_ptr<IRScalValObj>  >value;
-    vector<int> dims; // int[2][3] => vector(2, 3)
+class IRArrValObj : public IRValObj {
+   public:
+    map<int, shared_ptr<IRScalValObj>> value;
+    vector<int> dims;  // int[2][3] => vector(2, 3)
     int size;
-    IRArrValObj(bool isConst, vector<int> dims, string name) : IRValObj(isConst, true, name), dims(dims)
-    {
+    IRArrValObj(bool isConst, vector<int> dims, string name)
+        : IRValObj(isConst, true, name), dims(dims) {
         size = 1;
-        for (auto d : dims)
-        {
+        for (auto d : dims) {
             size *= d;
         }
-        value = map<int, shared_ptr<IRScalValObj> >();
+        value = map<int, shared_ptr<IRScalValObj>>();
     }
-    IRArrValObj(const shared_ptr<IRArrValObj>& arrParent, vector<int> dims, string name): IRValObj(arrParent, name){
+    IRArrValObj(const shared_ptr<IRArrValObj> &arrParent, vector<int> dims,
+                string name)
+        : IRValObj(arrParent, name) {
         size = 1;
-        for (auto d : dims)
-        {
+        for (auto d : dims) {
             size *= d;
         }
     }
-    virtual void print(ostream& os) const override;
+    virtual void print(ostream &os) const override;
 };
 typedef shared_ptr<IRArrValObj> pIRArrValObj;
 
-class IRScalValObj : public IRValObj
-{
-public:
+class IRScalValObj : public IRValObj {
+   public:
     // <lv 4> const folding
     int constState;
-    int value=0;
+    int value = 0;
     IRScalValObj() {}
-    IRScalValObj(int value): value(value), IRValObj(true, false, to_string(value)), constState(IR_CONST){
-    }
-    IRScalValObj(bool isConst, string name) : value(0), IRValObj(isConst, true, name), constState(IR_NAC){
-    }
-    IRScalValObj(const shared_ptr<IRArrValObj>& arrParent, string name): 
-        IRValObj(arrParent, name), constState(IR_NAC){}
-    virtual void print(ostream& os) const override;
+    IRScalValObj(int value)
+        : value(value),
+          IRValObj(true, false, to_string(value)),
+          constState(IR_CONST) {}
+    IRScalValObj(bool isConst, string name)
+        : value(0), IRValObj(isConst, true, name), constState(IR_NAC) {}
+    IRScalValObj(const shared_ptr<IRArrValObj> &arrParent, string name)
+        : IRValObj(arrParent, name), constState(IR_NAC) {}
+    virtual void print(ostream &os) const override;
 };
 
-inline pIRScalValObj toScal(pIRObj obj){
+inline pIRScalValObj toScal(pIRObj obj) {
     return dynamic_pointer_cast<IRScalValObj>(obj);
 }
 
-class IRStrValObj : public IRValObj
-{
+class IRStrValObj : public IRValObj {
     static int constStrId;
-public:
+
+   public:
     string value;
     IRStrValObj() {}
-    IRStrValObj(string value, string name) : value(value), IRValObj(true, false, name)
-    {}
-    virtual void print(ostream& os) const override;
-    virtual string getDefaultName() {
-        return ".s" + to_string(++constStrId);
-    }
+    IRStrValObj(string value, string name)
+        : value(value), IRValObj(true, false, name) {}
+    virtual void print(ostream &os) const override;
+    virtual string getDefaultName() { return ".s" + to_string(++constStrId); }
 };
 typedef shared_ptr<IRStrValObj> pIRStrValObj;
 
-#define IR_TO_STRING(x) \
-    ENUMCASE_TO_STRING(x, 8)
+#define IR_TO_STRING(x) ENUMCASE_TO_STRING(x, 8)
 
-enum class IRType : int
-{
-    NOP, ASSIGN,
-    ADD, SUB, MUL, DIV, MOD, NEG, AND, OR, SL, SR,
-    NOT, EQ, NEQ, GT, LT, GE, LE,
-    ARR, IDX,
-    CALL, PARAM, RET, BR,
-    DEF, PHI,
+enum class IRType : int {
+    NOP,
+    ASSIGN,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    NEG,
+    AND,
+    OR,
+    SL,
+    SR,
+    NOT,
+    EQ,
+    NEQ,
+    GT,
+    LT,
+    GE,
+    LE,
+    ARR,
+    IDX,
+    CALL,
+    PARAM,
+    RET,
+    BR,
+    DEF,
+    PHI,
 };
-static map<string, IRType> opfinder[2]={
-    {
-        {"+", IRType::ASSIGN},
-        {"-", IRType::NEG},
-        {"!", IRType::NOT}
-    },
-    {
-        {"+", IRType::ADD},
-        {"-", IRType::SUB},
-        {"*", IRType::MUL},
-        {"/", IRType::DIV},
-        {"%", IRType::MOD},
-        {"==", IRType::EQ},
-        {"!=", IRType::NEQ},
-        {"<", IRType::LT},
-        {">", IRType::GT},
-        {"<=", IRType::LE},
-        {">=", IRType::GE}
-    }
-};
-static string IRTypeName(IRType type)
-{
-    switch (type)
-    {
+static map<string, IRType> opfinder[2] = {
+    {{"+", IRType::ASSIGN}, {"-", IRType::NEG}, {"!", IRType::NOT}},
+    {{"+", IRType::ADD},
+     {"-", IRType::SUB},
+     {"*", IRType::MUL},
+     {"/", IRType::DIV},
+     {"%", IRType::MOD},
+     {"==", IRType::EQ},
+     {"!=", IRType::NEQ},
+     {"<", IRType::LT},
+     {">", IRType::GT},
+     {"<=", IRType::LE},
+     {">=", IRType::GE}}};
+static string IRTypeName(IRType type) {
+    switch (type) {
         IR_TO_STRING(IRType::ASSIGN)
         IR_TO_STRING(IRType::ADD)
         IR_TO_STRING(IRType::SUB)
@@ -307,105 +306,64 @@ static string IRTypeName(IRType type)
         IR_TO_STRING(IRType::DEF)
         IR_TO_STRING(IRType::PHI)
         IR_TO_STRING(IRType::BR)
-    default:
-        return "unknown";
+        default:
+            return "unknown";
     }
 }
 class IRBlock;
 typedef shared_ptr<IRBlock> pBlock;
 
+class SysYIR : public IRObj {
+    deque<ASMInstr *> asmInstrs;
 
-class SysYIR: public IRObj
-{
-    deque<ASMInstr*> asmInstrs;
-public:
-    bool removedMask=false;
+   public:
+    bool removedMask = false;
     IRType type;
     pIRValObj target;
     pIRObj opt1;
     pIRObj opt2;
-    shared_ptr<SysYIR> prev=nullptr;
-    shared_ptr<SysYIR> next=nullptr;
-    pBlock block=nullptr;
-    ASMInstr* asmHead=nullptr;
-    ASMInstr* asmTail=nullptr;
+    shared_ptr<SysYIR> prev = nullptr;
+    shared_ptr<SysYIR> next = nullptr;
+    pBlock block = nullptr;
+    ASMInstr *asmHead = nullptr;
+    ASMInstr *asmTail = nullptr;
     // <lv 4> asm && arch
-    bool asmRemovedMask=false;
+    bool asmRemovedMask = false;
 
     SysYIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2)
         : type(type), target(t), opt1(op1), opt2(op2) {}
-    virtual void print(ostream& os) const override;
+    virtual void print(ostream &os) const override;
 
-    ASMInstr* addASMBack(ASMInstr* instr, ASMInstr* end=nullptr){
-        if(end==nullptr)end = asmTail;
-        if(instr != nullptr){
-            if(!asmHead)asmHead = instr;
-            if(end){
-                if(end->next){
-                    end->next->prev = instr;
-                    instr->next = end->next;
-                }
-                end->next = instr;
-            }
-            instr->prev = end;
-            if(end == asmTail){
-                asmTail = instr;
-            }
-            asmInstrs.push_back(instr);
-            instr->ir = this;
-        }
-        return instr;
-    }
-    ASMInstr* addASMFront(ASMInstr* instr, ASMInstr* before=nullptr){
-        if(before == nullptr)before = asmHead;
-        if(instr != nullptr){
-            if(!asmTail)asmTail = instr;
-            if(before){
-                if(before->prev){
-                    before->prev->next = instr;
-                    instr->prev = before->prev;
-                }
-                before->prev = instr;
-            }
-            instr->next = before;
-            if(before == asmHead)
-                asmHead = instr;
-            asmInstrs.push_front(instr);
-            instr->ir = this;
-        }
-        return instr;
-    }
+    ASMInstr *addASMBack(ASMInstr *instr, ASMInstr *end = nullptr);
 
-    ASMInstr* addASMBack(string name, vector<vReg*> oprands,
-                    pBlock target=nullptr)
-    {
+    ASMInstr *addASMFront(ASMInstr *instr, ASMInstr *before = nullptr);
+
+    ASMInstr *addASMBack(string name, vector<vReg *> oprands,
+                         pBlock target = nullptr) {
         auto instr = new ASMInstr(name, oprands, target);
         return addASMBack(instr);
     }
 
-    ASMInstr* addASMFront(string name, vector<vReg*> oprands,
-        pBlock target=nullptr)
-    {
+    ASMInstr *addASMFront(string name, vector<vReg *> oprands,
+                          pBlock target = nullptr) {
         auto instr = new ASMInstr(name, oprands, target);
         return addASMFront(instr);
     }
-    int asmSize(){
-        return asmInstrs.size();
-    }
+    int asmSize() { return asmInstrs.size(); }
 };
 
-int CalConstExp(IRType type, int exp1Val, int exp2Val=0);
+int CalConstExp(IRType type, int exp1Val, int exp2Val = 0);
 
-class IRBlock : public IRObj
-{ //Basic Block
-    
+class IRBlock : public IRObj {  // Basic Block
+
     static int masterId;
     static int loopId;
     static int branchId;
-    vector<shared_ptr<SysYIR> > structions;
-public:
+    vector<shared_ptr<SysYIR>> structions;
+
+   public:
     // basic & CFG <lv 0>
-    int blockType; // 0 normal 1 branch 2 loop
+    int blockType;  // 0 normal 1 branch 2 loop
     shared_ptr<SysYIR> branchIR;
     pIRScalValObj branchVal = nullptr;
     pBlock nextNormal = nullptr;
@@ -419,164 +377,110 @@ public:
     pBlock domFa;
     // live interval <lv 2>
     set<pIRValObj> defObj;  // 当前block内定义的值,包括phi指令定义的
-    set<pIRValObj> useObj;  // 当前block内用到的,但定值点在前面block的值(不含phi指令用到的(因phi的use与前驱相关))
-    set<pIRValObj> liveIn;  // 当前block开头处活跃的值(当前块或后面块用到但是定值点在前面block)不包含phi指令用到的
-    set<pIRValObj> liveOut; // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
+    set<pIRValObj>
+        useObj;  // 当前block内用到的,但定值点在前面block的值(不含phi指令用到的(因phi的use与前驱相关))
+    set<pIRValObj>
+        liveIn;  // 当前block开头处活跃的值(当前块或后面块用到但是定值点在前面block)不包含phi指令用到的
+    set<pIRValObj>
+        liveOut;  // 当前block结尾处活跃的值(对后面有用,包含phi指令用到的)
     // SSA <lv3>
-    map<pIRValObj, map<pBlock, pIRValObj> > phiList; // x(k) => [ fromBlock => x(i)]
+    map<pIRValObj, map<pBlock, pIRValObj>>
+        phiList;  // x(k) => [ fromBlock => x(i)]
     // asm block order <lv 4>
     pBlock asmNextBlock = nullptr;
 
-    IRBlock(int blockType, string name=""):IRObj(IR_VOID, name.empty()? getDefaultName(blockType):name), 
-        blockType(blockType){}
+    IRBlock(int blockType, string name = "")
+        : IRObj(IR_VOID, name.empty() ? getDefaultName(blockType) : name),
+          blockType(blockType) {}
     // insert before %ir%(if %ir% ==nullptr,insert tail, just before branch ir)
-    shared_ptr<SysYIR> insertIR(IRType type, pIRValObj t,
-        pIRObj op1, pIRObj op2, pSysYIR ir=nullptr){
-        auto newIR = make_shared<SysYIR>(type, t, op1, op2);
-        if(ir == nullptr){
-            ir = branchIR;
-        }
-        if(ir != nullptr){
-            newIR->prev = ir->prev;
-            if(ir->prev){
-                ir->prev->next = newIR;
-            }
-            ir->prev = newIR;
-        }else{
-            newIR->prev = irTail;
-            if(irTail){
-                irTail->next = newIR;
-            }
-        }
-        newIR->next = ir;
-        if(ir == branchIR){
-            irTail = newIR;
-        }
-        if(ir == irHead){
-            irHead = newIR;
-        }
-        structions.push_back(newIR);
-        return newIR;
-    }
+    shared_ptr<SysYIR> insertIR(IRType type, pIRValObj t, pIRObj op1,
+                                pIRObj op2, pSysYIR ir = nullptr);
 
-    bool finishBB(pBlock next_normal, pBlock next_branch=nullptr, pIRScalValObj branch_val=nullptr) {
-        if(nextNormal != nullptr)return false;
-        nextNormal = next_normal; 
-        nextBranch = next_branch;
-        branchVal = branch_val;
-        if(nullptr != branch_val){
-            branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
-            branchIR->prev = irTail;
-            if(irTail){
-                irTail->next = branchIR;
-            }
-        }
-        return true;
-    }
+    bool finishBB(pBlock next_normal, pBlock next_branch = nullptr,
+                  pIRScalValObj branch_val = nullptr);
 
-    void remove(pSysYIR ir){
-        if(ir->prev){
+    void remove(pSysYIR ir) {
+        if (ir->prev) {
             ir->prev->next = ir->next;
         }
-        if(ir->next){
+        if (ir->next) {
             ir->next->prev = ir->prev;
         }
-        if(ir == irTail){
+        if (ir == irTail) {
             irTail = irTail->prev;
         }
-        if(ir == irHead){
+        if (ir == irHead) {
             irHead = irHead->next;
         }
-        if(ir == branchIR){
+        if (ir == branchIR) {
             branchIR = nullptr;
         }
         ir->removedMask = true;
     }
 
     // block structions size (jump excluded)
-    int size(){
+    int size() {
         int cnt = 0;
-        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
-            if(ir->type == IRType::BR)break;
+        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+            if (ir->type == IRType::BR) break;
             cnt++;
         }
         return cnt;
     }
 
-    int asmLen(){
+    int asmLen() {
         int cnt = 0;
-        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
-            if(!ir->asmRemovedMask){
+        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+            if (!ir->asmRemovedMask) {
                 cnt += ir->asmSize();
             }
         }
         return cnt;
     }
 
-    bool hasPhi(){
-        for(auto ir=irHead; ir!=nullptr;ir=ir->next){
-            if(ir->type == IRType::PHI){
+    bool hasPhi() {
+        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+            if (ir->type == IRType::PHI) {
                 return true;
-            }else break;
+            } else
+                break;
         }
         return false;
     }
-    // bool dominate(pBlock block, bool strict=true){
-    //     if(block && strict){
-    //         block = block->domFa;
-    //     }
-    //     while(block){
-    //         if(block.get() == this)return true;
-    //         block = block->domFa;
-    //     }
-    //     return false;
-    // }
 
-    virtual void print(ostream& os) const override;
+    virtual void print(ostream &os) const override;
 
     virtual string getDefaultName(int type) {
-        // switch (type)
-        // {
-        // // case IR_LOOP:
-        // //     return "L" + to_string(++loopId);
-        // // case IR_BRANCH:
-        // //     return "B" + to_string(++branchId);
-        // // default:
-        // }
         return ".L" + to_string(++masterId);
     }
 };
 // False, True
 typedef pair<pBlock, pBlock> pCondBlocks;
 
-
-class SymbolTable
-{
-public:
-    bool isGlobal=false;
+class SymbolTable {
+   public:
+    bool isGlobal = false;
     map<string, pIRObj> symbols = {};
     SymbolTable() = default;
-    SymbolTable(const SymbolTable& table): isGlobal(false){
+    SymbolTable(const SymbolTable &table) : isGlobal(false) {
         symbols = table.symbols;
     }
     ~SymbolTable() = default;
-    void registerSymbol(const pIRObj& obj) {
+    void registerSymbol(const pIRObj &obj) {
         symbols.insert({obj.get()->name, obj});
     }
     pIRObj findSymbol(string name) {
-        if(symbols.empty())return nullptr;
-        try{
+        if (symbols.empty()) return nullptr;
+        try {
             return symbols.at(name);
-        }catch(...){
+        } catch (...) {
             return nullptr;
         }
     }
 };
 
-class IRFunc: public IRObj
-{
-    
-public:
+class IRFunc : public IRObj {
+   public:
     vector<pIRValObj> params;
     set<pBlock> blocks;
     pBlock entry;
@@ -588,32 +492,33 @@ public:
     vector<ASMInstr> initInstrs;
     vReg stackSpaceImm;
 
-    SymbolTable* symbolTable;
+    SymbolTable *symbolTable;
     // table == nullptr : lib function
-    IRFunc(int returnType, string name, vector<pIRValObj> params, SymbolTable* table):
-        IRObj(true, name), returnType(returnType), symbolTable(table), params(params) {
-        if(symbolTable != nullptr){
-            for(auto& arg: this->params) {
+    IRFunc(int returnType, string name, vector<pIRValObj> params,
+           SymbolTable *table)
+        : IRObj(true, name),
+          returnType(returnType),
+          symbolTable(table),
+          params(params) {
+        if (symbolTable != nullptr) {
+            for (auto &arg : this->params) {
                 symbolTable->registerSymbol(arg);
                 arg->scopeSymbols = symbolTable;
             }
         }
     }
     ~IRFunc() = default;
-    
-    virtual void print(ostream& os) const override;
+
+    virtual void print(ostream &os) const override;
 };
-inline pIRFunc toFunc(pIRObj obj){
-    return dynamic_pointer_cast<IRFunc>(obj);
-}
+inline pIRFunc toFunc(pIRObj obj) { return dynamic_pointer_cast<IRFunc>(obj); }
 
 class Prog {
-public:
+   public:
     SymbolTable globalSymbolTable;
     std::vector<pIRFunc> functions;
     pIRFunc mainFunc;
     pBlock globalData;
-    Prog()=default;
-
+    Prog() = default;
 };
 #endif

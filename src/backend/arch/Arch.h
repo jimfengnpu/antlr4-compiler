@@ -2,11 +2,25 @@
 #define ARCH_H
 #include "SysYIR.h"
 using namespace std;
-
+/*
+ * rule:
+ * storeOp use, memObj
+ * loadOp def, memObj
+ * callOp use... , target
+ * others def, use... 
+ */
 #if EM_ARCH == EM_RISCV
 #define storeOp "sw"
 #define loadOp  "lw"
 #define loadAddrOp "la"
+#define callOp "call"
+#define SEC_RO ".section .rodata"
+#define SEC_RW ".data"
+#define SEC_RX ".text"
+#define ASM_DECL(s) ".global " + s
+#define ASM_DATA_VAL ".word"
+#define ASM_DATA_ZERO ".zero"
+#define ASM_DATA_STR ".string"
 #endif
 
 class BaseArch{
@@ -21,6 +35,7 @@ public:
     int memByteAlign=4;
     int frameByteAlign=16;
     int branchBlockASMLimit=512;
+    int paramRegCnt;
     BaseArch()=default;
     virtual void defineArchInfo()=0;
     void addMatchers(IRType type, initializer_list<int (*)(pSysYIR)> newMatchers){
@@ -35,6 +50,7 @@ public:
     }
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks)=0;
+    virtual void prepareFuncParamRegs(pIRFunc func)=0;
 };
 
 class RISCV: public BaseArch{
@@ -83,5 +99,6 @@ public:
     }
     virtual void defineArchInfo()override;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
+    virtual void prepareFuncParamRegs(pIRFunc func);
 };
 #endif

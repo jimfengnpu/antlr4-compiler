@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
     processors.add(new IRRunner(cin, cout));
     #endif
     processors.add(new InstrMatcher(&riscv_arch));
-    // processors.add(new RegAllocator(&riscv_arch));
-    processors.add(new AsmEmitter(out, new IRRunner(cin, cout)));
+    processors.add(new RegAllocator(&riscv_arch));
+    processors.add(new AsmEmitter(out, &riscv_arch, new IRRunner(cin, cout)));
     processors.apply();
 
     #ifdef VAL_IR

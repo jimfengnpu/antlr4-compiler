@@ -16,8 +16,8 @@
 
 using namespace std;
 
-#define VAL_IR 1
-#define VAL_LIVE 1
+// #define VAL_IR 1
+// #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
 
 // #define VAL_RUN 1
@@ -168,14 +168,18 @@ public:
         name(name)
     {
         for(auto opArg: oprands){
-            op.push_back(opArg);
+            if(opArg){
+                op.push_back(opArg);
+            }
         }
         if(jBlock){
             jTarget = jBlock;
         }
     }
     void addOp(vReg* nOp){
-        op.push_back(nOp);
+        if(nOp){
+            op.push_back(nOp);
+        }
     }
 };
 

@@ -16,28 +16,29 @@ public:
         addTriggers();
         for(auto& f: visitor.functions){
             if(f->entry){
+                archInfo->prepareFuncParamRegs(f);
                 for(pBlock block: f->blocks){
                     visit(block);
                 }
                 pBlock last=nullptr;
                 map<pBlock, bool> visited{};
                 vector<pBlock> vec{};
-                visited[f->entry] = true;
                 blocks.push(f->entry);
                 while(blocks.size())
                 {
                     pBlock block = blocks.front();
-                    if(last){
-                        last->asmNextBlock = block;
-                    }
                     blocks.pop();
                     vec.clear();
-                    archInfo->matchBlockEnd(block, vec);
-                    for(auto b: vec){
-                        if(!visited[b]){
-                            visited[b] = true;
+                    if(!visited[block]){
+                        visited[block] = true;
+                        if(last){
+                            last->asmNextBlock = block;
+                        }
+                        archInfo->matchBlockEnd(block, vec);
+                        for(auto b: vec){
                             blocks.push(b);
                         }
+                        last = block;
                     }
                 }
             }

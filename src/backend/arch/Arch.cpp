@@ -241,13 +241,17 @@ void RISCV::defineArchInfo(){
     memByteAlign = 4;
     frameByteAlign = 16;
     branchBlockASMLimit = 512;
+    paramRegCnt = 8;
     addGenRegs({
-
+        a0, a1, a2, a3, a4, a5, a6, a7, 
+        s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, 
+        t0, t1, t2, t3, ra
     });
     addMatchers(IRType::ASSIGN,
     {
         [](pSysYIR ir)->int{
             int imm=matchCalImmInstr("li", ir, false, [](pIRScalValObj imm)->bool{
+                imm->setImmRegWithVal(imm->value);
                 return true;
             });
             if(imm)return imm;
@@ -386,8 +390,22 @@ void RISCV::defineArchInfo(){
                 paramIr->addASMBack(asmInstr);
                 paramIr = paramIr->prev;
             }
+            while(paramCnt < 8){
+                vReg* paramReg = new vReg();
+                paramReg->regType = REG_R;
+                paramReg->regId = a0 + paramCnt;
+                paramRegs.push_back(paramReg);
+                paramCnt++;
+            }
+            vector<int> callerTmpRegs{};
+            for(auto r: callerTmpRegs){
+                vReg* paramReg = new vReg();
+                paramReg->regType = REG_R;
+                paramReg->regId = r;
+                paramRegs.push_back(paramReg);
+            }
             pIRFunc func = toFunc(ir->opt1);
-            ir->addASMBack("call", {paramRegs.begin(), paramRegs.end()}, func->entry);
+            ir->addASMBack(callOp, {paramRegs.begin(), paramRegs.end()}, func->entry);
             if(func->returnType != IR_VOID){
                 auto retVal = new vReg();
                 retVal->regType = REG_R;
@@ -397,4 +415,16 @@ void RISCV::defineArchInfo(){
             return paramCnt + 1;
         }
     });
+}
+
+void RISCV::prepareFuncParamRegs(pIRFunc f){
+    for(int i=0; i<f->params.size(); i++){
+        if(i< paramRegCnt){
+            f->params[i]->regInfo.regType = REG_R;
+            f->params[i]->regInfo.regId = a0 + i;
+        }else{
+            f->params[i]->regInfo.regType = REG_M;
+            f->params[i]->regInfo.regId = fp;
+        }
+    }
 }

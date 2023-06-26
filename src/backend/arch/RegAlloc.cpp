@@ -1,6 +1,7 @@
 #include "RegAlloc.h"
 #include <bitset>
 
+static map<vReg*, bitset<maxBlockASMId> > regLive;
 
 void RegAllocator::addLoopWeight(pBlock block){
     do{
@@ -33,7 +34,6 @@ pBlock RegAllocator::visit(pBlock block){
 
 void RegAllocator::makeGraph(pIRFunc func){
     int sid;
-    map<vReg*, bitset<maxBlockASMId> > regLive;
     vector<ASMInstr*> asmVec;
     vals.clear();
     conflictMap.clear();
@@ -66,18 +66,30 @@ void RegAllocator::makeGraph(pIRFunc func){
         }
         int callAsmId = -1;
         int i=0;
-        for(auto s=asmVec.rbegin(); i < sid; i--, s++){
-            auto opDef=*((*s)->op.begin());
-            if(vals.find(opDef) != vals.end()){
-                regLive[opDef].flip();
-                valCost[opDef] += blockFreq[block];
+        for(auto s=asmVec.rbegin(); i < sid; i++, s++){
+            if((*s)->name == callOp){
+                for(auto op: (*s)->op){
+                    regLive[op].set(i);
+                }
+                continue;
             }
-            for(auto op=(*s)->op.begin() +1;op!=(*s)->op.end(); op++){
-                if(vals.find(*op) != vals.end()){
-                    if(!regLive[*op][i]){
-                        regLive[*op].flip(i);
+            if((*s)->op.size() == 0)continue;
+            auto opDef=(*s)->op.begin();
+            if((*s)->name == storeOp){
+                opDef++;
+            }
+            if(vals.find(*opDef) != vals.end()){
+                regLive[*opDef].flip();
+                valCost[*opDef] += blockFreq[block];
+            }
+            for(auto op=(*s)->op.begin();op!=(*s)->op.end(); op++){
+                if(op!=opDef){
+                    if(vals.find(*op) != vals.end()){
+                        if(!regLive[*op].test(i)){
+                            regLive[*op].flip(i);
+                        }
+                        valCost[*op] += blockFreq[block];
                     }
-                    valCost[*op] += blockFreq[block];
                 }
             }
         }
@@ -176,4 +188,7 @@ void RegAllocator::allocReg(pIRFunc func){
             conficted = true;
         }
     }while(conficted);
+    for(auto [r, c]: regIds){
+        r->regId = c;
+    }
 }

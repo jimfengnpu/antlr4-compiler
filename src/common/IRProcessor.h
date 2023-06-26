@@ -10,7 +10,7 @@ public:
     IRProcessors* procs=nullptr;
     deque<IRProcessor*> triggers;
     IRProcessor()=default;
-    virtual void apply(ASTVisitor& visitor)=0;
+    virtual void apply(Prog& prog)=0;
     virtual void addTriggers();
     virtual pBlock visit(pBlock root){
         return nullptr;
@@ -20,8 +20,8 @@ public:
 class IRProcessors{
 public:
     deque<IRProcessor*> processors;
-    ASTVisitor& visitor;
-    IRProcessors(ASTVisitor& visitor): visitor(visitor){}
+    Prog& prog;
+    IRProcessors(Prog& prog): prog(prog){}
     void apply(){
         while(processors.size()){
             // for(auto pr: processors){
@@ -30,7 +30,7 @@ public:
             // cout << endl;
             auto proc = processors.front();
             processors.pop_front();
-            proc->apply(visitor);
+            proc->apply(prog);
             #ifdef VAL_IR
                 cout << "IR:";
                 cout << *(visitor.globalData.get());
@@ -55,8 +55,8 @@ public:
     void makeLive(pIRFunc& func);
     void mergeSuccLivein(pBlock block, pBlock from);
     virtual pBlock visit(pBlock block)override;
-    virtual void apply(ASTVisitor& visitor)override{
-        for(auto& f: visitor.functions){
+    virtual void apply(Prog& prog)override{
+        for(auto& f: prog.functions){
             if(f->entry){
                 makeLive(f);
             }

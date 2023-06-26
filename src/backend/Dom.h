@@ -15,10 +15,10 @@ public:
     vector<pBlock> visitBlocks;
     int visitId=0;
     DomMaker(){}
-    virtual void apply(ASTVisitor& visitor){
+    virtual void apply(Prog& prog){
         triggers.push_back(new LiveCalculator());
         addTriggers();
-        for(auto& func: visitor.functions){
+        for(auto& func: prog.functions){
             if(func->entry)
             makeDom(func);
         }

@@ -8,7 +8,7 @@
 #include "SysYParser.h"
 
 
-#include "SysYIR.h"
+#include "Structure.h"
 
 
 using namespace antlrcpp;

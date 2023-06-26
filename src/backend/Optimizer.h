@@ -18,10 +18,10 @@ public:
     }
     virtual void applyFunc(pIRFunc func){}
     virtual void prepareTriggers(){}
-    virtual void apply(ASTVisitor& visitor){
+    virtual void apply(Prog& prog){
         bool triggerNeeded = false;
-        applyBlock(visitor.globalData);
-        for(auto& func: visitor.functions){
+        applyBlock(prog.globalData);
+        for(auto& func: prog.functions){
             if(func->entry){
                 do{
                     workList.clear();

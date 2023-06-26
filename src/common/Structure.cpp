@@ -1,4 +1,4 @@
-#include "SysYIR.h"
+#include "Structure.h"
 
 int IRValObj::tmpValId = 0;
 int IRBlock::masterId = 0;

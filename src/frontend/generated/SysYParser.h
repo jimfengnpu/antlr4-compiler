@@ -7,7 +7,7 @@
 #include "antlr4-runtime.h"
 
 
-#include "SysYIR.h"
+#include "Structure.h"
 
 
 

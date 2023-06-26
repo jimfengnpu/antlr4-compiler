@@ -1,5 +1,5 @@
 #include "ASTVisitor.h"
-#include "SysYIR.h"
+#include "Structure.h"
 
 std::any ASTVisitor::visitChildren(antlr4::tree::ParseTree *ctx) {
     for(auto child: ctx->children) {
@@ -10,12 +10,11 @@ std::any ASTVisitor::visitChildren(antlr4::tree::ParseTree *ctx) {
 
 std::any ASTVisitor::visitCompUnit(SysYParser::CompUnitContext * ctx) {
     registerLibFunc();
-    globalData = make_shared<IRBlock>(IR_NORMAL, ".global");
-    globalSymbolTable.isGlobal = true;
+    globalSymbolTable->isGlobal = true;
     curBlock = globalData;
     // curFunc->blocks.push_back(curBlock);
     visitChildren(ctx);
-    return nullptr != globalSymbolTable.findSymbol("main");
+    return nullptr != globalSymbolTable->findSymbol("main");
 }
 
 std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {

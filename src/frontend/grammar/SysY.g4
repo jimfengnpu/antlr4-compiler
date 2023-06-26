@@ -3,7 +3,7 @@ options{
     language=Cpp;
 }
 @parser::postinclude{
-#include "SysYIR.h"
+#include "Structure.h"
 }
 compUnit: (decl | funcDef)*;
 

@@ -17,11 +17,11 @@ public:
         return obj->name + "." + to_string(renamedId[obj]++);
     }
     void fillSuccPhi(pBlock block, pBlock from);
-    virtual void apply(ASTVisitor& visitor){
+    virtual void apply(Prog& prog){
         map<pIRValObj, set<pBlock> > phiDef;// define point
         set<pIRValObj> phiUse; // val used between blocks (union of useObj)
         map<pBlock, bool> phiFlag; // if block has phi for certain obj(that in loop)
-        for(auto& func: visitor.functions){
+        for(auto& func: prog.functions){
             if(func->entry){
                 //init
                 renamedObj.clear();
@@ -90,11 +90,11 @@ public:
 class SSAFinalizer: public IRProcessor{
 public:
     SSAFinalizer(){}
-    virtual void apply(ASTVisitor& visitor){
+    virtual void apply(Prog& prog){
         // possibly add new block in the iteration, 
         // use another container here to avoid change during loop
         set<pBlock> newBlocks;
-        for(auto& func: visitor.functions){
+        for(auto& func: prog.functions){
             newBlocks.clear();
             for(auto block: func->blocks){
                 for(auto ir=block->irHead; ir!=nullptr;ir=ir->next){

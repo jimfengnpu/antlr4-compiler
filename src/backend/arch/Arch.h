@@ -1,6 +1,6 @@
 #ifndef ARCH_H
 #define ARCH_H
-#include "SysYIR.h"
+#include "Structure.h"
 using namespace std;
 /*
  * rule:

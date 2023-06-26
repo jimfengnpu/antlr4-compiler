@@ -2,14 +2,14 @@
 #define ASTVISITOR_H
 #include "antlr4-runtime.h"
 #include "SysYBaseVisitor.h"
-#include "SysYIR.h"
+#include "Structure.h"
 
 
 class ASTVisitor: public SysYBaseVisitor{
     SysYParser::BlockContext* curScopeBlock = nullptr;
 public:
-    SymbolTable globalSymbolTable;
-    std::vector<pIRFunc> functions;
+    SymbolTable* globalSymbolTable;
+    std::vector<pIRFunc> * functions;
     pIRFunc curFunc = nullptr;
     pBlock curBlock = nullptr;
     pBlock globalData = nullptr;
@@ -20,8 +20,8 @@ public:
         int returnType, vector<pIRValObj> args) {
         auto func = make_shared<IRFunc>(returnType, name, args, 
             blockContext==nullptr? nullptr : &(blockContext->symbolTable));
-        functions.push_back(func);
-        globalSymbolTable.registerSymbol(func);
+        functions->push_back(func);
+        globalSymbolTable->registerSymbol(func);
         curFunc = func;
         if(blockContext != nullptr){
             func->entry = newFuncBlock(IR_NORMAL);
@@ -66,7 +66,7 @@ public:
         // if(nullptr != curFunc && (string(name).empty())){
         //     obj.get()->name = obj->getDefaultName();
         // }
-        obj->scopeSymbols = (curScopeBlock == nullptr)? &globalSymbolTable
+        obj->scopeSymbols = (curScopeBlock == nullptr)? globalSymbolTable
                         :&(curScopeBlock->symbolTable);
         return obj;
     }
@@ -82,14 +82,14 @@ public:
             scope = scope->upperBlock;
         }
         // cout << "find "<< name << " in " << scope <<endl;
-        return globalSymbolTable.findSymbol(name);
+        return globalSymbolTable->findSymbol(name);
     }
 
     pIRObj registerIndent(pIRObj obj){
         if(curScopeBlock != nullptr){
             curScopeBlock->symbolTable.registerSymbol(obj);
         }else
-            globalSymbolTable.registerSymbol(obj);
+            globalSymbolTable->registerSymbol(obj);
         // cout << "add "<< obj->name << " in " << curScopeBlock << endl;
         return obj;
     }

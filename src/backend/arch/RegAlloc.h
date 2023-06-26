@@ -38,8 +38,8 @@ public:
     virtual pBlock visit(pBlock);
     void addLoopWeight(pBlock block);
     void makeGraph(pIRFunc func);
-    virtual void apply(ASTVisitor& visitor){
-        for(auto func: visitor.functions){
+    virtual void apply(Prog& prog){
+        for(auto func: prog.functions){
             if(func->entry != nullptr){
                 allocReg(func);
             }

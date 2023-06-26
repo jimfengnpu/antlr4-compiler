@@ -17,6 +17,7 @@ using namespace antlr4;
 using namespace std;
 
 int main(int argc, char** argv) {
+    // load args
     string src="", out="out.s";
     bool outOption = false;
     for(int i=0; i < argc; i++){
@@ -30,6 +31,7 @@ int main(int argc, char** argv) {
             }
         }
     }
+    // open src input file
     string input_file;
     if(!src.empty()){
         try{
@@ -38,28 +40,36 @@ int main(int argc, char** argv) {
             input_file = string((istreambuf_iterator<char>(fin)),istreambuf_iterator<char>());
             fin.close();
         }catch(...){
-            cout << "open file failed" << endl;
-            return -1;
+            throw RuntimeException("open file failed");
         }
     }else {
-        cout << "no input file"<< endl;
-        return -1;
+        throw RuntimeException("fatal: no input file");
     }
-    // cout << "input:" << endl << input_file << endl;
+    // antlr4 lexer and parser
     ANTLRInputStream input(input_file);
     SysYLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
-    
     SysYParser parser(&tokens);
     auto tree = parser.compUnit();
-    auto s = tree->toStringTree(&parser, true);
-    // std::cout << "Parse Tree: " << endl << s << std::endl;
-    ASTVisitor visitor;
-    bool exist_main =  any_cast<bool>(visitor.visit(tree));
+    // CST finished
 
-    IRProcessors processors(visitor);
+    Prog prog; // main program content
+    ASTVisitor visitor;
+    prog.globalData = make_shared<IRBlock>(IR_NORMAL, ".global");
+    visitor.globalData = prog.globalData;
+    visitor.functions = &prog.functions;
+    visitor.globalSymbolTable = &prog.globalSymbolTable;
+    bool exist_main =  any_cast<bool>(visitor.visit(tree));
+    if(!exist_main){
+        throw RuntimeException("no main function found!");
+    }
+    prog.mainFunc = toFunc(visitor.findSymbol("main"));
+    
+    // process models ,`apply` will execute all the processors added in the queue
+    // including triggers during execution
+    IRProcessors processors(prog);
     RISCV riscv_arch;
-    DataFrame globalData;
+
     // model list:
     // DomMaker: generate dom tree in pBlock, triggers: 
     processors.add(new BlockPruner());
@@ -67,7 +77,7 @@ int main(int argc, char** argv) {
     processors.add(new SSAMaker());
     processors.add(new ConstBroadcast());// auto clean
     processors.add(new SSAFinalizer());
-    #ifdef VAL_RUN
+    #ifdef VAL_RUN // for emulate
     processors.add(new IRRunner(cin, cout));
     #endif
     processors.add(new InstrMatcher(&riscv_arch));
@@ -75,23 +85,7 @@ int main(int argc, char** argv) {
     processors.add(new AsmEmitter(out, &riscv_arch, new IRRunner(cin, cout)));
     processors.apply();
 
-    #ifdef VAL_IR
-        cout << "IR:";
-        cout << *(visitor.globalData.get());
-        for(auto &f : visitor.functions){
-            if(f->entry != nullptr){
-                cout << endl << f->name << ":";
-                for(auto block=f->entry; block; block=block->asmNextBlock){
-                    cout << *block.get();
-                }
-            }
-        }
-        cout << endl;
-    #endif
-    // }catch(...){
-    //     cout << "open file failed" << endl;
-    //     return -1;
-    // }
-    // return runner.returnVal;
+    
+    
     return 0;
 }

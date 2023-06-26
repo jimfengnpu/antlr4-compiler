@@ -11,10 +11,10 @@ class InstrMatcher: public IRProcessor{
 public:
     InstrMatcher(BaseArch* arch):archInfo(arch){}
     virtual pBlock visit(pBlock block);
-    virtual void apply(ASTVisitor& visitor){
+    virtual void apply(Prog& prog){
         triggers.push_back(new LiveCalculator());
         addTriggers();
-        for(auto& f: visitor.functions){
+        for(auto& f: prog.functions){
             if(f->entry){
                 archInfo->prepareFuncParamRegs(f);
                 for(pBlock block: f->blocks){

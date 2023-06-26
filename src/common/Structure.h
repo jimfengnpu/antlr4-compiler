@@ -606,4 +606,14 @@ public:
 inline pIRFunc toFunc(pIRObj obj){
     return dynamic_pointer_cast<IRFunc>(obj);
 }
+
+class Prog {
+public:
+    SymbolTable globalSymbolTable;
+    std::vector<pIRFunc> functions;
+    pIRFunc mainFunc;
+    pBlock globalData;
+    Prog()=default;
+
+};
 #endif

@@ -13,10 +13,10 @@ class AsmEmitter: public IRProcessor{
 public:
     AsmEmitter(string fileName, BaseArch* arch, IRRunner* runner): 
         fout(fileName, ios::out), runner(runner), archInfo(arch){}
-    virtual void apply(ASTVisitor& visitor){
-        runner->visit(visitor.globalData);
-        emitData(&visitor.globalSymbolTable);
-        for(auto f: visitor.functions){
+    virtual void apply(Prog& prog){
+        runner->visit(prog.globalData);
+        emitData(&prog.globalSymbolTable);
+        for(auto f: prog.functions){
             if(f->entry){
                 emitFunc(f);
             }

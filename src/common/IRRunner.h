@@ -24,11 +24,11 @@ public:
     int addrTop = 0;
     IRRunner()=default;
     IRRunner(istream& fin, ostream& fout): fin(fin), fout(fout){}
-    virtual void apply(ASTVisitor& visitor){
-        visit(visitor.globalData);
+    virtual void apply(Prog& prog){
+        visit(prog.globalData);
         auto frame = new DataFrame();
         frameStack.push_back(frame);
-        auto mainEntry = std::dynamic_pointer_cast<IRFunc>(visitor.findSymbol("@main"));
+        auto mainEntry = prog.mainFunc;
         if(nullptr == mainEntry)throw runtime_error("no main func");
         returnVal = runFunc(mainEntry);
         frameStack.pop_back();

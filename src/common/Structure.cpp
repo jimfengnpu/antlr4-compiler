@@ -284,6 +284,55 @@ bool IRBlock::finishBB(pBlock next_normal, pBlock next_branch,
     return true;
 }
 
+void IRBlock::remove(pSysYIR ir) {
+    if (ir->prev) {
+        ir->prev->next = ir->next;
+    }
+    if (ir->next) {
+        ir->next->prev = ir->prev;
+    }
+    if (ir == irTail) {
+        irTail = irTail->prev;
+    }
+    if (ir == irHead) {
+        irHead = irHead->next;
+    }
+    if (ir == branchIR) {
+        branchIR = nullptr;
+    }
+    ir->removedMask = true;
+}
+
+// block structions size (jump excluded)
+int IRBlock::size() {
+    int cnt = 0;
+    for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+        if (ir->type == IRType::BR) break;
+        cnt++;
+    }
+    return cnt;
+}
+
+int IRBlock::asmLen() {
+    int cnt = 0;
+    for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+        if (!ir->asmRemovedMask) {
+            cnt += ir->asmSize();
+        }
+    }
+    return cnt;
+}
+
+bool IRBlock::hasPhi() {
+    for (auto ir = irHead; ir != nullptr; ir = ir->next) {
+        if (ir->type == IRType::PHI) {
+            return true;
+        } else
+            break;
+    }
+    return false;
+}
+
 void IRFunc::print(std::ostream &os) const {
 #ifdef VAL_CFGDOM
     os << "#";

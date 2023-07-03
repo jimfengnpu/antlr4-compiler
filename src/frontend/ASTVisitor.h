@@ -14,7 +14,6 @@ class ASTVisitor : public SysYBaseVisitor {
     pBlock curBlock = nullptr;
     pBlock globalData = nullptr;
 
-    // ASTVisitor() = default;
     pBlock creatFunction(string name, SysYParser::BlockContext* blockContext,
                          int returnType, vector<pIRValObj> args) {
         auto func = make_shared<IRFunc>(
@@ -62,11 +61,6 @@ class ASTVisitor : public SysYBaseVisitor {
     template <typename _Tp, typename... _Args>
     inline shared_ptr<_Tp> newObj(_Args&&... __args) {
         auto obj = make_shared<_Tp>(std::forward<_Args>(__args)...);
-        // auto name = std::get<sizeof...(__args)
-        // -1>(std::forward_as_tuple(__args...)); cout << curFunc << " " << name
-        // << endl; if(nullptr != curFunc && (string(name).empty())){
-        //     obj.get()->name = obj->getDefaultName();
-        // }
         obj->scopeSymbols = (curScopeBlock == nullptr)
                                 ? globalSymbolTable
                                 : &(curScopeBlock->symbolTable);
@@ -78,12 +72,10 @@ class ASTVisitor : public SysYBaseVisitor {
         while (nullptr != scope) {
             pIRObj obj = scope->symbolTable.findSymbol(name);
             if (obj) {
-                // cout << "find "<< name << " in " << scope <<endl;
                 return obj;
             }
             scope = scope->upperBlock;
         }
-        // cout << "find "<< name << " in " << scope <<endl;
         return globalSymbolTable->findSymbol(name);
     }
 
@@ -92,7 +84,6 @@ class ASTVisitor : public SysYBaseVisitor {
             curScopeBlock->symbolTable.registerSymbol(obj);
         } else
             globalSymbolTable->registerSymbol(obj);
-        // cout << "add "<< obj->name << " in " << curScopeBlock << endl;
         return obj;
     }
 
@@ -105,8 +96,6 @@ class ASTVisitor : public SysYBaseVisitor {
 
     bool finishBB(pBlock next_normal, pBlock next_branch = nullptr,
                   pIRScalValObj branch_val = nullptr) {
-        // cout << curBlock->name << " s:"<< curBlock->structions.size() <<
-        // next_normal->name << endl;
         if (curBlock &&
             curBlock->finishBB(next_normal, next_branch, branch_val)) {
             if (next_normal) next_normal->from.insert(curBlock);

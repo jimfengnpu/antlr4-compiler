@@ -10,17 +10,23 @@ using namespace std;
  * others def, use...
  */
 #if EM_ARCH == EM_RISCV
+
 #define storeOp "sw"
 #define loadOp "lw"
 #define loadAddrOp "la"
+#define loadImmOp "li"
+#define assignOp "mv"
 #define callOp "call"
+
 #define SEC_RO ".section .rodata"
 #define SEC_RW ".data"
 #define SEC_RX ".text"
+
 #define ASM_DECL(s) ".global " + s
 #define ASM_DATA_VAL ".word"
 #define ASM_DATA_ZERO ".zero"
 #define ASM_DATA_STR ".string"
+
 #endif
 
 class BaseArch {
@@ -52,6 +58,7 @@ class BaseArch {
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncParamRegs(pIRFunc func) = 0;
+    virtual void prepareFuncInitExitAsm(pIRFunc func) = 0;
 };
 
 class RISCV : public BaseArch {
@@ -132,5 +139,6 @@ class RISCV : public BaseArch {
     virtual void defineArchInfo() override;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
     virtual void prepareFuncParamRegs(pIRFunc func);
+    virtual void prepareFuncInitExitAsm(pIRFunc func);
 };
 #endif

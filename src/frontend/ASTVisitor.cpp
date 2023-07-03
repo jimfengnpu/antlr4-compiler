@@ -13,7 +13,6 @@ std::any ASTVisitor::visitCompUnit(SysYParser::CompUnitContext* ctx) {
     registerLibFunc();
     globalSymbolTable->isGlobal = true;
     curBlock = globalData;
-    // curFunc->blocks.push_back(curBlock);
     visitChildren(ctx);
     return nullptr != globalSymbolTable->findSymbol("main");
 }
@@ -30,7 +29,6 @@ std::any ASTVisitor::visitFuncDef(SysYParser::FuncDefContext* ctx) {
     pBlock funcBlock =
         creatFunction(identity, ctx->block(), ctx->returnType, params);
     curBlock = funcBlock;
-    // curFunc->blocks.push_back(curBlock);
     visit(blockCtx);
     if (curFunc->exit == nullptr) {
         curFunc->exit = curBlock;
@@ -86,7 +84,6 @@ std::any ASTVisitor::visitBType(SysYParser::BTypeContext* ctx) {
 
 void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj,
                             int size, int level, int start) {
-    // cout<<"arrInit "<<size<<" "<<start<<endl;
     int s = start;
     int childSize = size / (obj.get()->dims[level]);
     for (auto initVal : ctx->initVal()) {
@@ -110,7 +107,6 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj,
 
 std::any ASTVisitor::visitInitVal(SysYParser::InitValContext* ctx,
                                   pIRValObj obj) {
-    // cout<< "enter initVal"<<endl;
     if (auto valObj = toScal(obj)) {
         pIRScalValObj expVal =
             toScal(any_cast<pIRValObj>(visitExp(ctx->exp())));
@@ -123,12 +119,10 @@ std::any ASTVisitor::visitInitVal(SysYParser::InitValContext* ctx,
         initArrVal(ctx, arrObj, arrObj.get()->size, 0, 0);
         return nullptr;
     }
-    // cout<< "end initVal"<<endl;
     return nullptr;
 }
 
 std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
-    // cout << "enter def"<<endl;
     std::string identity = ctx->Ident()->getText();
     SysYParser::DeclContext* declCtx = (SysYParser::DeclContext*)ctx->parent;
     auto arrVec = ctx->arrAccess();
@@ -153,7 +147,6 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
         visitInitVal(ctx->initVal(), ctx->obj);
     }
     registerIndent(ctx->obj);
-    // cout<< "exit def" <<endl;
     return nullptr;
 }
 
@@ -172,7 +165,6 @@ pIRScalValObj ASTVisitor::calcExp(IRType type, pIRScalValObj exp1,
 }
 
 std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
-    // cout << "enter exp"<<endl;
     if (auto v = ctx->IntConstant()) {
         int base = 10;
         int start = 0;
@@ -207,7 +199,6 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
         if (ctx->op != nullptr) {
             string op = ctx->op->getText();
             int op_idx = ctx->exp().size() - 1;
-            // cout << "exp "<< num_op <<endl;
             IRType type = opfinder[op_idx][op];
             pIRScalValObj exp1 = toScal(ctx->exp(0)->obj);
             pIRScalValObj exp2 = nullptr;
@@ -229,7 +220,6 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
             ctx->obj = ctx->exp(0)->obj;
         }
     }
-    // cout << "exit exp"<<endl;
     return ctx->obj;
 }
 

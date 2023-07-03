@@ -73,8 +73,33 @@ int main(int argc, char** argv) {
     IRProcessors processors(prog);
     RISCV riscv_arch;
 
-    // model list:
-    // DomMaker: generate dom tree in pBlock, triggers:
+    /**
+     * Processor List:
+     * $processorName [$defineFile]: $description,
+     *      trig<$Condition or True>: trigger processors;...
+     *
+     * DomMaker [Dom]: generate dom tree in pBlock,
+     *      trig: LiveCalculator;
+     * BlockPruner [Optimizer]: remove dead & empty block,
+     *      trig<change>: ConstBroadcast;CodeCleaner;DomMaker;
+     * ConstBroadcast [Optimizer]: const spread,
+     *      trig<change>: CodeCleaner;
+     * CodeCleaner [Optimizer]: del unused code & branch,
+     *      trig<change>: BlockPruner;
+     * SSAMaker [SSA]: transform SSA IR,
+     *      trig: LiveCalculator;
+     * SSAFinalizer [SSA]: remove phi ir
+     *      trig: ---
+     * IRRunner [IRRunner]: emulate ir execution
+     *      trig: ---
+     * InstrMatcher [InstrMatcher]: generate asm op
+     *      trig: ---
+     * RegAllocator [RegAllocator]: alloc reg
+     *      trig: ---
+     * AsmEmitter [AsmEmit]: process .data and print asm
+     *      trig: ---
+     */
+
     processors.add(new BlockPruner());
     processors.add(new DomMaker());
     processors.add(new SSAMaker());
@@ -85,6 +110,8 @@ int main(int argc, char** argv) {
 #endif
     processors.add(new InstrMatcher(&riscv_arch));
     processors.add(new RegAllocator(&riscv_arch));
+
+    // output asm, runner for process .data section
     processors.add(new AsmEmitter(out, &riscv_arch, new IRRunner(cin, cout)));
     processors.apply();
 

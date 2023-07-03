@@ -1,11 +1,10 @@
-#ifndef SYSYIR_H
-#define SYSYIR_H
+#ifndef STRUCTURE_H
+#define STRUCTURE_H
 
 #include <assert.h>
 
 #include <algorithm>
 #include <deque>
-#include <initializer_list>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -77,7 +76,8 @@ class vReg {
      *     regId: equals enum value of coresponding reg
      * REG_M: data usually in mem (.data or stack)
      *     var: == nullptr: stack mem, stackMemOff: offset with frame
-     * pointer(usually neg) else:       var: base var of this mem(global name or
+     * pointer(usually neg)
+     *     else:       var: base var of this mem(global name or
      * arr fa) stackMemOff: offset with fa
      */
     int regType = REG_R;
@@ -154,6 +154,7 @@ class ASMInstr {
     string name;
     vector<vReg *> op;
     pBlock jTarget;
+    pIRFunc callFunc;
     SysYIR *ir = nullptr;
     ASMInstr *next = nullptr;
     ASMInstr *prev = nullptr;
@@ -186,6 +187,7 @@ class IRArrValObj : public IRValObj {
         for (auto d : dims) {
             size *= d;
         }
+        regInfo.regType = REG_M;
         value = map<int, shared_ptr<IRScalValObj>>();
     }
     IRArrValObj(const shared_ptr<IRArrValObj> &arrParent, vector<int> dims,
@@ -195,6 +197,7 @@ class IRArrValObj : public IRValObj {
         for (auto d : dims) {
             size *= d;
         }
+        regInfo.regType = REG_M;
     }
     virtual void print(ostream &os) const override;
 };
@@ -399,54 +402,11 @@ class IRBlock : public IRObj {  // Basic Block
     bool finishBB(pBlock next_normal, pBlock next_branch = nullptr,
                   pIRScalValObj branch_val = nullptr);
 
-    void remove(pSysYIR ir) {
-        if (ir->prev) {
-            ir->prev->next = ir->next;
-        }
-        if (ir->next) {
-            ir->next->prev = ir->prev;
-        }
-        if (ir == irTail) {
-            irTail = irTail->prev;
-        }
-        if (ir == irHead) {
-            irHead = irHead->next;
-        }
-        if (ir == branchIR) {
-            branchIR = nullptr;
-        }
-        ir->removedMask = true;
-    }
+    void remove(pSysYIR ir);
 
-    // block structions size (jump excluded)
-    int size() {
-        int cnt = 0;
-        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
-            if (ir->type == IRType::BR) break;
-            cnt++;
-        }
-        return cnt;
-    }
-
-    int asmLen() {
-        int cnt = 0;
-        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
-            if (!ir->asmRemovedMask) {
-                cnt += ir->asmSize();
-            }
-        }
-        return cnt;
-    }
-
-    bool hasPhi() {
-        for (auto ir = irHead; ir != nullptr; ir = ir->next) {
-            if (ir->type == IRType::PHI) {
-                return true;
-            } else
-                break;
-        }
-        return false;
-    }
+    int size();    // block structions size (jump excluded)
+    int asmLen();  // block asm length
+    bool hasPhi();
 
     virtual void print(ostream &os) const override;
 

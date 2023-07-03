@@ -17,8 +17,13 @@ void AsmEmitter::emitData(SymbolTable* table) {
                 int size = arr->size;
                 int zeroSize = 0;
                 int addr = runner->globalData.frameData[arr];
-                for (int i = 0; i < size; i++) {
-                    int value = runner->addr2val[addr + i];
+                int i = addr;
+                for (auto itr = runner->addr2val.lower_bound(addr);
+                     itr != runner->addr2val.end() && itr->first - addr < size;
+                     itr++) {
+                    zeroSize += itr->first - i;
+                    i = itr->first + 1;
+                    int value = itr->second;
                     if (value) {
                         if (zeroSize) {
                             fout << "\t" << ASM_DATA_ZERO << " "
@@ -32,6 +37,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
                         zeroSize++;
                     }
                 }
+                zeroSize += addr + size - i;
                 if (zeroSize) {
                     fout << "\t" << ASM_DATA_ZERO << " "
                          << to_string(archInfo->memByteAlign * zeroSize)
@@ -42,9 +48,6 @@ void AsmEmitter::emitData(SymbolTable* table) {
     }
 }
 string AsmEmitter::printAsmOp(vReg* reg) {
-    if (reg->regType == REG_R) {
-        return archInfo->regs[reg->regId];
-    }
     if (reg->regType == REG_IMM) {
         return to_string(reg->immVal);
     }
@@ -53,16 +56,26 @@ string AsmEmitter::printAsmOp(vReg* reg) {
         reg->var->scopeSymbols->isGlobal) {
         return reg->var->name;
     }
-    return to_string(off) + "(" + archInfo->regs[archInfo->stackPointerRegId] +
-           ")";
+    return archInfo->regs[reg->regType == REG_R ? reg->regId
+                                                : archInfo->stackPointerRegId];
 }
 
 void AsmEmitter::printAsm(ASMInstr* instr) {
     fout << "\t" << instr->name;
     bool start = false;
+    if (instr->name == callOp) {
+        fout << "\t" << instr->callFunc->name << endl;
+        return;
+    }
     if (instr->op.size()) {
         for (vReg* op : instr->op) {
-            fout << (start ? ", " : "\t") << printAsmOp(op);
+            fout << (start ? ", " : "\t");
+            if (start && (instr->name == loadOp || instr->name == storeOp)) {
+                fout << to_string(op->stackMemOff) << "(" << printAsmOp(op)
+                     << ")";
+            } else {
+                fout << printAsmOp(op);
+            }
             start = true;
         }
     }

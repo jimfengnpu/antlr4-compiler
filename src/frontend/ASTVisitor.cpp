@@ -139,9 +139,6 @@ std::any ASTVisitor::visitDef(SysYParser::DefContext* ctx) {
         }
         ctx->obj = newObj<IRArrValObj>(declCtx->isConst, dims, identity);
     }
-    if (curScopeBlock == nullptr || (!arrVec.empty())) {
-        ctx->obj->regInfo.regType = REG_M;
-    }
     insertIR(IRType::DEF, ctx->obj, nullptr, nullptr);
     if (ctx->initVal()) {
         visitInitVal(ctx->initVal(), ctx->obj);

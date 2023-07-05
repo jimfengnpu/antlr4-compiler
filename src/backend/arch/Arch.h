@@ -18,6 +18,9 @@ using namespace std;
 #define assignOp "mv"
 #define callOp "call"
 
+#define memByteAlign 4
+#define paramRegCnt 8
+
 #define SEC_RO ".section .rodata"
 #define SEC_RW ".data"
 #define SEC_RX ".text"
@@ -38,10 +41,8 @@ class BaseArch {
     set<int> caleeSaveRegs;
     int stackPointerRegId = -1;
     int framePointerRegId = -1;
-    int memByteAlign = 4;
     int frameByteAlign = 16;
     int branchBlockASMLimit = 512;
-    int paramRegCnt;
     BaseArch() = default;
     virtual void defineArchInfo() = 0;
     void addMatchers(IRType type,
@@ -50,14 +51,14 @@ class BaseArch {
             matchers[type].push_back(matcher);
         }
     }
-    void addGenRegs(initializer_list<int> regs) {
+    static void addRegs(vector<int>& regsVec, vector<int> regs) {
         for (int r : regs) {
-            genRegsId.push_back(r);
+            regsVec.push_back(r);
         }
     }
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
-    virtual void prepareFuncParamRegs(pIRFunc func) = 0;
+    virtual void prepareFuncPreRegs(pIRFunc func) = 0;
     virtual void prepareFuncInitExitAsm(pIRFunc func) = 0;
 };
 
@@ -138,7 +139,7 @@ class RISCV : public BaseArch {
     }
     virtual void defineArchInfo() override;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
-    virtual void prepareFuncParamRegs(pIRFunc func);
+    virtual void prepareFuncPreRegs(pIRFunc func);
     virtual void prepareFuncInitExitAsm(pIRFunc func);
 };
 #endif

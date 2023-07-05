@@ -69,27 +69,46 @@ class SymbolTable;
 typedef shared_ptr<IRFunc> pIRFunc;
 // class BlockContext;
 
-class vReg {
+class Printable {
+   public:
+    virtual void print(ostream &os) const {};
+    friend ostream &operator<<(ostream &os, const Printable &val) {
+        val.print(os);
+        return os;
+    }
+    friend ostream &operator<<(ostream &os, const Printable *val) {
+        val->print(os);
+        return os;
+    }
+};
+
+class vReg : public Printable {
    public:
     /*
      * REG_R: data usually in phy reg
      *     regId: equals enum value of coresponding reg
+     *     isRef:
      * REG_M: data usually in mem (.data or stack)
      *     var: == nullptr: stack mem, stackMemOff: offset with frame
      * pointer(usually neg)
      *     else:       var: base var of this mem(global name or
-     * arr fa) stackMemOff: offset with fa
+     * arr fa) stackMemOff: offset with var
      */
     int regType = REG_R;
     int immVal = 0;
     int stackMemOff = 0;
     int regId = -1;
+    vReg *ref = nullptr;
+    int size = 0;
     shared_ptr<IRValObj> var = nullptr;
     vReg() = default;
-    vReg(int type, int immVal) : regType(type) { this->immVal = immVal; }
+    vReg(vReg *ref) : ref(ref) {}
+    vReg(int immVal) : regType(REG_IMM) { this->immVal = immVal; }
+    vReg(pIRValObj obj) : regType(REG_M), var(obj) {}
+    virtual void print(ostream &os) const {};
 };
 
-class IRObj {
+class IRObj : public Printable {
    public:
     string name;
     SymbolTable *scopeSymbols = nullptr;
@@ -101,10 +120,6 @@ class IRObj {
     IRObj() {}
     IRObj(bool isIndent, string name) : isIdent(isIndent), name(name) {}
     virtual void print(ostream &os) const;
-    friend ostream &operator<<(ostream &os, const IRObj &val) {
-        val.print(os);
-        return os;
-    }
 };
 typedef shared_ptr<IRObj> pIRObj;
 
@@ -114,6 +129,7 @@ class IRValObj : public IRObj {
    public:
     bool isConst;
     bool isTmp;
+    bool isParam = false;
     int offset;
     shared_ptr<IRScalValObj> offsetObj;
     shared_ptr<IRArrValObj> fa;
@@ -121,8 +137,6 @@ class IRValObj : public IRObj {
     bool ssaDef = false;
     pSysYIR defStruction;        // for no-ssa val=>nullptr; common=>pIR
     set<pSysYIR> useStructions;  //... common=>pIR; branch=>pBlock.branchIR;
-    // machine info <lv 4> **arch associated**
-    vReg regInfo;
 
     IRValObj() {}
     IRValObj(bool isConst, bool isIdent, string name)
@@ -137,11 +151,7 @@ class IRValObj : public IRObj {
           isConst(((IRValObj *)arrParent.get())->isConst) {}
     // note: for const indent return true
     inline bool isConstant() { return isConst && (fa == nullptr); }
-    void setImmRegWithVal(int val) {
-        regInfo.regType = REG_IMM;
-        regInfo.immVal = val;
-    }
-    inline vReg *reg() { return &regInfo; }
+
     virtual void print(ostream &os) const override;
     virtual string getDefaultName() { return "%t" + to_string(++tmpValId); }
 };
@@ -152,21 +162,19 @@ inline pIRValObj toVal(pIRObj obj) {
 class ASMInstr {
    public:
     string name;
+    vReg *targetOp;
     vector<vReg *> op;
-    pBlock jTarget;
-    pIRFunc callFunc;
+    pIRObj label;
     SysYIR *ir = nullptr;
     ASMInstr *next = nullptr;
     ASMInstr *prev = nullptr;
-    ASMInstr(string name, vector<vReg *> oprands, pBlock jBlock = nullptr)
-        : name(name) {
+    ASMInstr(string name, vReg *target, vector<vReg *> oprands,
+             pIRObj label = nullptr)
+        : name(name), targetOp(target), label(label) {
         for (auto opArg : oprands) {
             if (opArg) {
                 op.push_back(opArg);
             }
-        }
-        if (jBlock) {
-            jTarget = jBlock;
         }
     }
     void addOp(vReg *nOp) {
@@ -187,7 +195,6 @@ class IRArrValObj : public IRValObj {
         for (auto d : dims) {
             size *= d;
         }
-        regInfo.regType = REG_M;
         value = map<int, shared_ptr<IRScalValObj>>();
     }
     IRArrValObj(const shared_ptr<IRArrValObj> &arrParent, vector<int> dims,
@@ -197,7 +204,6 @@ class IRArrValObj : public IRValObj {
         for (auto d : dims) {
             size *= d;
         }
-        regInfo.regType = REG_M;
     }
     virtual void print(ostream &os) const override;
 };
@@ -341,16 +347,16 @@ class SysYIR : public IRObj {
 
     ASMInstr *addASMFront(ASMInstr *instr, ASMInstr *before = nullptr);
 
-    ASMInstr *addASMBack(string name, vector<vReg *> oprands,
-                         pBlock target = nullptr) {
-        auto instr = new ASMInstr(name, oprands, target);
-        return addASMBack(instr);
+    ASMInstr *addASMBack(string name, vReg *rd, vector<vReg *> oprands,
+                         pIRObj target = nullptr, ASMInstr *end = nullptr) {
+        auto instr = new ASMInstr(name, rd, oprands, target);
+        return addASMBack(instr, end);
     }
 
-    ASMInstr *addASMFront(string name, vector<vReg *> oprands,
-                          pBlock target = nullptr) {
-        auto instr = new ASMInstr(name, oprands, target);
-        return addASMFront(instr);
+    ASMInstr *addASMFront(string name, vReg *rd, vector<vReg *> oprands,
+                          pIRObj target = nullptr, ASMInstr *before = nullptr) {
+        auto instr = new ASMInstr(name, rd, oprands, target);
+        return addASMFront(instr, before);
     }
     int asmSize() { return asmInstrs.size(); }
 };
@@ -391,7 +397,10 @@ class IRBlock : public IRObj {  // Basic Block
         phiList;  // x(k) => [ fromBlock => x(i)]
     // asm block order <lv 4>
     pBlock asmNextBlock = nullptr;
-
+    set<vReg *> liveInRegs;
+    set<vReg *> liveOutRegs;
+    set<vReg *> useRegs;
+    set<vReg *> defRegs;
     IRBlock(int blockType, string name = "")
         : IRObj(IR_VOID, name.empty() ? getDefaultName(blockType) : name),
           blockType(blockType) {}
@@ -450,6 +459,7 @@ class IRFunc : public IRObj {
 
     set<pIRValObj> vals;
     vector<ASMInstr> initInstrs;
+    vector<ASMInstr> exitInstrs;
     vReg stackSpaceImm;
 
     SymbolTable *symbolTable;

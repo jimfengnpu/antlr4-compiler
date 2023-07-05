@@ -27,8 +27,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
                     if (value) {
                         if (zeroSize) {
                             fout << "\t" << ASM_DATA_ZERO << " "
-                                 << to_string(archInfo->memByteAlign * zeroSize)
-                                 << endl;
+                                 << to_string(memByteAlign * zeroSize) << endl;
                             zeroSize = 0;
                         }
                         fout << "\t" << ASM_DATA_VAL << " " << to_string(value)
@@ -40,8 +39,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
                 zeroSize += addr + size - i;
                 if (zeroSize) {
                     fout << "\t" << ASM_DATA_ZERO << " "
-                         << to_string(archInfo->memByteAlign * zeroSize)
-                         << endl;
+                         << to_string(memByteAlign * zeroSize) << endl;
                 }
             }
         }
@@ -51,36 +49,47 @@ string AsmEmitter::printAsmOp(vReg* reg) {
     if (reg->regType == REG_IMM) {
         return to_string(reg->immVal);
     }
-    int off = reg->stackMemOff;
-    if (reg->var && reg->var->scopeSymbols &&
-        reg->var->scopeSymbols->isGlobal) {
+    if (reg->var) {
         return reg->var->name;
     }
-    return archInfo->regs[reg->regType == REG_R ? reg->regId
-                                                : archInfo->stackPointerRegId];
+    if (reg->regType == REG_R) {
+        return archInfo->regs[reg->regId];
+    }
+    int off = reg->stackMemOff;
+    int regId = reg->regId;
+    for (auto v = reg->ref; v; v = v->ref) {
+        off += v->stackMemOff;
+        regId = v->regId;
+    }
+    return to_string(off) + "(" +
+           archInfo->regs[regId == -1 ? archInfo->stackPointerRegId : regId] +
+           ")";
 }
 
 void AsmEmitter::printAsm(ASMInstr* instr) {
     fout << "\t" << instr->name;
     bool start = false;
-    if (instr->name == callOp) {
-        fout << "\t" << instr->callFunc->name << endl;
-        return;
-    }
-    if (instr->op.size()) {
-        for (vReg* op : instr->op) {
-            fout << (start ? ", " : "\t");
-            if (start && (instr->name == loadOp || instr->name == storeOp)) {
-                fout << to_string(op->stackMemOff) << "(" << printAsmOp(op)
-                     << ")";
-            } else {
-                fout << printAsmOp(op);
+    if (instr->name != callOp) {
+        deque<vReg*> ops{};
+        for(auto p:instr->op){
+            ops.push_back(p);
+        }
+        if(instr->targetOp){
+            if(instr->name == storeOp){
+                ops.push_back(instr->targetOp);
+            }else{
+                ops.push_front(instr->targetOp);
             }
-            start = true;
+        }
+        if (ops.size()) {
+            for (vReg* op : ops) {
+                fout << (start ? ", " : "\t") << printAsmOp(op);
+                start = true;
+            }
         }
     }
-    if (instr->jTarget) {
-        fout << (start ? ", " : "\t") << instr->jTarget->name;
+    if (instr->label) {
+        fout << (start ? ", " : "\t") << instr->label->name;
     }
     fout << endl;
 }

@@ -1,5 +1,7 @@
 #include "Arch.h"
 
+static map<pIRValObj, vReg*> valRegs;
+
 bool BaseArch::matchIR(pSysYIR ir) {
     for (auto matcher : matchers[ir->type]) {
         if (int matchSize = matcher(ir)) {
@@ -14,122 +16,64 @@ bool BaseArch::matchIR(pSysYIR ir) {
     return false;
 }
 
-vReg* processStore(pIRValObj obj, deque<ASMInstr*>& instr) {
-    if (!obj) return nullptr;
-    vReg* mReg = obj->reg();
-    auto symObj = obj;
-    if ((mReg->regType == REG_M)) {
-        if (symObj->fa != nullptr) {
-            symObj = symObj->fa;
-        }
-        if (symObj->scopeSymbols && symObj->scopeSymbols->isGlobal) {
-            symObj->reg()->var = symObj;
-            mReg = new vReg();
-            instr.push_back(new ASMInstr(loadAddrOp, {mReg, symObj->reg()}));
-        }
-    }
-    if ((mReg->regType != REG_M) && (obj->fa == nullptr)) {
-        return mReg;
-    }
-    auto nReg = new vReg();
-    instr.push_back(new ASMInstr(storeOp, {nReg, mReg}));
-    return nReg;
-}
-
 inline bool isImm(pIRScalValObj scal) {
     if (!scal) return false;
     if (!scal->isConst) return false;
     return true;
 }
 
-// 1.global x: la aR, x; ld nR, 0(aR) => nR
-// 2.local x mem: ld nR, 0(x) => nR
-// 3.local x reg no arr: => x
-// 4.local x reg arr local:[x->var:M]: =>
-// 5.local x reg arr global:
-vReg* processLoad(pIRValObj obj, deque<ASMInstr*>& instr) {
-    if (!obj) return nullptr;
-    vReg* mReg = obj->reg();
-    auto scal = toScal(obj);
-    if (scal && isImm(scal) && scal->reg()->regType == REG_R) {
-        auto nReg = new vReg();
-        scal->setImmRegWithVal(scal->value);
-        instr.push_back(new ASMInstr(loadImmOp, {nReg, scal->reg()}));
-        return nReg;
-    }
-    auto symObj = obj;
-    if ((mReg->regType == REG_M)) {
-        if (symObj->fa != nullptr) {
-            symObj = symObj->fa;
-        }
-        if (symObj->scopeSymbols && symObj->scopeSymbols->isGlobal) {
-            symObj->reg()->var = symObj;
-            mReg = new vReg();
-            instr.push_back(new ASMInstr(loadAddrOp, {mReg, symObj->reg()}));
-        }
-    }
-    if ((mReg->regType != REG_M) && (obj->fa == nullptr)) {
-        return mReg;
-    }
-    auto nReg = new vReg();
-    instr.push_back(new ASMInstr(loadOp, {nReg, mReg}));
-    return nReg;
-}
-
 inline bool isImm(pIRObj obj) { return isImm(toScal(obj)); }
 
-ASMInstr* addASM(string name, pSysYIR ir, vector<pIRValObj> ops,
-                 pBlock target = nullptr, bool noStore = false) {
-    deque<ASMInstr*> ldInstr{};
-    deque<ASMInstr*> stInstr{};
-    vReg* targ = nullptr;
-    if (!target) {
-        if (noStore) {
-            targ = ir->target->reg();
-        } else {
-            targ = processStore(ir->target, stInstr);
-        }
+inline bool isImm(vReg* val) { return val->regType == REG_IMM; }
+
+inline bool isImmInLimit(vReg* val, int width) {
+    if (isImm(val)) {
+        int lim = 1 << width;
+        int v = val->immVal + lim / 2;
+        return v >= 0 && v < lim;
     }
-    auto mainInstr = new ASMInstr(name, {targ}, target);
-    for (auto op : ops) {
-        if (op) {
-            auto regOp = processLoad(op, ldInstr);
-            if (ldInstr.size()) {
-                for (auto ins : ldInstr) ir->addASMBack(ins);
-                ldInstr.clear();
+    return false;
+}
+
+vReg* getVREG(pIRValObj obj) {
+    if (!obj) return nullptr;
+    vReg* v = valRegs[obj];
+    if (v == nullptr) {
+        // global vReg with symbol
+        if (obj->scopeSymbols && obj->scopeSymbols->isGlobal) {
+            v = new vReg(obj);
+        } else {  // local
+            if (auto scal = toScal(obj)) {
+                if (isImm(scal)) {
+                    // imm
+                    v = new vReg(scal->value);
+                } else {
+                    // reg
+                    v = new vReg();
+                }
+            } else {
+                auto arr = dynamic_pointer_cast<IRArrValObj>(obj);
+                v = new vReg();
+                v->regType = REG_M;
+                v->size = arr->size;
             }
-            mainInstr->addOp(regOp);
         }
+        valRegs[obj] = v;
     }
-    ir->addASMBack(mainInstr);
-    if (stInstr.size()) {
-        for (auto ins : stInstr) ir->addASMBack(ins);
-        stInstr.clear();
-    }
-    return mainInstr;
+    return v;
 }
-
-inline bool isImmInLimit(pIRScalValObj obj, int width) {
-    int lim = 1 << width;
-    int v = obj->value + lim / 2;
-    return v >= 0 && v < lim;
-}
-
 // return:immOk T && param ref:immObj not null: op exists imm and imm check
 // pass, immOk F && immObj not null: op exists imm and imm check wrong immObj
 // null : no imm ops
 bool checkDoubleOpImm(
-    pSysYIR ir, pIRScalValObj& immScal, pIRValObj& regObj,
-    bool checkSecOnly = false,
-    bool (*check)(pIRScalValObj) = [](pIRScalValObj obj) -> bool {
-        return true;
-    }) {
+    pSysYIR ir, vReg*& immScal, vReg*& regObj, bool checkSecOnly = false,
+    bool (*check)(vReg*) = [](vReg* r) -> bool { return true; }) {
     if (isImm(ir->opt1) && (!checkSecOnly)) {
-        immScal = toScal(ir->opt1);
-        regObj = toVal(ir->opt2);
+        immScal = getVREG(toVal(ir->opt1));
+        regObj = getVREG(toVal(ir->opt2));
     } else if (isImm(ir->opt2)) {
-        immScal = toScal(ir->opt2);
-        regObj = toVal(ir->opt1);
+        immScal = getVREG(toVal(ir->opt2));
+        regObj = getVREG(toVal(ir->opt1));
     } else {
         immScal = nullptr;
         regObj = nullptr;
@@ -138,21 +82,74 @@ bool checkDoubleOpImm(
     return check(immScal);
 }
 
+vReg* processSymbol(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
+    assert(val->var != nullptr);
+    vReg* nReg = new vReg();
+    ir->addASMFront(loadAddrOp, nReg, {val}, nullptr, instr);
+    return nReg;
+}
+
+vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
+    if (val != nullptr && val->regType != REG_R) {
+        vReg *nReg, *mReg;
+        if (val->regType == REG_IMM) {
+            nReg = new vReg();
+            ir->addASMFront(loadImmOp, nReg, {val}, nullptr, instr);
+        } else if (val->ref) {
+            nReg = new vReg();
+            if (val->var != nullptr) {
+                val = processSymbol(val, ir, instr);
+            }
+            ir->addASMFront(loadOp, nReg, {val}, nullptr, instr);
+        }
+        val = nReg;
+    }
+    return val;
+}
+
+vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
+    if (val != nullptr && val->regType != REG_R) {
+        if (val->regType == REG_M) {
+            vReg* nReg = new vReg();
+            ir->addASMBack(storeOp, val, {nReg}, nullptr, instr);
+            val = nReg;
+        }
+    }
+    return val;
+}
+
+ASMInstr* addASM(string name, pSysYIR ir, vReg* des, vector<vReg*> ops,
+                 pBlock target = nullptr, bool noStore = false) {
+    vector<vReg*> src{};
+    for (auto op : ops) {
+        if (op) {
+            auto regOp = processLoad(op, ir);
+            src.push_back(regOp);
+        }
+    }
+    auto mainInstr = new ASMInstr(name, des, {src.begin(), src.end()}, target);
+    ir->addASMBack(mainInstr);
+    if (des && !noStore) {
+        des = processStore(des, ir, mainInstr);
+        mainInstr->targetOp = des;
+    }
+    return mainInstr;
+}
+
 int matchCalImmInstr(
     string name, pSysYIR ir, bool checkSecOnly = false,
-    bool (*check)(pIRScalValObj) = [](pIRScalValObj obj) -> bool {
-        if (isImmInLimit(obj, 12)) {
-            obj->setImmRegWithVal(obj->value);
+    bool (*check)(vReg*) = [](vReg* r) -> bool {
+        if (isImmInLimit(r, 12)) {
             return true;
         }
+        r->regType = REG_R;
         return false;
     }) {
-    pIRScalValObj immObj = nullptr;
-    pIRValObj regObj = nullptr;
+    vReg *immObj = nullptr, *regObj = nullptr;
     bool immOk = checkDoubleOpImm(ir, immObj, regObj, checkSecOnly, check);
     if (nullptr != immObj) {
         if (immOk) {
-            addASM(name, ir, {regObj, immObj});
+            addASM(name, ir, getVREG(ir->target), {regObj})->addOp(immObj);
             return 1;
         }
     }
@@ -160,7 +157,8 @@ int matchCalImmInstr(
 }
 
 int matchCalInstr(string name, pSysYIR ir) {
-    addASM(name, ir, {toVal(ir->opt1), toVal(ir->opt2)});
+    addASM(name, ir, getVREG(ir->target),
+           {getVREG(toVal(ir->opt1)), getVREG(toVal(ir->opt2))});
     return 1;
 }
 
@@ -196,29 +194,28 @@ void RISCV::matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) {
             name = irBrAsm[brValDef->type];
         }
         mask = 2;
-        pIRScalValObj imm = nullptr;
-        pIRValObj reg = nullptr;
-        vector<pIRValObj> oprands{};
+        vReg *imm = nullptr, *reg = nullptr;
+        vector<vReg*> oprands{};
         if (name.empty()) {
             name = "bnez";
             mask = 1;
-            oprands.push_back(toVal(ir->opt1));
+            oprands.push_back(getVREG(toVal(ir->opt1)));
         } else {
-            if (checkDoubleOpImm(brValDef, imm, reg) && imm->value == 0) {
+            if (checkDoubleOpImm(brValDef, imm, reg) && imm->immVal == 0) {
                 if (brValDef->type == IRType::EQ ||
                     brValDef->type == IRType::NEQ) {
                     name = name + "z";
                     oprands.push_back(reg);
                 } else {
-                    if (imm == brValDef->opt1) {
+                    if (imm == getVREG(toVal(brValDef->opt1))) {
                         name = oppoBranch[name] + "z";
                     }
                     oprands.push_back(reg);
                     oprands.push_back(imm);
                 }
             } else {
-                oprands.push_back(toVal(brValDef->opt1));
-                oprands.push_back(toVal(brValDef->opt2));
+                oprands.push_back(getVREG(toVal(brValDef->opt1)));
+                oprands.push_back(getVREG(toVal(brValDef->opt2)));
             }
         }
         for (pBlock b = brTarget; b && (b->asmNextBlock || b == block);
@@ -231,10 +228,11 @@ void RISCV::matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) {
             nxTarget = t;
             name = fllipBranch[name];
         }
-        addASM(name, lastIr, {oprands.begin(), oprands.end()}, brTarget);
+        addASM(name, lastIr, nullptr, {oprands.begin(), oprands.end()},
+               brTarget);
     }
     if (nxTarget) {
-        addASM("j", lastIr, {}, nxTarget);
+        addASM("j", lastIr, nullptr, {}, nxTarget);
     }
     for (auto maskIr = lastIr->prev; maskIr && ((--mask) > 0);
          maskIr = maskIr->prev) {
@@ -251,21 +249,12 @@ void RISCV::matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) {
 void RISCV::defineArchInfo() {
     stackPointerRegId = REG::sp;
     framePointerRegId = REG::s0;
-    memByteAlign = 4;
     frameByteAlign = 16;
     branchBlockASMLimit = 512;
-    paramRegCnt = 8;
-    addGenRegs({a0, a1, a2, a3, a4, a5,  a6,  a7, s0, s1, s2, s3, s4,
-                s5, s6, s7, s8, s9, s10, s11, t0, t1, t2, t3, ra});
-    addMatchers(IRType::ASSIGN, {[](pSysYIR ir) -> int {
-                    int imm = matchCalImmInstr(
-                        "li", ir, false, [](pIRScalValObj imm) -> bool {
-                            imm->setImmRegWithVal(imm->value);
-                            return true;
-                        });
-                    if (imm) return imm;
-                    return matchCalInstr("mv", ir);
-                }});
+    addRegs(genRegsId, {a0, a1, a2, a3, a4, a5,  a6,  a7, s0, s1, s2, s3, s4,
+                        s5, s6, s7, s8, s9, s10, s11, t0, t1, t2, t3, ra});
+    addMatchers(IRType::ASSIGN,
+                {[](pSysYIR ir) -> int { return matchCalInstr("mv", ir); }});
     addMatchers(IRType::ADD, {[](pSysYIR ir) -> int {
                     int imm = matchCalImmInstr("addi", ir);
                     if (imm) return imm;
@@ -273,11 +262,12 @@ void RISCV::defineArchInfo() {
                 }});
     addMatchers(IRType::SUB, {[](pSysYIR ir) -> int {
                     int imm = matchCalImmInstr(
-                        "addi", ir, true, [](pIRScalValObj imm) -> bool {
+                        "addi", ir, true, [](vReg* imm) -> bool {
                             if (isImmInLimit(imm, 12)) {
-                                imm->setImmRegWithVal(-imm->value);
+                                imm->immVal = -imm->immVal;
                                 return true;
                             }
+                            imm->regType = REG_R;
                             return false;
                         });
                     if (imm) return imm;
@@ -311,34 +301,40 @@ void RISCV::defineArchInfo() {
                 }});
     addMatchers(IRType::NEG,
                 {[](pSysYIR ir) -> int { return matchCalInstr("neg", ir); }});
-    addMatchers(IRType::IDX,
-                {// opt1: arr, opt2: scal, offset
-                 [](pSysYIR ir) -> int {
-                     pIRScalValObj immObj = nullptr;
-                     pIRValObj arrObj = nullptr;
-                     vReg* obj = toVal(ir->target)->reg();
-                     toVal(ir->opt1)->reg()->regType = REG_M;
-                     if (checkDoubleOpImm(
-                             ir, immObj, arrObj, true,
-                             [](pIRScalValObj imm) -> bool { return true; })) {
-                         obj->stackMemOff = 4 * immObj->value;
-                     } else {
-                         addASM("add", ir, {toVal(ir->opt1), toVal(ir->opt2)},
-                                nullptr, true);
-                     }
-                     obj->regType = REG_R;
-                     //  obj->var = toVal(ir->target);
-                     return 1;
-                 }});
+    addMatchers(
+        IRType::IDX,
+        {// opt1: arr, opt2: scal, offset
+         [](pSysYIR ir) -> int {
+             vReg *offObj = nullptr, *arrObj = nullptr;
+             vReg* obj = getVREG(ir->target);
+             if (checkDoubleOpImm(ir, offObj, arrObj, true,
+                                  [](vReg* imm) -> bool { return true; }) &&
+                 (arrObj->regType == REG_M && !(toVal(ir->opt1)->isParam))) {
+                 obj->stackMemOff = 4 * offObj->immVal;
+             } else {
+                 arrObj = getVREG(toVal(ir->opt1));
+                 offObj = getVREG(toVal(ir->opt2));
+                 offObj = processLoad(offObj, ir);
+                 ir->addASMBack("add", obj, {arrObj, offObj});
+             }
+             obj->ref = arrObj;
+             //  obj->var = toVal(ir->target);
+             return 1;
+         }});
     addMatchers(IRType::ARR, {[](pSysYIR ir) -> int {
-                    addASM("add", ir, {toVal(ir->opt1), toVal(ir->opt2)},
-                           nullptr, true);
+                    vReg* obj = getVREG(ir->target);
+                    vReg* offObj = getVREG(toVal(ir->opt2));
+                    offObj = processLoad(offObj, ir);
+                    ir->addASMBack("add", getVREG(ir->target),
+                                   {getVREG(toVal(ir->opt1)), offObj});
+                    obj->ref = getVREG(toVal(ir->opt1));
                     return 1;
                 }});
     addMatchers(IRType::CALL, {[](pSysYIR ir) -> int {
                     int paramCnt = 0;
                     pSysYIR paramIr = ir->prev;
                     vector<vReg*> paramRegs{};
+
                     while (paramIr && paramIr->type == IRType::PARAM) {
                         vReg* paramReg = new vReg();
                         if (paramCnt < 8) {
@@ -347,18 +343,11 @@ void RISCV::defineArchInfo() {
                             paramRegs.push_back(paramReg);
                         } else {
                             paramReg->regType = REG_M;
+                            paramReg->regId = RISCV::sp;
+                            paramReg->stackMemOff = 4 * (paramCnt - 8);
                         }
-                        deque<ASMInstr*> ldInstr{};
-                        vReg* regOp =
-                            processLoad(toVal(paramIr->opt1), ldInstr);
-                        auto asmInstr = new ASMInstr("mv", {});
-                        asmInstr->addOp(paramReg);
-                        asmInstr->addOp(regOp);
-                        if (ldInstr.size()) {
-                            for (auto ins : ldInstr) paramIr->addASMBack(ins);
-                            ldInstr.clear();
-                        }
-                        paramIr->addASMBack(asmInstr);
+                        addASM("mv", paramIr, paramReg,
+                               {getVREG(toVal(paramIr->opt1))});
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
@@ -377,27 +366,35 @@ void RISCV::defineArchInfo() {
                         paramRegs.push_back(paramReg);
                     }
                     pIRFunc func = toFunc(ir->opt1);
-                    ir->addASMBack(callOp, {paramRegs.begin(), paramRegs.end()})
-                        ->callFunc = func;
+                    ir->addASMBack(callOp, nullptr,
+                                   {paramRegs.begin(), paramRegs.end()}, func);
                     if (func->returnType != IR_VOID) {
                         auto retVal = new vReg();
                         retVal->regType = REG_R;
                         retVal->regId = a0;
-                        addASM("mv", ir, {})->addOp(retVal);
+                        addASM("mv", ir, getVREG(ir->target), {retVal});
                     }
-                    return paramCnt + 1;
+                    return 1;
                 }});
 }
 
-void RISCV::prepareFuncParamRegs(pIRFunc f) {
+void RISCV::prepareFuncPreRegs(pIRFunc f) {
+    vReg* v = nullptr;
     for (int i = 0; i < f->params.size(); i++) {
+        v = new vReg();
         if (i < paramRegCnt) {
-            f->params[i]->regInfo.regType = REG_R;
-            f->params[i]->regInfo.regId = a0 + i;
+            v->regId = a0 + i;
         } else {
-            f->params[i]->regInfo.regType = REG_M;
-            f->params[i]->regInfo.regId = fp;
+            v->regType = REG_M;
+            v->stackMemOff = memByteAlign * (i - paramRegCnt);
+            v->regId = fp;
         }
+        valRegs[f->params[i]] = v;
+    }
+    if (f->returnType != IR_VOID) {
+        v = new vReg();
+        v->regId = a0;
+        valRegs[f->returnVal] = v;
     }
 }
 

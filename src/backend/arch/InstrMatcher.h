@@ -14,11 +14,11 @@ class InstrMatcher : public IRProcessor {
     InstrMatcher(BaseArch* arch) : archInfo(arch) {}
     virtual pBlock visit(pBlock block);
     virtual void apply(Prog& prog) {
-        triggers.push_back(new LiveCalculator());
+        triggers.push_back(new LiveCalculator(true));
         addTriggers();
         for (auto& f : prog.functions) {
             if (f->entry) {
-                archInfo->prepareFuncParamRegs(f);
+                archInfo->prepareFuncPreRegs(f);
                 for (pBlock block : f->blocks) {
                     visit(block);
                 }

@@ -46,9 +46,9 @@ class IRProcessors {
 
 class LiveCalculator : public IRProcessor {
     bool changed;
-
+    bool isRegLv;
    public:
-    LiveCalculator() = default;
+    LiveCalculator(bool reg=false): isRegLv(reg){};
     void makeLive(pIRFunc& func);
     void mergeSuccLivein(pBlock block, pBlock from);
     virtual pBlock visit(pBlock block) override;

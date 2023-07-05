@@ -19,6 +19,9 @@ class ASTVisitor : public SysYBaseVisitor {
         auto func = make_shared<IRFunc>(
             returnType, name, args,
             blockContext == nullptr ? nullptr : &(blockContext->symbolTable));
+        for(auto v: args){
+            v->isParam = true;
+        }
         functions->push_back(func);
         globalSymbolTable->registerSymbol(func);
         curFunc = func;

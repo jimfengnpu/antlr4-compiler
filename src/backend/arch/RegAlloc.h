@@ -18,9 +18,9 @@ class liveRange {
     liveRange(pBlock b, int s, int e) : block(b), start(s), end(e) {}
 };
 
-static map<vReg*, int> valCost{};
-static map<vReg*, map<pBlock, vector<liveRange*> > > regLive;
-static map<vReg*, unordered_set<vReg*> > conflictMap;
+static unordered_map<vReg*, int> valCost{};
+static unordered_map<vReg*, map<pBlock, vector<liveRange*> > > regLive;
+static unordered_map<vReg*, unordered_set<vReg*> > conflictMap;
 struct ValConflictComparator {
     bool operator()(vReg* a, vReg* b) const {  // > 小顶
         if (a->regId != b->regId) return a->regId != -1;
@@ -34,6 +34,7 @@ class RegAllocator : public IRProcessor {
     map<pBlock, pBlock> visitPath;
     map<pBlock, int> blockFreq;
     set<vReg*> vals{};
+    unordered_set<vReg*> memVals{};
     struct ValCostComparator {
         bool operator()(vReg* a, vReg* b) const {  // > 小顶
             if (a->regId != -1) return true;
@@ -53,7 +54,14 @@ class RegAllocator : public IRProcessor {
     virtual void apply(Prog& prog) {
         for (auto func : prog.functions) {
             if (func->entry != nullptr) {
+
                 allocReg(func);
+                unordered_set<int> regUsed{};
+                for (auto v : vals) {
+                    assert(v->regId != -1);
+                    regUsed.insert(v->regId);
+                }
+                archInfo->prepareFuncInitExitAsm(func, regUsed, memVals);
             }
         }
     }

@@ -92,17 +92,22 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
     int i = sid - 1;
     for (auto s = asmVec.rbegin(); i >= 0; i--, s++) {
         if ((*s)->name == callOp) {
-            for (auto v : liveNow) {
-                killRange(block, v, i);
-                for (auto n : liveNow) {
-                    if (v != n) {
-                        conflictMap[v].insert(n);
-                        conflictMap[n].insert(v);
-                    }
+            if (liveNow.size()) {
+                for (auto& v : liveNow) {
+                    killRange(block, v, i);
                 }
             }
             for (auto op : (*s)->op) {
                 addNewRange(block, op, i);
+                if (liveNow.size()) {
+                    for (auto& v : liveNow) {
+                        if (v != op) {
+                            conflictMap[v].insert(op);
+                            conflictMap[op].insert(v);
+                        }
+                    }
+                }
+                liveNow.erase(op);
             }
             continue;
         }
@@ -111,12 +116,15 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
             auto opDef = (*s)->targetOp;
             if (vals.find(opDef) != vals.end()) {
                 killRange(block, opDef, i);
-                for (auto v : liveNow) {
-                    if (v != opDef) {
-                        conflictMap[v].insert(opDef);
-                        conflictMap[opDef].insert(v);
+                if (liveNow.size()) {
+                    for (auto& v : liveNow) {
+                        if (v != opDef) {
+                            conflictMap[v].insert(opDef);
+                            conflictMap[opDef].insert(v);
+                        }
                     }
                 }
+                liveNow.erase(opDef);
                 valCost[opDef] += blockFreq[block];
             }
         }
@@ -124,6 +132,7 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
             if (vals.find(*op) != vals.end()) {
                 if (!isLive(block, *op, i)) {
                     addNewRange(block, *op, i);
+                    liveNow.insert(*op);
                 }
                 valCost[*op] += blockFreq[block];
             }
@@ -133,6 +142,7 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
 
 void RegAllocator::makeGraph(pIRFunc func) {
     vals.clear();
+    memVals.clear();
     conflictMap.clear();
     regLive.clear();
     // assembly add id
@@ -140,7 +150,18 @@ void RegAllocator::makeGraph(pIRFunc func) {
         for (auto ir = block->irHead; ir; ir = ir->next) {
             for (auto s = ir->asmHead; s; s = s->next) {
                 for (auto v : s->op) {
-                    if (v->regType == REG_R) vals.insert(v);
+                    if (v->regType == REG_R) {
+                        vals.insert(v);
+                    } else if (v->regType == REG_M && v->var == nullptr) {
+                        memVals.insert(v);
+                    }
+                }
+                if (auto v = s->targetOp) {
+                    if (v->regType == REG_R) {
+                        vals.insert(v);
+                    } else if (v->regType == REG_M && v->var == nullptr) {
+                        memVals.insert(v);
+                    }
                 }
             }
         }
@@ -167,7 +188,7 @@ void RegAllocator::allocReg(pIRFunc func) {
         regOrder.clear();
         conficted = false;
         makeGraph(func);
-        map<vReg*, unordered_set<vReg*> > bkConflict(conflictMap);
+        unordered_map<vReg*, unordered_set<vReg*> > bkConflict(conflictMap);
         priority_queue<vReg*, vector<vReg*>, ValConflictComparator> qvals;
         for (auto v : vals) {
             if (v->regId != -1) {
@@ -213,6 +234,7 @@ void RegAllocator::allocReg(pIRFunc func) {
         if (checkList.size()) {
             auto splited = checkList.top();
             splited->regType = REG_M;
+            memVals.insert(splited);
             for (auto b : func->blocks) {
                 for (auto ir = b->irHead; ir; ir = ir->next) {
                     for (auto s = ir->asmHead; s; s = s->next) {

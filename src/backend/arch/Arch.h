@@ -1,6 +1,7 @@
 #ifndef ARCH_H
 #define ARCH_H
 #include "Structure.h"
+#include "unordered_set"
 using namespace std;
 /*
  * rule:
@@ -12,7 +13,9 @@ using namespace std;
 #if EM_ARCH == EM_RISCV
 
 #define storeOp "sw"
+#define storeDwOp "sd"
 #define loadOp "lw"
+#define loadDwOp "ld"
 #define loadAddrOp "la"
 #define loadImmOp "li"
 #define assignOp "mv"
@@ -38,7 +41,7 @@ class BaseArch {
     map<IRType, vector<int (*)(pSysYIR)> > matchers;
     vector<int> genRegsId;
     set<int> callerSaveRegs;
-    set<int> caleeSaveRegs;
+    set<int> calleeSaveRegs;
     int stackPointerRegId = -1;
     int framePointerRegId = -1;
     int frameByteAlign = 16;
@@ -56,10 +59,17 @@ class BaseArch {
             regsVec.push_back(r);
         }
     }
+    static void addRegs(set<int>& regSet, vector<int> regs) {
+        for (int r : regs) {
+            regSet.insert(r);
+        }
+    }
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncPreRegs(pIRFunc func) = 0;
-    virtual void prepareFuncInitExitAsm(pIRFunc func) = 0;
+    virtual void prepareFuncInitExitAsm(pIRFunc func,
+                                        unordered_set<int>& useRegs,
+                                        unordered_set<vReg*>& useStk) = 0;
 };
 
 class RISCV : public BaseArch {
@@ -140,6 +150,8 @@ class RISCV : public BaseArch {
     virtual void defineArchInfo() override;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
     virtual void prepareFuncPreRegs(pIRFunc func);
-    virtual void prepareFuncInitExitAsm(pIRFunc func);
+    virtual void prepareFuncInitExitAsm(pIRFunc func,
+                                        unordered_set<int>& useRegs,
+                                        unordered_set<vReg*>& useStk);
 };
 #endif

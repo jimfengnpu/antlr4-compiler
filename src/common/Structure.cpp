@@ -97,6 +97,12 @@ void IRStrValObj::print(std::ostream &os) const {
     os << value;
 }
 
+vReg *newReg(int id) {
+    vReg *v = new vReg();
+    v->regId = id;
+    return v;
+}
+
 void SysYIR::print(std::ostream &os) const {
     os << IRTypeName(type);
     if (target != nullptr) os << " " << target.get()->name;

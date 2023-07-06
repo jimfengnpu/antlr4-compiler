@@ -1,14 +1,14 @@
 #ifndef INSTR_MATCHER_H
 #define INSTR_MATCHER_H
 
-#include <queue>
+#include <deque>
 
 #include "Arch.h"
 #include "IRProcessor.h"
 
 class InstrMatcher : public IRProcessor {
     BaseArch* archInfo;
-    queue<pBlock> blocks{};
+    deque<pBlock> blocks{};
 
    public:
     InstrMatcher(BaseArch* arch) : archInfo(arch) {}
@@ -25,10 +25,10 @@ class InstrMatcher : public IRProcessor {
                 pBlock last = nullptr;
                 map<pBlock, bool> visited{};
                 vector<pBlock> vec{};
-                blocks.push(f->entry);
+                blocks.push_back(f->entry);
                 while (blocks.size()) {
                     pBlock block = blocks.front();
-                    blocks.pop();
+                    blocks.pop_front();
                     vec.clear();
                     if (!visited[block]) {
                         visited[block] = true;
@@ -36,8 +36,8 @@ class InstrMatcher : public IRProcessor {
                             last->asmNextBlock = block;
                         }
                         archInfo->matchBlockEnd(block, vec);
-                        for (auto b : vec) {
-                            blocks.push(b);
+                        for (auto b = vec.rbegin(); b != vec.rend(); b++) {
+                            blocks.push_front(*b);
                         }
                         last = block;
                     }

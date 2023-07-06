@@ -26,7 +26,7 @@ class AsmEmitter : public IRProcessor {
     }
     void emitData(SymbolTable* table);
     void emitFunc(pIRFunc func);
-    string printAsmOp(vReg* reg);
+    string printAsmOp(vReg* reg, bool memType);
     void printAsm(ASMInstr* instr);
 };
 #endif

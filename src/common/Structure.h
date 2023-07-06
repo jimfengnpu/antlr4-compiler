@@ -16,7 +16,7 @@
 
 using namespace std;
 
-// #define VAL_IR 1
+#define VAL_IR 1
 // #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
 
@@ -99,7 +99,7 @@ class vReg : public Printable {
     int stackMemOff = 0;
     int regId = -1;
     vReg *ref = nullptr;
-    int size = 0;
+    int size = 1;
     shared_ptr<IRValObj> var = nullptr;
     vReg() = default;
     vReg(vReg *ref) : ref(ref) {}
@@ -107,6 +107,7 @@ class vReg : public Printable {
     vReg(pIRValObj obj) : regType(REG_M), var(obj) {}
     virtual void print(ostream &os) const {};
 };
+vReg *newReg(int id);
 
 class IRObj : public Printable {
    public:
@@ -458,9 +459,9 @@ class IRFunc : public IRObj {
     pIRValObj returnVal;
 
     set<pIRValObj> vals;
-    vector<ASMInstr> initInstrs;
-    vector<ASMInstr> exitInstrs;
-    vReg stackSpaceImm;
+    deque<ASMInstr *> initInstrs;
+    deque<ASMInstr *> exitInstrs;
+    int stackSpaceImm;
 
     SymbolTable *symbolTable;
     // table == nullptr : lib function

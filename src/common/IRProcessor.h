@@ -30,8 +30,8 @@ class IRProcessors {
             proc->apply(prog);
 #ifdef VAL_IR
             cout << "IR:";
-            cout << *(visitor.globalData.get());
-            for (auto& f : visitor.functions) {
+            cout << (prog.globalData.get());
+            for (auto& f : prog.functions) {
                 cout << endl << *f;
             }
             cout << endl;

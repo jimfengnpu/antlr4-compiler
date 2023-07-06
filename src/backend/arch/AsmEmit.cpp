@@ -4,7 +4,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
     for (auto [s, v] : table->symbols) {
         if (auto val = toVal(v)) {
             auto scal = toScal(val);
-            if (scal) {
+            if (scal && !scal->isConst) {
                 fout << "\t" << ((scal->isConst) ? SEC_RO : SEC_RW) << endl;
                 fout << "\t" << ASM_DECL(scal->name) << endl;
                 fout << scal->name << ":\n";
@@ -45,45 +45,59 @@ void AsmEmitter::emitData(SymbolTable* table) {
         }
     }
 }
-string AsmEmitter::printAsmOp(vReg* reg) {
+
+string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
     if (reg->regType == REG_IMM) {
         return to_string(reg->immVal);
     }
     if (reg->var) {
         return reg->var->name;
     }
-    if (reg->regType == REG_R) {
-        return archInfo->regs[reg->regId];
-    }
-    int off = reg->stackMemOff;
     int regId = reg->regId;
+    int off = reg->stackMemOff;
     for (auto v = reg->ref; v; v = v->ref) {
+        // if (regId != -1) {
+        //     break;
+        // }
         off += v->stackMemOff;
         regId = v->regId;
     }
-    return to_string(off) + "(" +
-           archInfo->regs[regId == -1 ? archInfo->stackPointerRegId : regId] +
-           ")";
+    string s =
+        archInfo->regs[regId == -1 ? archInfo->stackPointerRegId : regId];
+    if (!memType) {
+        return s;
+    }
+    return to_string(off) + "(" + s + ")";
 }
 
 void AsmEmitter::printAsm(ASMInstr* instr) {
-    fout << "\t" << instr->name;
+    string opName = instr->name;
+    if (opName == assignOp && instr->targetOp->regId == instr->op[0]->regId) {
+        return;
+    }
+    fout << "\t" << opName;
     bool start = false;
-    if (instr->name != callOp) {
+    if (opName != callOp) {
         deque<vReg*> ops{};
-        for(auto p:instr->op){
+        for (auto p : instr->op) {
             ops.push_back(p);
         }
-        if(instr->targetOp){
-            if(instr->name == storeOp){
+        int memTypeIdx = -1;
+        if (instr->targetOp) {
+            if (opName == storeOp || opName == storeDwOp) {
                 ops.push_back(instr->targetOp);
-            }else{
+                memTypeIdx = 1;
+            } else {
                 ops.push_front(instr->targetOp);
+                if (opName == loadOp || opName == loadDwOp) {
+                    memTypeIdx = 1;
+                }
             }
         }
-        if (ops.size()) {
-            for (vReg* op : ops) {
-                fout << (start ? ", " : "\t") << printAsmOp(op);
+        if (int s = ops.size()) {
+            for (int i = 0; i < s; i++) {
+                fout << (start ? ", " : "\t")
+                     << printAsmOp(ops[i], i == memTypeIdx);
                 start = true;
             }
         }
@@ -98,12 +112,18 @@ void AsmEmitter::emitFunc(pIRFunc func) {
     fout << "\t" << SEC_RX << endl;
     fout << "\t" << ASM_DECL(func->name) << endl;
     fout << func->name << ":\n";
-    for (auto s : func->initInstrs) {
-        printAsm(&s);
-    }
     for (auto block = func->entry; block; block = block->asmNextBlock) {
         if (block != func->entry) {
             fout << block->name << ":\n";
+        } else {
+            for (auto s : func->initInstrs) {
+                printAsm(s);
+            }
+        }
+        if (block == func->exit) {
+            for (auto s : func->exitInstrs) {
+                printAsm(s);
+            }
         }
         for (auto ir = block->irHead; ir; ir = ir->next) {
             for (auto s = ir->asmHead; s; s = s->next) {

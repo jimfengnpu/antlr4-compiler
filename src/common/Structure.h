@@ -87,7 +87,6 @@ class vReg : public Printable {
     /*
      * REG_R: data usually in phy reg
      *     regId: equals enum value of coresponding reg
-     *     isRef:
      * REG_M: data usually in mem (.data or stack)
      *     var: == nullptr: stack mem, stackMemOff: offset with frame
      * pointer(usually neg)
@@ -95,17 +94,27 @@ class vReg : public Printable {
      * arr fa) stackMemOff: offset with var
      */
     int regType = REG_R;
-    int immVal = 0;
-    int stackMemOff = 0;
+    int value = 0;
     int regId = -1;
     vReg *ref = nullptr;
     int size = 1;
+    bool fixed = false;
     shared_ptr<IRValObj> var = nullptr;
     vReg() = default;
     vReg(vReg *ref) : ref(ref) {}
-    vReg(int immVal) : regType(REG_IMM) { this->immVal = immVal; }
+    vReg(int immVal) : regType(REG_IMM) { this->value = immVal; }
     vReg(pIRValObj obj) : regType(REG_M), var(obj) {}
-    virtual void print(ostream &os) const {};
+    virtual void print(ostream &os) const {}
+    int getValue() {
+        int v = 0;
+        for (vReg *r = this; r; r = r->ref) {
+            v += r->value;
+            if (r->regId != -1) {
+                break;
+            }
+        }
+        return v;
+    }
 };
 vReg *newReg(int id);
 
@@ -459,9 +468,10 @@ class IRFunc : public IRObj {
     pIRValObj returnVal;
 
     set<pIRValObj> vals;
+    set<pIRFunc> callList;
     deque<ASMInstr *> initInstrs;
     deque<ASMInstr *> exitInstrs;
-    int stackSpaceImm;
+    vReg stackCapacity;
 
     SymbolTable *symbolTable;
     // table == nullptr : lib function

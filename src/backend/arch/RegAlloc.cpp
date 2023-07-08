@@ -19,7 +19,40 @@ inline bool isLive(pBlock block, vReg* reg, int p) {
     return false;
 }
 
-bool intersectConflict(vReg* a, vReg* b, pBlock block) {
+void displayRegLive(pBlock block, set<vReg*>& vals) {
+    int sid = 0;
+    int xid = 0;
+    vector<vReg*> rx{};
+    for (auto v : vals) {
+        if (regLive[v][block].size()) {
+            rx.push_back(v);
+            xid++;
+        }
+    }
+    for (auto ir = block->irHead; ir; ir = ir->next) {
+        for (auto s = ir->asmHead; s; s = s->next) {
+            for (int i = 0; i < xid; i++) {
+                if (isLive(block, rx[i], sid)) {
+                    cout << "|";
+                } else {
+                    cout << " ";
+                }
+            }
+            cout << sid << ": " << s->name;
+            if (s->targetOp) cout << " " << s->targetOp->regId;
+            if (s->name != callOp) {
+                for (auto op : s->op) {
+                    cout << " " << (op->regType == REG_IMM) ? op->value
+                                                            : op->regId;
+                }
+            }
+            cout << endl;
+            sid++;
+        }
+    }
+}
+
+bool intersectConflict(vReg* a, vReg* b, pBlock block, int* s, int* e) {
     if (!a || !b) return false;
     if (a == b) return false;
     auto& srangeA = regLive[a][block];
@@ -30,7 +63,11 @@ bool intersectConflict(vReg* a, vReg* b, pBlock block) {
         while (i_ra != srangeA.end() && i_rb != srangeB.end()) {
             int inter_s = max((*i_ra)->start, (*i_rb)->start);
             int inter_e = min((*i_ra)->end, (*i_rb)->end);
-            if (inter_s <= inter_e) return true;
+            if (inter_s <= inter_e) {
+                *s = inter_s;
+                *e = inter_e;
+                return true;
+            }
             if ((*i_ra)->start < (*i_rb)->start) {
                 i_rb++;
             } else {
@@ -38,6 +75,63 @@ bool intersectConflict(vReg* a, vReg* b, pBlock block) {
             }
         }
     }
+    return false;
+}
+
+// choose a possible live range to color a different reg
+bool splitVal(vReg* a, vReg* b) {
+    int s, e;
+    if (a == b) return false;
+    assert(!(a->fixed && b->fixed));
+    vReg* val = a->fixed ? b : a;
+    vReg* nReg = new vReg();
+    for (auto [blk, ra] : regLive[a]) {
+        auto rb = regLive[b][blk];
+        if (rb.size() && ra.size()) {
+            cout << blk->name << endl;
+            for (auto r : regLive[a][blk]) {
+                cout << "[" << r->start << "," << r->end << "] ";
+            }
+            cout << endl;
+            for (auto r : regLive[b][blk]) {
+                cout << "[" << r->start << "," << r->end << "] ";
+            }
+            cout << endl;
+            if (intersectConflict(a, b, blk, &s, &e)) {
+                int i = 0;
+                for (auto ir = blk->irHead; ir; ir = ir->next) {
+                    for (auto inst = ir->asmHead; inst;
+                         inst = inst->next, i++) {
+                        if (i >= s && i <= e) {
+                            for (int j = 0; j < inst->op.size(); j++) {
+                                if (inst->op[j] == val) {
+                                    inst->op[j] = nReg;
+                                }
+                            }
+                            if (inst->targetOp && inst->targetOp == val) {
+                                inst->targetOp = nReg;
+                            }
+                        }
+                        if (i == s - 1) {
+                            auto newInst = ir->addASMFront(
+                                assignOp, nReg, {val}, nullptr, inst);
+                            // inst->prev->next = newInst;
+                            // newInst->prev = inst;
+                        } else if (i == e) {
+                            auto newInst = ir->addASMBack(assignOp, val, {nReg},
+                                                          nullptr, inst);
+                            // inst->next->prev = newInst;
+                            // newInst->next = inst;
+                        }
+                        if (i > e) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // assert(0);
     return false;
 }
 
@@ -78,6 +172,7 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
     set<vReg*> liveNow{};
     for (auto ir = block->irHead; ir; ir = ir->next) {
         for (auto s = ir->asmHead; s; s = s->next) {
+            // cout << sid << ": " << s->name << endl;
             sid++;
             asmVec.push_back(s);
         }
@@ -88,26 +183,26 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
             liveNow.insert(v);
         }
     }
-    int callAsmId = -1;
     int i = sid - 1;
     for (auto s = asmVec.rbegin(); i >= 0; i--, s++) {
         if ((*s)->name == callOp) {
-            if (liveNow.size()) {
-                for (auto& v : liveNow) {
-                    killRange(block, v, i);
-                }
-            }
             for (auto op : (*s)->op) {
-                addNewRange(block, op, i);
-                if (liveNow.size()) {
-                    for (auto& v : liveNow) {
-                        if (v != op) {
-                            conflictMap[v].insert(op);
-                            conflictMap[op].insert(v);
+                if (vals.find(op) != vals.end()) {
+                    if (!isLive(block, op, i)) {
+                        addNewRange(block, op, i);
+                        liveNow.insert(op);
+                    }
+                    if (!op->fixed) {
+                        killRange(block, op, i - 1);
+                        liveNow.erase(op);
+                        if (liveNow.size()) {
+                            for (auto& v : liveNow) {
+                                conflictMap[v].insert(op);
+                                conflictMap[op].insert(v);
+                            }
                         }
                     }
                 }
-                liveNow.erase(op);
             }
             continue;
         }
@@ -116,15 +211,13 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
             auto opDef = (*s)->targetOp;
             if (vals.find(opDef) != vals.end()) {
                 killRange(block, opDef, i);
+                liveNow.erase(opDef);
                 if (liveNow.size()) {
                     for (auto& v : liveNow) {
-                        if (v != opDef) {
-                            conflictMap[v].insert(opDef);
-                            conflictMap[opDef].insert(v);
-                        }
+                        conflictMap[v].insert(opDef);
+                        conflictMap[opDef].insert(v);
                     }
                 }
-                liveNow.erase(opDef);
                 valCost[opDef] += blockFreq[block];
             }
         }
@@ -144,22 +237,28 @@ void RegAllocator::makeGraph(pIRFunc func) {
     vals.clear();
     memVals.clear();
     conflictMap.clear();
+    for (auto [v, mp] : regLive) {
+        for (auto [b, r] : mp) {
+            r.clear();
+        }
+    }
     regLive.clear();
     // assembly add id
+    cout << "make " << func->name << endl;
     for (pBlock block = func->entry; block; block = block->asmNextBlock) {
         for (auto ir = block->irHead; ir; ir = ir->next) {
             for (auto s = ir->asmHead; s; s = s->next) {
                 for (auto v : s->op) {
                     if (v->regType == REG_R) {
                         vals.insert(v);
-                    } else if (v->regType == REG_M && v->var == nullptr) {
+                    } else if (v->regType == REG_M && v->ref == nullptr) {
                         memVals.insert(v);
                     }
                 }
                 if (auto v = s->targetOp) {
                     if (v->regType == REG_R) {
                         vals.insert(v);
-                    } else if (v->regType == REG_M && v->var == nullptr) {
+                    } else if (v->regType == REG_M && v->ref == nullptr) {
                         memVals.insert(v);
                     }
                 }
@@ -188,9 +287,14 @@ void RegAllocator::allocReg(pIRFunc func) {
         regOrder.clear();
         conficted = false;
         makeGraph(func);
+        for (auto block = func->entry; block; block = block->asmNextBlock) {
+            cout << block->name << endl;
+            displayRegLive(block, vals);
+        }
         unordered_map<vReg*, unordered_set<vReg*> > bkConflict(conflictMap);
         priority_queue<vReg*, vector<vReg*>, ValConflictComparator> qvals;
         for (auto v : vals) {
+            assert(v->regType == REG_R);
             if (v->regId != -1) {
                 colored[v] = true;
                 regIds[v] = v->regId;
@@ -213,17 +317,26 @@ void RegAllocator::allocReg(pIRFunc func) {
         conflictMap = bkConflict;
         for (auto v : regOrder) {
             set<int> scolor{};
-            for (auto adj : conflictMap[v]) {
-                if (colored[adj]) {
-                    scolor.insert(regIds[adj]);
-                }
-            }
             if (!colored[v]) {
+                for (auto adj : conflictMap[v]) {
+                    if (colored[adj]) {
+                        scolor.insert(regIds[adj]);
+                    }
+                }
                 for (auto c : archInfo->genRegsId) {
                     if (scolor.find(c) == scolor.end()) {
                         colored[v] = true;
                         regIds[v] = c;
                         break;
+                    }
+                }
+            } else {
+                for (auto adj : conflictMap[v]) {
+                    if (colored[adj] && regIds[adj] == regIds[v]) {
+                        if (splitVal(v, adj)) {
+                            conficted = true;
+                            goto loop;
+                        }
                     }
                 }
             }
@@ -232,25 +345,26 @@ void RegAllocator::allocReg(pIRFunc func) {
             }
         }
         if (checkList.size()) {
-            auto splited = checkList.top();
-            splited->regType = REG_M;
-            memVals.insert(splited);
+            auto spilled = checkList.top();
+            spilled->regType = REG_M;
+            memVals.insert(spilled);
             for (auto b : func->blocks) {
                 for (auto ir = b->irHead; ir; ir = ir->next) {
                     for (auto s = ir->asmHead; s; s = s->next) {
                         vReg* mreg = nullptr;
                         for (int i = 0; i < s->op.size(); i++) {
-                            if (s->op[i] == splited) {
-                                mreg = new vReg(splited);
+                            if (s->op[i] == spilled) {
+                                mreg = new vReg(spilled);
                                 ir->addASMFront(
-                                    new ASMInstr(loadOp, mreg, {splited}), s);
+                                    new ASMInstr(loadOp, mreg, {spilled}), s);
                                 s->op[i] = mreg;
                             }
                         }
-                        if (s->targetOp && s->targetOp == splited) {
-                            mreg = new vReg(splited);
+                        if (s->targetOp && s->targetOp == spilled) {
+                            mreg = new vReg(spilled);
                             ir->addASMFront(
-                                new ASMInstr(storeOp, splited, {mreg}), s);
+                                new ASMInstr(storeOp, nullptr, {mreg, spilled}),
+                                s);
                             s->targetOp = mreg;
                         }
                     }
@@ -258,6 +372,7 @@ void RegAllocator::allocReg(pIRFunc func) {
             }
             conficted = true;
         }
+    loop:;
     } while (conficted);
     for (auto [r, c] : regIds) {
         r->regId = c;

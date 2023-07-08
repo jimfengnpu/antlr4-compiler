@@ -48,18 +48,18 @@ void AsmEmitter::emitData(SymbolTable* table) {
 
 string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
     if (reg->regType == REG_IMM) {
-        return to_string(reg->immVal);
+        return to_string(reg->getValue());
     }
     if (reg->var) {
         return reg->var->name;
     }
     int regId = reg->regId;
-    int off = reg->stackMemOff;
+    int off = reg->value;
     for (auto v = reg->ref; v; v = v->ref) {
-        // if (regId != -1) {
-        //     break;
-        // }
-        off += v->stackMemOff;
+        if (regId != -1) {
+            break;
+        }
+        off += v->value;
         regId = v->regId;
     }
     string s =
@@ -77,26 +77,23 @@ void AsmEmitter::printAsm(ASMInstr* instr) {
     }
     fout << "\t" << opName;
     bool start = false;
-    if (opName != callOp) {
+    if (opName != callOp && opName != "ret") {
         deque<vReg*> ops{};
         for (auto p : instr->op) {
             ops.push_back(p);
         }
         int memTypeIdx = -1;
         if (instr->targetOp) {
-            if (opName == storeOp || opName == storeDwOp) {
-                ops.push_back(instr->targetOp);
-                memTypeIdx = 1;
-            } else {
-                ops.push_front(instr->targetOp);
-                if (opName == loadOp || opName == loadDwOp) {
-                    memTypeIdx = 1;
-                }
-            }
+            ops.push_front(instr->targetOp);
+        }
+        if (opName == storeOp || opName == storeDwOp || opName == loadOp ||
+            opName == loadDwOp) {
+            // ops.push_back(instr->targetOp);
+            memTypeIdx = 1;
         }
         if (int s = ops.size()) {
             for (int i = 0; i < s; i++) {
-                fout << (start ? ", " : "\t")
+                fout << (start ? "," : "\t")
                      << printAsmOp(ops[i], i == memTypeIdx);
                 start = true;
             }

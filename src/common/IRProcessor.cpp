@@ -71,10 +71,10 @@ void LiveCalculator::makeLive(pIRFunc& func) {
             auto& useRegs = block->useRegs;
             auto& defRegs = block->defRegs;
             for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
-                for (auto s = ir->asmHead; s; s = s->next) {
+                for (auto s = /*block*/ir->asmHead; s; s = s->next) {
                     for (auto v : s->op) {
                         if (v->regType == REG_R &&
-                            defRegs.find(v) == defRegs.end()) {
+                            defRegs.find(v) == defRegs.end() && s->name != "call") {
                             useRegs.insert(v);
                         }
                     }

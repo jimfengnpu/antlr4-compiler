@@ -213,6 +213,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
                 }
             }
             insertIR(IRType::CALL, ctx->obj, funcObj, nullptr);
+            curFunc->callList.insert(funcObj);
         } else {
             ctx->obj = ctx->exp(0)->obj;
         }

@@ -31,7 +31,6 @@ class InstrMatcher : public IRProcessor {
                     blocks.pop_front();
                     vec.clear();
                     if (!visited[block]) {
-                        cout << block->name << " ";
                         visited[block] = true;
                         if (last) {
                             last->asmNextBlock = block;

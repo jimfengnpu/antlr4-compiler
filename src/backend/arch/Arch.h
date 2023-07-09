@@ -20,6 +20,7 @@ using namespace std;
 #define loadImmOp "li"
 #define assignOp "mv"
 #define callOp "call"
+#define framePtrRegId 8
 
 #define memByteAlign 4
 #define paramRegCnt 8
@@ -63,6 +64,9 @@ class BaseArch {
         for (int r : regs) {
             regSet.insert(r);
         }
+    }
+    void setMemStackPosition(vReg* val, pIRFunc func){
+
     }
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;

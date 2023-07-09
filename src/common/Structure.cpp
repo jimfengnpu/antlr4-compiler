@@ -282,10 +282,12 @@ bool IRBlock::finishBB(pBlock next_normal, pBlock next_branch,
     branchVal = branch_val;
     if (nullptr != branch_val) {
         branchIR = make_shared<SysYIR>(IRType::BR, nullptr, branchVal, nullptr);
-        branchIR->prev = irTail;
-        if (irTail) {
-            irTail->next = branchIR;
-        }
+    } else {
+        branchIR = make_shared<SysYIR>(IRType::NOP, nullptr, nullptr, nullptr);
+    }
+    branchIR->prev = irTail;
+    if (irTail) {
+        irTail->next = branchIR;
     }
     return true;
 }

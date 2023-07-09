@@ -18,6 +18,7 @@ class liveRange {
     liveRange(pBlock b, int s, int e) : block(b), start(s), end(e) {}
 };
 
+static pIRFunc curFunc;
 static unordered_map<vReg*, int> valCost{};
 static unordered_map<vReg*, map<pBlock, vector<liveRange*> > > regLive;
 static unordered_map<vReg*, unordered_set<vReg*> > conflictMap;
@@ -47,6 +48,7 @@ class RegAllocator : public IRProcessor {
    public:
     RegAllocator(BaseArch* arch) : archInfo(arch) {}
     void allocReg(pIRFunc func);
+    void getVregClass(vReg* r);
     virtual pBlock visit(pBlock);
     void addLoopWeight(pBlock block);
     void makeBlockLiveRange(pBlock block);
@@ -54,7 +56,6 @@ class RegAllocator : public IRProcessor {
     virtual void apply(Prog& prog) {
         for (auto func : prog.functions) {
             if (func->entry != nullptr) {
-
                 allocReg(func);
                 unordered_set<int> regUsed{};
                 for (auto v : vals) {

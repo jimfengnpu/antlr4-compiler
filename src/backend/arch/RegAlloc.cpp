@@ -18,7 +18,7 @@ inline bool isLive(pBlock block, vReg* reg, int p) {
     }
     return false;
 }
-
+#ifdef VAL_REG
 void displayRegLive(pBlock block, set<vReg*>& vals) {
     int sid = 0;
     int xid = 0;
@@ -51,7 +51,7 @@ void displayRegLive(pBlock block, set<vReg*>& vals) {
         }
     }
 }
-
+#endif
 bool intersectConflict(vReg* a, vReg* b, pBlock block, int* s, int* e) {
     if (!a || !b) return false;
     if (a == b) return false;
@@ -88,6 +88,7 @@ bool splitVal(vReg* a, vReg* b) {
     for (auto [blk, ra] : regLive[a]) {
         auto rb = regLive[b][blk];
         if (rb.size() && ra.size()) {
+#ifdef VAL_REG
             cout << blk->name << endl;
             for (auto r : regLive[a][blk]) {
                 cout << "[" << r->start << "," << r->end << "] ";
@@ -97,6 +98,7 @@ bool splitVal(vReg* a, vReg* b) {
                 cout << "[" << r->start << "," << r->end << "] ";
             }
             cout << endl;
+#endif
             if (intersectConflict(a, b, blk, &s, &e)) {
                 int i = 0;
                 for (auto ir = blk->irHead; ir; ir = ir->next) {
@@ -172,7 +174,6 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
     set<vReg*> liveNow{};
     for (auto ir = block->irHead; ir; ir = ir->next) {
         for (auto s = ir->asmHead; s; s = s->next) {
-            // cout << sid << ": " << s->name << endl;
             sid++;
             asmVec.push_back(s);
         }
@@ -233,6 +234,20 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
     }
 }
 
+void RegAllocator::getVregClass(vReg* v) {
+    if (v->regType == REG_R) {
+        vals.insert(v);
+    } else if (v->regType == REG_M) {
+        if (v->ref == nullptr) {
+            if (v->var == nullptr) {
+                memVals.insert(v);
+            }
+        } else {
+            getVregClass(v->ref);
+        }
+    }
+}
+
 void RegAllocator::makeGraph(pIRFunc func) {
     vals.clear();
     memVals.clear();
@@ -243,24 +258,18 @@ void RegAllocator::makeGraph(pIRFunc func) {
         }
     }
     regLive.clear();
-    // assembly add id
+// assembly add id
+#ifdef VAL_REG
     cout << "make " << func->name << endl;
+#endif
     for (pBlock block = func->entry; block; block = block->asmNextBlock) {
         for (auto ir = block->irHead; ir; ir = ir->next) {
             for (auto s = ir->asmHead; s; s = s->next) {
                 for (auto v : s->op) {
-                    if (v->regType == REG_R) {
-                        vals.insert(v);
-                    } else if (v->regType == REG_M && v->ref == nullptr) {
-                        memVals.insert(v);
-                    }
+                    getVregClass(v);
                 }
                 if (auto v = s->targetOp) {
-                    if (v->regType == REG_R) {
-                        vals.insert(v);
-                    } else if (v->regType == REG_M && v->ref == nullptr) {
-                        memVals.insert(v);
-                    }
+                    getVregClass(v);
                 }
             }
         }
@@ -287,10 +296,12 @@ void RegAllocator::allocReg(pIRFunc func) {
         regOrder.clear();
         conficted = false;
         makeGraph(func);
+#ifdef VAL_REG
         for (auto block = func->entry; block; block = block->asmNextBlock) {
             cout << block->name << endl;
             displayRegLive(block, vals);
         }
+#endif
         unordered_map<vReg*, unordered_set<vReg*> > bkConflict(conflictMap);
         priority_queue<vReg*, vector<vReg*>, ValConflictComparator> qvals;
         for (auto v : vals) {
@@ -347,6 +358,10 @@ void RegAllocator::allocReg(pIRFunc func) {
         if (checkList.size()) {
             auto spilled = checkList.top();
             spilled->regType = REG_M;
+            curFunc->stackCapacity.value += memByteAlign;
+            spilled->value = -curFunc->stackCapacity.value;
+            spilled->ref = &curFunc->stackCapacity;
+            spilled->size = 1;
             memVals.insert(spilled);
             for (auto b : func->blocks) {
                 for (auto ir = b->irHead; ir; ir = ir->next) {

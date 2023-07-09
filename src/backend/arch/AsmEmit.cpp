@@ -4,7 +4,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
     for (auto [s, v] : table->symbols) {
         if (auto val = toVal(v)) {
             auto scal = toScal(val);
-            if (scal && !scal->isConst) {
+            if (scal) {
                 fout << "\t" << ((scal->isConst) ? SEC_RO : SEC_RW) << endl;
                 fout << "\t" << ASM_DECL(scal->name) << endl;
                 fout << scal->name << ":\n";
@@ -14,7 +14,7 @@ void AsmEmitter::emitData(SymbolTable* table) {
                 fout << "\t" << ((arr->isConst) ? SEC_RO : SEC_RW) << endl;
                 fout << "\t" << ASM_DECL(arr->name) << endl;
                 fout << arr->name << ":\n";
-                int size = arr->size;
+                int size = 4 * arr->size;
                 int zeroSize = 0;
                 int addr = runner->globalData.frameData[arr];
                 int i = addr;
@@ -22,24 +22,24 @@ void AsmEmitter::emitData(SymbolTable* table) {
                      itr != runner->addr2val.end() && itr->first - addr < size;
                      itr++) {
                     zeroSize += itr->first - i;
-                    i = itr->first + 1;
+                    i = itr->first + 4;
                     int value = itr->second;
                     if (value) {
                         if (zeroSize) {
                             fout << "\t" << ASM_DATA_ZERO << " "
-                                 << to_string(memByteAlign * zeroSize) << endl;
+                                 << to_string(zeroSize) << endl;
                             zeroSize = 0;
                         }
                         fout << "\t" << ASM_DATA_VAL << " " << to_string(value)
                              << endl;
                     } else {
-                        zeroSize++;
+                        zeroSize += 4;
                     }
                 }
                 zeroSize += addr + size - i;
                 if (zeroSize) {
-                    fout << "\t" << ASM_DATA_ZERO << " "
-                         << to_string(memByteAlign * zeroSize) << endl;
+                    fout << "\t" << ASM_DATA_ZERO << " " << to_string(zeroSize)
+                         << endl;
                 }
             }
         }
@@ -55,15 +55,15 @@ string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
     }
     int regId = reg->regId;
     int off = reg->value;
-    for (auto v = reg->ref; v; v = v->ref) {
+    for (auto v = reg; v->ref; v = v->ref) {
+        off += v->value;
+        regId = v->regId;
         if (regId != -1) {
             break;
         }
-        off += v->value;
-        regId = v->regId;
     }
     string s =
-        archInfo->regs[regId == -1 ? archInfo->stackPointerRegId : regId];
+        archInfo->regs[regId == -1 ? (framePtrRegId) : regId];
     if (!memType) {
         return s;
     }
@@ -113,12 +113,12 @@ void AsmEmitter::emitFunc(pIRFunc func) {
         if (block != func->entry) {
             fout << block->name << ":\n";
         } else {
-            for (auto s : func->initInstrs) {
+            for (auto s = func->initInstrs->asmHead; s; s = s->next) {
                 printAsm(s);
             }
         }
         if (block == func->exit) {
-            for (auto s : func->exitInstrs) {
+            for (auto s = func->exitInstrs->asmHead; s; s = s->next) {
                 printAsm(s);
             }
         }

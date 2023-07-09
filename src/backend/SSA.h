@@ -125,7 +125,7 @@ class SSAFinalizer : public IRProcessor {
                                 insertBlock = newBlock;
                             }
                             pSysYIR tail = nullptr;
-                            if (insertBlock->branchIR) {
+                            if (insertBlock->branchVal) {
                                 tail = insertBlock->irTail;
                             }
                             insertBlock->insertIR(IRType::ASSIGN, phiDefObj,

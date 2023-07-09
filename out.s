@@ -1,247 +1,414 @@
 	.data
-	.global n
-n:
-	.word 0
+	.global cns
+cns:
+	.zero 80
+	.data
+	.global dp
+dp:
+	.zero 52907904
+	.data
+	.global list
+list:
+	.zero 800
+	.section .rodata
+	.global maxn
+maxn:
+	.word 18
+	.section .rodata
+	.global mod
+mod:
+	.word 1000000007
 	.text
-	.global swap
-swap:
-	addi	sp,sp,-16
-	sd	s0,0(sp)
-	addi	s0,sp,16
-	addi	a3,a1,0
-	slli	a3,a3,2
-	addi	a3,a3,0
-	add	a3,a0,a3
-	lw	a3,0(a3)
-	mv	a4,a3
-	addi	a3,a2,0
-	slli	a3,a3,2
-	addi	a3,a3,0
-	add	a3,a0,a3
-	addi	a1,a1,0
-	slli	a1,a1,2
-	addi	a1,a1,0
-	add	a1,a0,a1
-	lw	a3,0(a3)
-	sw	a3,0(a1)
-	addi	a1,a2,0
-	slli	a1,a1,2
-	addi	a1,a1,0
-	add	a0,a0,a1
-	mv	a1,a4
-	sw	a1,0(a0)
-	j	.L2
-.L2:
-	ld	s0,0(sp)
-	addi	sp,sp,16
-	li	a0,0
-	ret
-	.text
-	.global heap_ajust
-heap_ajust:
-	addi	sp,sp,-48
-	sd	ra,32(sp)
-	sd	s0,24(sp)
-	sd	s3,16(sp)
-	sd	s2,8(sp)
-	sd	s1,0(sp)
-	addi	s0,sp,48
-	li	a3,2
-	mul	a3,a1,a3
-	addi	a3,a3,1
+	.global equal
+equal:
+	addi	sp,sp,-8
+	sd	s0,0(s0)
+	addi	s0,sp,8
+	addi	sp,sp,-8
+	beq	a0,a1, .L2
 	j	.L4
-.L4:
-	addi	a4,a2,1
-	blt	a3,a4, .L5
-	j	.L14
+.L2:
+	li	a0,1
+	j	.L5
 .L5:
-	mv	s1,a3
-	blt	a3,a2, .L10
-	j	.L9
-.L10:
-	addi	a4,a3,0
-	slli	a4,a4,2
-	addi	a4,a4,0
-	add	a5,a0,a4
-	addi	a4,a3,1
-	addi	a4,a4,0
-	slli	a4,a4,2
-	addi	a4,a4,0
-	add	a4,a0,a4
-	mv	s1,a3
-	lw	a4,0(a4)
-	lw	a5,0(a5)
-	blt	a5,a4, .L7
+	ld	s0,0(s0)
+	addi	sp,sp,8
+	addi	sp,sp,8
+	ret
+.L4:
+	li	a0,0
+	j	.L5
+	.text
+	.global dfs
+dfs:
+	addi	sp,sp,-88
+	sd	ra,80(s0)
+	sd	s0,72(s0)
+	sd	s9,64(s0)
+	sd	s8,56(s0)
+	sd	s7,48(s0)
+	sd	s6,40(s0)
+	sd	s5,32(s0)
+	sd	s4,24(s0)
+	sd	s3,16(s0)
+	sd	s2,8(s0)
+	sd	s1,0(s0)
+	addi	s0,sp,88
+	addi	sp,sp,-8
+	addi	a7,a0,0
+	li	a6,18
+	mul	a6,a6,a7
+	add	a6,a1,a6
+	li	a7,18
+	mul	a6,a7,a6
+	add	a7,a2,a6
+	li	a6,18
+	mul	a6,a6,a7
+	add	a6,a3,a6
+	li	a7,18
+	mul	a6,a7,a6
+	add	a7,a4,a6
+	li	a6,7
+	mul	a6,a6,a7
+	add	a6,a5,a6
+	slli	a6,a6,2
+	la	a7,dp
+	addi	a6,a6,0
+	add	a7,a7,a6
+	li	a6,-1
+	lw	a7,0(a7)
+	bne	a7,a6, .L7
 	j	.L9
 .L7:
-	addi	a3,a3,1
-	mv	s1,a3
-	j	.L9
-.L9:
-	addi	a3,a1,0
-	slli	a3,a3,2
-	addi	a3,a3,0
-	add	a3,a0,a3
-	addi	a4,s1,0
-	slli	a4,a4,2
-	addi	a4,a4,0
-	add	a4,a0,a4
-	lw	a4,0(a4)
-	lw	a3,0(a3)
-	bgt	a3,a4, .L14
-	j	.L12
-.L14:
-	ld	s1,0(sp)
-	ld	s2,8(sp)
-	ld	s3,16(sp)
-	ld	s0,24(sp)
-	ld	ra,32(sp)
-	addi	sp,sp,48
-	li	a0,0
+	addi	a0,a0,0
+	li	a6,18
+	mul	a0,a6,a0
+	add	a1,a1,a0
+	li	a0,18
+	mul	a0,a0,a1
+	add	a1,a2,a0
+	li	a0,18
+	mul	a0,a0,a1
+	add	a1,a3,a0
+	li	a0,18
+	mul	a0,a0,a1
+	add	a1,a4,a0
+	li	a0,7
+	mul	a0,a0,a1
+	add	a0,a5,a0
+	slli	a0,a0,2
+	la	a1,dp
+	addi	a0,a0,0
+	add	a0,a1,a0
+	lw	a0,0(a0)
+	j	.L10
+.L10:
+	ld	s1,0(s0)
+	ld	s2,8(s0)
+	ld	s3,16(s0)
+	ld	s4,24(s0)
+	ld	s5,32(s0)
+	ld	s6,40(s0)
+	ld	s7,48(s0)
+	ld	s8,56(s0)
+	ld	s9,64(s0)
+	ld	s0,72(s0)
+	ld	ra,80(s0)
+	addi	sp,sp,8
+	addi	sp,sp,88
 	ret
-.L12:
-	addi	a3,a0,0
-	mv	s3,a2
-	mv	a2,s1
-	mv	s2,a0
-	mv	a0,a3
-	call	swap
-	mv	a2,s3
-	mv	a0,s2
-	mv	a1,s1
-	li	a3,2
-	mul	a3,a1,a3
-	addi	a3,a3,1
-	j	.L4
-	.text
-	.global heap_sort
-heap_sort:
-	addi	sp,sp,-48
-	sd	ra,32(sp)
-	sd	s0,24(sp)
-	sd	s3,16(sp)
-	sd	s2,8(sp)
-	sd	s1,0(sp)
-	addi	s0,sp,48
-	li	a2,2
-	div	a2,a1,a2
-	addi	a2,a2,-1
-	mv	s1,a2
+.L9:
+	add	a6,a0,a1
+	add	a6,a6,a2
+	add	a6,a6,a3
+	add	a6,a6,a4
+	beqz	a6, .L11
+	j	.L13
+.L11:
+	li	a0,1
+	j	.L10
+.L13:
+	bnez	a0, .L14
+	j	.L16
+.L14:
+	li	a6,2
+	mv	s3,a1
+	mv	a1,a6
+	mv	s4,a0
+	mv	s5,a4
+	mv	s6,a2
+	mv	a6,a0
+	mv	a5,a0
+	mv	a4,a0
+	mv	a3,a0
+	mv	a0,a5
+	call	equal
+	mv	a3,a4
+	mv	a5,a6
+	mv	a2,s6
+	mv	a4,s5
+	mv	a1,s3
+	mv	a6,a0
+	mv	a0,s4
+	sub	s3,a0,a6
+	addi	a6,a0,-1
+	li	a7,1
+	mv	s5,a5
+	mv	a5,a7
+	mv	s4,a4
+	mv	s7,a3
+	mv	s8,a2
+	mv	s9,a1
+	mv	s6,a0
+	mv	a0,a6
+	call	dfs
+	mv	a1,s9
+	mv	a2,s8
+	mv	a3,s7
+	mv	a4,s4
+	mv	a5,s5
+	mv	a6,a0
+	mv	a0,s6
+	mul	a6,s3,a6
+	addi	a6,a6,0
+	la	a7,mod
+	lw	a7,0(a7)
+	rem	a6,a6,a7
 	j	.L16
 .L16:
-	li	a2,-1
-	bgt	s1,a2, .L17
-	j	.L18
 .L17:
-	addi	a2,a1,-1
-	addi	a3,a0,0
-	mv	s2,a1
-	mv	a1,s1
+	li	a6,3
+	mv	s4,a1
+	mv	a1,a6
+	mv	a6,a0
+	mv	a5,a0
+	mv	s5,a0
+	mv	a4,a0
+	mv	a7,a0
+	mv	a3,a0
+	mv	s6,a0
+	mv	a2,a0
 	mv	s3,a0
-	mv	a0,a3
-	call	heap_ajust
-	mv	a1,s2
+	mv	a0,a5
+	call	equal
+	mv	a1,s4
+	mv	a2,s6
+	mv	a3,a7
+	mv	a4,s5
+	mv	a5,a6
+	mv	a6,a0
 	mv	a0,s3
-	addi	a2,s1,-1
-	mv	s1,a2
-	j	.L16
-.L18:
-	addi	a1,a1,-1
-	mv	s1,a1
+	sub	s3,a1,a6
+	addi	a6,a0,1
+	addi	a7,a1,-1
+	li	s5,2
+	mv	s4,a5
+	mv	a5,s5
+	mv	s5,a4
+	mv	s7,a3
+	mv	s8,a2
+	mv	s9,a1
+	mv	a1,a7
+	mv	s6,a0
+	mv	a0,a6
+	call	dfs
+	mv	a1,s9
+	mv	a2,s8
+	mv	a3,s7
+	mv	a4,s5
+	mv	a5,s4
+	mv	a6,a0
+	mv	a0,s6
+	mul	a6,s3,a6
+	addi	a6,a6,0
+	la	a7,mod
+	lw	a7,0(a7)
+	rem	a6,a6,a7
 	j	.L19
 .L19:
-	li	a1,0
-	bgt	s1,a1, .L20
-	j	.L22
 .L20:
-	addi	a3,a0,0
-	mv	a2,s1
-	li	a1,0
-	mv	s2,a0
-	mv	a0,a3
-	call	swap
-	mv	a0,s2
-	addi	a1,s1,-1
-	addi	a3,a0,0
-	mv	a2,a1
-	li	a1,0
-	mv	s2,a0
-	mv	a0,a3
-	call	heap_ajust
-	mv	a0,s2
-	addi	a1,s1,-1
-	mv	s1,a1
-	j	.L19
+	li	a6,4
+	mv	s4,a1
+	mv	a1,a6
+	mv	a6,a0
+	mv	a5,a0
+	mv	a7,a0
+	mv	a4,a0
+	mv	s5,a0
+	mv	a3,a0
+	mv	s6,a0
+	mv	a2,a0
+	mv	s3,a0
+	mv	a0,a5
+	call	equal
+	mv	a1,s4
+	mv	a2,s6
+	mv	a3,s5
+	mv	a4,a7
+	mv	a5,a6
+	mv	a6,a0
+	mv	a0,s3
+	sub	s4,a2,a6
+	addi	a6,a1,1
+	addi	a7,a2,-1
+	li	s3,3
+	mv	s5,a5
+	mv	a5,s3
+	mv	s6,a4
+	mv	s7,a3
+	mv	s8,a2
+	mv	a2,a7
+	mv	s9,a1
+	mv	a1,a6
+	mv	s3,a0
+	call	dfs
+	mv	a1,s9
+	mv	a2,s8
+	mv	a3,s7
+	mv	a4,s6
+	mv	a5,s5
+	mv	a6,a0
+	mv	a0,s3
+	mul	a6,s4,a6
+	addi	a6,a6,0
+	la	a7,mod
+	lw	a7,0(a7)
+	rem	a6,a6,a7
+	j	.L22
 .L22:
-	ld	s1,0(sp)
-	ld	s2,8(sp)
-	ld	s3,16(sp)
-	ld	s0,24(sp)
-	ld	ra,32(sp)
-	addi	sp,sp,48
-	li	a0,0
-	ret
+.L23:
+	li	a6,5
+	mv	s4,a1
+	mv	a1,a6
+	mv	a6,a0
+	mv	a5,a0
+	mv	a7,a0
+	mv	a4,a0
+	mv	s5,a0
+	mv	a3,a0
+	mv	s6,a0
+	mv	a2,a0
+	mv	s3,a0
+	mv	a0,a5
+	call	equal
+	mv	a1,s4
+	mv	a2,s6
+	mv	a3,s5
+	mv	a4,a7
+	mv	a5,a6
+	mv	a6,a0
+	mv	a0,s3
+	sub	s4,a3,a6
+	addi	a6,a2,1
+	addi	a7,a3,-1
+	li	s3,4
+	mv	s6,a5
+	mv	a5,s3
+	mv	s5,a4
+	mv	s7,a3
+	mv	a3,a7
+	mv	s8,a2
+	mv	a2,a6
+	mv	s9,a1
+	mv	s3,a0
+	call	dfs
+	mv	a1,s9
+	mv	a2,s8
+	mv	a3,s7
+	mv	a4,s5
+	mv	a5,s6
+	mv	a6,a0
+	mv	a0,s3
+	mul	a6,s4,a6
+	addi	a6,a6,0
+	la	a7,mod
+	lw	a7,0(a7)
+	rem	a6,a6,a7
+	j	.L25
+.L25:
+.L26:
+	addi	a6,a3,1
+	addi	a7,a4,-1
+	li	s2,5
+	mv	s3,a5
+	mv	a5,s2
+	mv	s4,a4
+	mv	a4,a7
+	mv	s6,a3
+	mv	a3,a6
+	mv	s5,a2
+	mv	s7,a1
+	mv	s2,a0
+	call	dfs
+	mv	a1,s7
+	mv	a2,s5
+	mv	a3,s6
+	mv	a4,s4
+	mv	a5,s3
+	mv	a6,a0
+	mv	a0,s2
+	mul	a6,a4,a6
+	addi	a6,a6,0
+	la	a7,mod
+	lw	a7,0(a7)
+	rem	a6,a6,a7
+	mv	s2,a6
+	j	.L28
+.L28:
+	la	a6,mod
+	lw	a6,0(a6)
+	rem	a6,s2,a6
+	addi	a7,a0,0
+	li	s1,18
+	mul	a7,s1,a7
+	add	a7,a1,a7
+	li	s1,18
+	mul	a7,s1,a7
+	add	a7,a2,a7
+	li	s1,18
+	mul	a7,s1,a7
+	add	a7,a3,a7
+	li	s1,18
+	mul	a7,s1,a7
+	add	a7,a4,a7
+	li	s1,7
+	mul	a7,s1,a7
+	add	a7,a5,a7
+	slli	a7,a7,2
+	la	s1,dp
+	addi	a7,a7,0
+	add	a7,s1,a7
+	sw	a6,0(a7)
+	addi	a6,a0,0
+	li	a0,18
+	mul	a0,a0,a6
+	add	a0,a1,a0
+	li	a1,18
+	mul	a0,a1,a0
+	add	a0,a2,a0
+	li	a1,18
+	mul	a0,a1,a0
+	add	a1,a3,a0
+	li	a0,18
+	mul	a0,a0,a1
+	add	a0,a4,a0
+	li	a1,7
+	mul	a0,a1,a0
+	add	a0,a5,a0
+	slli	a1,a0,2
+	la	a0,dp
+	addi	a1,a1,0
+	add	a0,a0,a1
+	lw	a0,0(a0)
+	j	.L10
 	.text
 	.global main
 main:
-	addi	sp,sp,-80
-	sd	ra,64(sp)
-	sd	s0,56(sp)
-	sd	s2,48(sp)
-	sd	s1,40(sp)
-	addi	s0,sp,80
-	li	a0,10
-	mv	a1,a0
-	la	a0,n
-	sw	a1,0(a0)
-	li	a0,4
-	sw	a0,-80(s0)
-	li	a0,3
-	sw	a0,-76(s0)
-	li	a0,9
-	sw	a0,-72(s0)
-	li	a0,2
-	sw	a0,-68(s0)
-	li	a0,0
-	sw	a0,-64(s0)
-	li	a0,1
-	sw	a0,-60(s0)
-	li	a0,6
-	sw	a0,-56(s0)
-	li	a0,5
-	sw	a0,-52(s0)
-	li	a0,7
-	sw	a0,-48(s0)
-	li	a0,8
-	sw	a0,-44(s0)
-	addi	a0,s0,-80
-	la	a1,n
-	lw	a1,0(a1)
-	call	heap_sort
-	mv	s2,a0
-	j	.L24
-.L24:
-	la	a0,n
-	lw	a0,0(a0)
-	blt	s2,a0, .L25
-	j	.L27
-.L25:
-	addi	a0,s2,0
-	slli	a0,a0,2
-	addi	a0,a0,-80
-	add	a0,s0,a0
-	lw	a0,0(a0)
-	call	putint
-	li	a0,10
-	call	putch
-	addi	a0,s2,1
-	mv	s2,a0
-	j	.L24
-.L27:
-	ld	s1,40(sp)
-	ld	s2,48(sp)
-	ld	s0,56(sp)
-	ld	ra,64(sp)
-	addi	sp,sp,80
-	li	a0,0
-	ret
+	addi	sp,sp,-32
+	sd	ra,24(s0)
+	sd	s0,16(s0)
+	sd	s2,8(s0)
+	sd	s1,0(s0)
+	addi	s0,sp,32
+	addi	sp,sp,0
+	call	getint

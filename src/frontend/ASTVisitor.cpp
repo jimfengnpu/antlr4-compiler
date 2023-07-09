@@ -92,7 +92,8 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj,
             pIRScalValObj expVal = toScal(any_cast<pIRValObj>(visitExp(exp)));
             pIRScalValObj arrMemVal = newObj<IRScalValObj>(obj, "");
             assert(nullptr != curBlock);
-            insertIR(IRType::IDX, arrMemVal, obj, newObj<IRScalValObj>(start));
+            insertIR(IRType::IDX, arrMemVal, obj,
+                     newObj<IRScalValObj>(start * 4));
             insertIR(IRType::ASSIGN, arrMemVal, expVal, nullptr);
             start++;
         } else if (childSize && start % childSize == 0) {
@@ -102,6 +103,12 @@ void ASTVisitor::initArrVal(SysYParser::InitValContext* ctx, pIRArrValObj obj,
             initArrVal(initVal, obj, 1, level, start);
             start++;
         }
+    }
+    while (start < s + size) {
+        auto elem = newObj<IRScalValObj>(obj, "");
+        insertIR(IRType::IDX, elem, obj, newObj<IRScalValObj>(start * 4));
+        insertIR(IRType::ASSIGN, elem, newObj<IRScalValObj>(0), nullptr);
+        start++;
     }
 }
 

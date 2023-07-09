@@ -19,6 +19,7 @@ using namespace std;
 #define VAL_IR 1
 // #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
+#define VAL_REG 1
 
 // #define VAL_RUN 1
 
@@ -85,13 +86,16 @@ class Printable {
 class vReg : public Printable {
    public:
     /*
-     * REG_R: data usually in phy reg
+     * REG_R: data usually in phy reg used for determine whether alloc reg
      *     regId: equals enum value of coresponding reg
      * REG_M: data usually in mem (.data or stack)
-     *     var: == nullptr: stack mem, stackMemOff: offset with frame
-     * pointer(usually neg)
-     *     else:       var: base var of this mem(global name or
-     * arr fa) stackMemOff: offset with var
+     *
+     * vReg actually a value (getValue func return)
+     * in backend procedure, ref is used to refer dynamic value 
+     * if regId != -1 it means this->value + $regId (value as offset)
+     * regId == -1,
+     * and if ref != nullptr ,value = this->value + ref->getValue()
+     * or value is just this->value
      */
     int regType = REG_R;
     int value = 0;
@@ -127,6 +131,7 @@ class IRObj : public Printable {
     // for BB: .L + index in CFG_master/branch/loop
 
     bool isIdent;
+    pIRFunc func;
     IRObj() {}
     IRObj(bool isIndent, string name) : isIdent(isIndent), name(name) {}
     virtual void print(ostream &os) const;
@@ -299,6 +304,7 @@ static map<string, IRType> opfinder[2] = {
      {">=", IRType::GE}}};
 static string IRTypeName(IRType type) {
     switch (type) {
+        IR_TO_STRING(IRType::NOP)
         IR_TO_STRING(IRType::ASSIGN)
         IR_TO_STRING(IRType::ADD)
         IR_TO_STRING(IRType::SUB)
@@ -469,8 +475,10 @@ class IRFunc : public IRObj {
 
     set<pIRValObj> vals;
     set<pIRFunc> callList;
-    deque<ASMInstr *> initInstrs;
-    deque<ASMInstr *> exitInstrs;
+    pSysYIR initInstrs;
+    pSysYIR exitInstrs;
+    // deque<ASMInstr *> initInstrs;
+    // deque<ASMInstr *> exitInstrs;
     vReg stackCapacity;
 
     SymbolTable *symbolTable;

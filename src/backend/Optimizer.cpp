@@ -224,7 +224,7 @@ void CodeCleaner::applyBlock(pBlock block) {
             changed = true;
         }
     }
-    if (block->branchIR) {
+    if (block->branchVal) {
         if (block->nextBranch == block->nextNormal) {
             block->branchVal = nullptr;
             block->nextBranch = nullptr;

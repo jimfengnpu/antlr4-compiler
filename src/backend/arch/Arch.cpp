@@ -18,8 +18,20 @@ bool BaseArch::matchIR(pSysYIR ir) {
 
 inline bool isImm(pIRScalValObj scal) {
     if (!scal) return false;
-    if (!scal->isConst) return false;
+    if (!scal->isConstant() ||
+        (scal->scopeSymbols && scal->scopeSymbols->isGlobal))
+        return false;
     return true;
+}
+
+inline bool isInLimit(int val, int width) {
+    int lim = 1 << width;
+    int v = val + lim / 2;
+    return v >= 0 && v < lim;
+}
+
+inline int getAligned(int x, int align) {
+    return ((x + align - 1) / align) * align;
 }
 
 inline bool isImm(pIRObj obj) { return isImm(toScal(obj)); }
@@ -28,11 +40,14 @@ inline bool isImm(vReg* val) { return val->regType == REG_IMM; }
 
 inline bool isImmInLimit(vReg* val, int width) {
     if (isImm(val)) {
-        int lim = 1 << width;
-        int v = val->getValue() + lim / 2;
-        return v >= 0 && v < lim;
+        return isInLimit(val->getValue(), width);
     }
     return false;
+}
+
+inline void setVregMem(vReg* val, pIRFunc func) {
+    func->stackCapacity.value += memByteAlign * val->size;
+    val->value = -func->stackCapacity.value;
 }
 
 vReg* getVREG(pIRValObj obj) {
@@ -56,6 +71,10 @@ vReg* getVREG(pIRValObj obj) {
         }
         if (obj->scopeSymbols && obj->scopeSymbols->isGlobal) {
             v->var = obj;
+        } else if ((!obj->isParam) && v->regType == REG_M) {
+            v->value = obj->func->stackCapacity.value;
+            v->ref = &obj->func->stackCapacity;
+            obj->func->stackCapacity.value += memByteAlign * v->size;
         }
     end:
         valRegs[obj] = v;
@@ -83,10 +102,12 @@ bool checkDoubleOpImm(
 }
 
 vReg* processSymbol(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
-    assert(val->var != nullptr);
-    vReg* nReg = new vReg();
-    ir->addASMFront(loadAddrOp, nReg, {val}, nullptr, instr);
-    return nReg;
+    if (val->var != nullptr) {
+        vReg* nReg = new vReg();
+        ir->addASMFront(loadAddrOp, nReg, {val}, nullptr, instr);
+        val = nReg;
+    }
+    return val;
 }
 
 vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
@@ -173,7 +194,7 @@ int matchCalInstr(string name, pSysYIR ir) {
 void RISCV::matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) {
     pBlock brTarget = block->nextBranch;
     pBlock nxTarget = block->nextNormal;
-    pSysYIR lastIr = block->irTail;
+    pSysYIR lastIr = block->branchIR;
     vector<pBlock> ret{};
     map<IRType, string> irBrAsm = {{IRType::NOT, "beqz"}, {IRType::EQ, "beq"},
                                    {IRType::NEQ, "bne"},  {IRType::GT, "bgt"},
@@ -320,11 +341,13 @@ void RISCV::defineArchInfo() {
              vReg* obj = getVREG(ir->target);
              if (checkDoubleOpImm(ir, offObj, arrObj, true,
                                   [](vReg* imm) -> bool { return true; }) &&
-                 (arrObj->regType == REG_M && !(toVal(ir->opt1)->isParam))) {
+                 (arrObj->regType == REG_M && arrObj->var == nullptr &&
+                  !(toVal(ir->opt1)->isParam))) {
                  obj->value = offObj->value;
                  obj->regType = REG_M;
              } else {
                  arrObj = getVREG(toVal(ir->opt1));
+                 arrObj = processSymbol(arrObj, ir);
                  offObj = getVREG(toVal(ir->opt2));
                  if (isImmInLimit(offObj, 12)) {
                      offObj = new vReg(offObj->value);
@@ -345,6 +368,7 @@ void RISCV::defineArchInfo() {
     addMatchers(IRType::ARR, {[](pSysYIR ir) -> int {
                     vReg* obj = getVREG(ir->target);
                     vReg* arrObj = getVREG(toVal(ir->opt1));
+                    arrObj = processSymbol(arrObj, ir);
                     vReg* offObj = getVREG(toVal(ir->opt2));
                     if (isImmInLimit(offObj, 12)) {
                         // 此处offset 应为参数offset + arr 相对arr寄存器的offset
@@ -358,7 +382,6 @@ void RISCV::defineArchInfo() {
                         ir->addASMBack("addi", offObj, {offObj, r});
                         ir->addASMBack("add", obj, {arrObj, offObj});
                     }
-                    // obj->ref = getVREG(toVal(ir->opt1));
                     obj->regType = REG_R;
                     return 1;
                 }});
@@ -399,12 +422,13 @@ void RISCV::defineArchInfo() {
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
+                    
                     while (paramCnt < 8) {
                         vReg* paramReg = newReg(a0 + paramCnt);
                         paramRegs.push_back(paramReg);
                         paramCnt++;
                     }
-                    vector<int> callerTmpRegs{t0, t1, t2, t3, t4, t5, t6, ra};
+                    vector<int> callerTmpRegs{t0, t1, t2, t3, t4, t5, t6};
                     for (auto r : callerTmpRegs) {
                         vReg* paramReg = newReg(r);
                         paramRegs.push_back(paramReg);
@@ -445,6 +469,8 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
     auto& exitInstrs = func->exitInstrs;
     vector<int> stackRegs{};
     vector<vReg*> stackMem{};
+    // if (func->stackCapacity.value) {
+    // }
     for (auto r : calleeSaveRegs) {
         if (useRegs.find(r) != useRegs.end()) {
             stackRegs.push_back(r);
@@ -454,42 +480,52 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
     if (func->callList.size() > 0) {
         stackRegs.push_back(ra);
     }
-    for (auto m : useStk) {
-        m->regId = s0;
-        stackMem.push_back(m);
-    }
+    func->stackCapacity.regId = s0;
+    // vReg regStackSize = new vReg();  // func->stackCapacity.value;
+    int regStackSize = 0;
+    // // max limit , avoid extra li in init & exit
+    // bool stackOver = false;
+    // if(func->stackCapacity.value > regStackLimit){
+    //     regStackSize = regStackLimit;
+    //     stackOver = true;
+    // }
     for (auto r : stackRegs) {
         vReg* mReg = new vReg();
         mReg->regType = REG_M;
-        mReg->value = func->stackCapacity.value;
         mReg->size = 2;
-        initInstrs.push_front(new ASMInstr("sd", nullptr, {newReg(r), mReg}));
-        exitInstrs.push_back(new ASMInstr("ld", newReg(r), {mReg}));
-        stackMem.push_back(mReg);
+        mReg->value = regStackSize;
+        regStackSize += 8;
+        initInstrs->addASMFront("sd", nullptr, {newReg(r), mReg});
+        exitInstrs->addASMBack("ld", newReg(r), {mReg});
     }
-    // order: fifo (sp->s0, mem, regs)
-    for (auto m : stackMem) {
-        m->value = func->stackCapacity.value;
-        func->stackCapacity.value += memByteAlign * m->size;
-    }
+    func->stackCapacity.value += regStackSize;
+    // order: fifo (sp->s0, mem)
     func->stackCapacity.value =
-        ((func->stackCapacity.value + frameByteAlign - 1) / frameByteAlign) *
-        frameByteAlign;
+        getAligned(func->stackCapacity.value, frameByteAlign);
     if (func->stackCapacity.value) {
-        for (auto m : stackMem) {
-            if (m->regId == s0) {
-                m->value = m->value - func->stackCapacity.value;
-            }
+        // todo check
+        initInstrs->addASMFront("addi", newReg(sp),
+                                {newReg(sp), new vReg(-regStackSize)});
+        initInstrs->addASMBack("addi", newReg(s0),
+                               {newReg(sp), new vReg(regStackSize)});
+        int left_sp = func->stackCapacity.value - regStackSize;
+        if (isInLimit(-left_sp, 12)) {
+            initInstrs->addASMBack("addi", newReg(sp),
+                                   {newReg(sp), new vReg(-left_sp)});
+        } else {
+            initInstrs->addASMBack("li", newReg(t0), {new vReg(-left_sp)});
+            initInstrs->addASMBack("add", newReg(sp), {newReg(sp), newReg(t0)});
         }
-        initInstrs.push_front(
-            new ASMInstr("addi", newReg(sp),
-                         {newReg(sp), new vReg(-func->stackCapacity.value)}));
-        initInstrs.push_back(
-            new ASMInstr("addi", newReg(s0),
-                         {newReg(sp), new vReg(func->stackCapacity.value)}));
-        exitInstrs.push_back(
-            new ASMInstr("addi", newReg(sp),
-                         {newReg(sp), new vReg(func->stackCapacity.value)}));
-        func->stackCapacity.value = -func->stackCapacity.value;
+        if (isInLimit(left_sp, 12)) {
+            exitInstrs->addASMBack("addi", newReg(sp),
+                                   {newReg(sp), new vReg(left_sp)});
+        } else {
+            exitInstrs->addASMFront("add", newReg(sp),
+                                    {newReg(sp), newReg(t0)});
+            exitInstrs->addASMFront("li", newReg(t0), {new vReg(left_sp)});
+        }
+        exitInstrs->addASMBack("addi", newReg(sp),
+                               {newReg(sp), new vReg(regStackSize)});
     }
+    func->stackCapacity.value = -regStackSize;
 }

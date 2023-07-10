@@ -216,6 +216,7 @@ std::any ASTVisitor::visitExp(SysYParser::ExpContext* ctx) {
                 throw runtime_error("unknown function name");
             if (!expVec.empty()) {
                 for (auto p = expVec.rbegin(); p != expVec.rend(); p++) {
+                    (*p)->obj->isParam = true;
                     insertIR(IRType::PARAM, nullptr, (*p)->obj, nullptr);
                 }
             }

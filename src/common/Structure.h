@@ -480,6 +480,7 @@ class IRFunc : public IRObj {
     // deque<ASMInstr *> initInstrs;
     // deque<ASMInstr *> exitInstrs;
     vReg stackCapacity;
+    int callerMaxStackSize=0;
 
     SymbolTable *symbolTable;
     // table == nullptr : lib function

@@ -359,9 +359,8 @@ void RegAllocator::allocReg(pIRFunc func) {
             auto spilled = checkList.top();
             spilled->regType = REG_M;
             curFunc->stackCapacity.value += memByteAlign;
-            spilled->value = -curFunc->stackCapacity.value;
-            spilled->ref = &curFunc->stackCapacity;
             spilled->size = 1;
+            setVregMem(spilled, func);
             memVals.insert(spilled);
             for (auto b : func->blocks) {
                 for (auto ir = b->irHead; ir; ir = ir->next) {

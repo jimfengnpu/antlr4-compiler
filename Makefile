@@ -33,6 +33,10 @@ gen_graph:
 run: ${TARGET_FILE}
 	./${TARGET_FILE} ${TEST_INPUT}
 
+run_asm: ${asm_demo}
+	/opt/riscv/bin/riscv64-unknown-linux-gnu-gcc -march=rv64gc out.s -L compiler2021/lib/riscv64/ -lsysy -o /tmp/test.x
+	qemu-riscv64 /tmp/test.x
+
 asm_demo: ${TEST_INPUT}
 
 

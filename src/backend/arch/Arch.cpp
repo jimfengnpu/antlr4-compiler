@@ -47,6 +47,7 @@ inline bool isImmInLimit(vReg* val, int width) {
 
 inline void setVregMem(vReg* val, pIRFunc func) {
     func->stackCapacity.value += memByteAlign * val->size;
+    val->ref = &func->stackCapacity;
     val->value = -func->stackCapacity.value;
 }
 
@@ -72,9 +73,7 @@ vReg* getVREG(pIRValObj obj) {
         if (obj->scopeSymbols && obj->scopeSymbols->isGlobal) {
             v->var = obj;
         } else if ((!obj->isParam) && v->regType == REG_M) {
-            v->value = obj->func->stackCapacity.value;
-            v->ref = &obj->func->stackCapacity;
-            obj->func->stackCapacity.value += memByteAlign * v->size;
+            setVregMem(v, obj->func);
         }
     end:
         valRegs[obj] = v;
@@ -422,7 +421,8 @@ void RISCV::defineArchInfo() {
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
-
+                    ir->block->function->callerMaxStackSize = max(
+                        ir->block->function->callerMaxStackSize, paramCnt - 8);
                     while (paramCnt < 8) {
                         vReg* paramReg = newReg(a0 + paramCnt);
                         paramRegs.push_back(paramReg);
@@ -497,10 +497,12 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
         mReg->regType = REG_M;
         mReg->size = 2;
         mReg->value = regStackSize;
+        mReg->regId = sp;
         regStackSize += 8;
         initInstrs->addASMFront("sd", nullptr, {newReg(r), mReg});
         exitInstrs->addASMBack("ld", newReg(r), {mReg});
     }
+    func->stackCapacity.value += func->callerMaxStackSize * memByteAlign;
     func->stackCapacity.value += regStackSize;
     // order: fifo (sp->s0, mem)
     func->stackCapacity.value =
@@ -512,20 +514,23 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
         initInstrs->addASMBack("addi", newReg(s0),
                                {newReg(sp), new vReg(regStackSize)});
         int left_sp = func->stackCapacity.value - regStackSize;
-        if (isInLimit(-left_sp, 12)) {
-            initInstrs->addASMBack("addi", newReg(sp),
-                                   {newReg(sp), new vReg(-left_sp)});
-        } else {
-            initInstrs->addASMBack("li", newReg(t0), {new vReg(-left_sp)});
-            initInstrs->addASMBack("add", newReg(sp), {newReg(sp), newReg(t0)});
-        }
-        if (isInLimit(left_sp, 12)) {
-            exitInstrs->addASMBack("addi", newReg(sp),
-                                   {newReg(sp), new vReg(left_sp)});
-        } else {
-            exitInstrs->addASMFront("add", newReg(sp),
-                                    {newReg(sp), newReg(t0)});
-            exitInstrs->addASMFront("li", newReg(t0), {new vReg(left_sp)});
+        if (left_sp) {
+            if (isInLimit(-left_sp, 12)) {
+                initInstrs->addASMBack("addi", newReg(sp),
+                                       {newReg(sp), new vReg(-left_sp)});
+            } else {
+                initInstrs->addASMBack("li", newReg(t0), {new vReg(-left_sp)});
+                initInstrs->addASMBack("add", newReg(sp),
+                                       {newReg(sp), newReg(t0)});
+            }
+            if (isInLimit(left_sp, 12)) {
+                exitInstrs->addASMFront("addi", newReg(sp),
+                                        {newReg(sp), new vReg(left_sp)});
+            } else {
+                exitInstrs->addASMFront("add", newReg(sp),
+                                        {newReg(sp), newReg(t0)});
+                exitInstrs->addASMFront("li", newReg(t0), {new vReg(left_sp)});
+            }
         }
         exitInstrs->addASMBack("addi", newReg(sp),
                                {newReg(sp), new vReg(regStackSize)});

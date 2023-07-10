@@ -53,9 +53,9 @@ string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
     if (reg->var) {
         return reg->var->name;
     }
-    int regId = reg->regId;
-    int off = reg->value;
-    for (auto v = reg; v->ref; v = v->ref) {
+    int regId = -1;
+    int off = 0;
+    for (auto v = reg; v; v = v->ref) {
         off += v->value;
         regId = v->regId;
         if (regId != -1) {

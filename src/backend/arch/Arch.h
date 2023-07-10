@@ -36,6 +36,8 @@ using namespace std;
 
 #endif
 
+void setVregMem(vReg* val, pIRFunc func);
+
 class BaseArch {
    public:
     map<int, string> regs;
@@ -65,9 +67,7 @@ class BaseArch {
             regSet.insert(r);
         }
     }
-    void setMemStackPosition(vReg* val, pIRFunc func){
-
-    }
+    void setMemStackPosition(vReg* val, pIRFunc func) {}
     bool matchIR(pSysYIR ir);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncPreRegs(pIRFunc func) = 0;

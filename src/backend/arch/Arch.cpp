@@ -422,10 +422,13 @@ void RISCV::defineArchInfo() {
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
-                    
+
                     while (paramCnt < 8) {
                         vReg* paramReg = newReg(a0 + paramCnt);
                         paramRegs.push_back(paramReg);
+                        if (paramCnt == 0) {
+                            retVal = paramReg;
+                        }
                         paramCnt++;
                     }
                     vector<int> callerTmpRegs{t0, t1, t2, t3, t4, t5, t6};

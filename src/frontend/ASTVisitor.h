@@ -19,9 +19,11 @@ class ASTVisitor : public SysYBaseVisitor {
         auto func = make_shared<IRFunc>(
             returnType, name, args,
             blockContext == nullptr ? nullptr : &(blockContext->symbolTable));
-        func->initInstrs = newObj<SysYIR>(IRType::NOP, nullptr, nullptr,nullptr);
-        func->exitInstrs = newObj<SysYIR>(IRType::NOP, nullptr, nullptr,nullptr);
-        for(auto v: args){
+        func->initInstrs =
+            newObj<SysYIR>(IRType::NOP, nullptr, nullptr, nullptr);
+        func->exitInstrs =
+            newObj<SysYIR>(IRType::NOP, nullptr, nullptr, nullptr);
+        for (auto v : args) {
             v->isParam = true;
         }
         functions->push_back(func);

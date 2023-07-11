@@ -131,11 +131,12 @@ void IRRunner::alloc(pIRValObj obj) {
     DataFrame *curFrame =
         (frameStack.empty()) ? (&globalData) : frameStack.back();
     if (auto val = toScal(obj)) {
-        curFrame->frameData[val] = addrTop++;
+        curFrame->frameData[val] = addrTop;
+        addrTop += 4;
     } else {
         auto arr = dynamic_pointer_cast<IRArrValObj>(obj);
         curFrame->frameData[arr] = addrTop;
-        addrTop += arr->size;
+        addrTop += 4*arr->size;
     }
 }
 

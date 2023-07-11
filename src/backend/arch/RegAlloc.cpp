@@ -124,6 +124,7 @@ bool splitVal(vReg* a, vReg* b) {
                                                           nullptr, inst);
                             // inst->next->prev = newInst;
                             // newInst->next = inst;
+                            inst = newInst;
                         }
                         if (i > e) {
                             return true;
@@ -193,14 +194,12 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
                         addNewRange(block, op, i);
                         liveNow.insert(op);
                     }
-                    if (!op->fixed) {
-                        killRange(block, op, i - 1);
-                        liveNow.erase(op);
-                        if (liveNow.size()) {
-                            for (auto& v : liveNow) {
-                                conflictMap[v].insert(op);
-                                conflictMap[op].insert(v);
-                            }
+                    killRange(block, op, i - 1);
+                    liveNow.erase(op);
+                    if (liveNow.size()) {
+                        for (auto& v : liveNow) {
+                            conflictMap[v].insert(op);
+                            conflictMap[op].insert(v);
                         }
                     }
                 }

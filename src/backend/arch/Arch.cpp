@@ -401,6 +401,7 @@ void RISCV::defineArchInfo() {
                     pSysYIR paramIr = ir->prev;
                     vector<vReg*> paramRegs{};
                     vReg* retVal = nullptr;
+                    pIRFunc func = toFunc(ir->opt1);
                     while (paramIr && paramIr->type == IRType::PARAM) {
                         vReg* paramReg = new vReg();
                         if (paramCnt < 8) {
@@ -425,6 +426,7 @@ void RISCV::defineArchInfo() {
                         ir->block->function->callerMaxStackSize, paramCnt - 8);
                     while (paramCnt < 8) {
                         vReg* paramReg = newReg(a0 + paramCnt);
+                        paramReg->fixed = true;
                         paramRegs.push_back(paramReg);
                         if (paramCnt == 0) {
                             retVal = paramReg;
@@ -434,9 +436,9 @@ void RISCV::defineArchInfo() {
                     vector<int> callerTmpRegs{t0, t1, t2, t3, t4, t5, t6};
                     for (auto r : callerTmpRegs) {
                         vReg* paramReg = newReg(r);
+                        paramReg->fixed = true;
                         paramRegs.push_back(paramReg);
                     }
-                    pIRFunc func = toFunc(ir->opt1);
                     ir->addASMBack(callOp, nullptr,
                                    {paramRegs.begin(), paramRegs.end()}, func);
                     if (func->returnType != IR_VOID) {

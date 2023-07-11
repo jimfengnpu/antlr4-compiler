@@ -23,7 +23,7 @@ using namespace std;
 
 // #define VAL_RUN 1
 
-// EM defination refered from `elf.h`
+// EM definition refered from `elf.h`
 #define EM_RISCV 243
 
 #define EM_ARCH EM_RISCV

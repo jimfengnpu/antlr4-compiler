@@ -71,8 +71,9 @@ int main(int argc, char** argv) {
     // process models ,`apply` will execute all the processors added in the
     // queue including triggers during execution
     IRProcessors processors(prog);
-    RISCV riscv_arch;
-
+    #if EM_ARCH == EM_RISCV
+    RISCV target_arch;
+    #endif
     /**
      * Processor List:
      * $processorName [$defineFile]: $description,
@@ -108,11 +109,11 @@ int main(int argc, char** argv) {
 #ifdef VAL_RUN  // for emulate
     processors.add(new IRRunner(cin, cout));
 #endif
-    processors.add(new InstrMatcher(&riscv_arch));
-    processors.add(new RegAllocator(&riscv_arch));
+    processors.add(new InstrMatcher(&target_arch));
+    processors.add(new RegAllocator(&target_arch));
 
     // output asm, runner for process .data section
-    processors.add(new AsmEmitter(out, &riscv_arch, new IRRunner(cin, cout)));
+    processors.add(new AsmEmitter(out, &target_arch, new IRRunner(cin, cout)));
     processors.apply();
 
     return 0;

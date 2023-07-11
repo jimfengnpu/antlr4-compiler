@@ -263,10 +263,10 @@ pSysYIR IRBlock::insertIR(IRType type, pIRValObj t, pIRObj op1, pIRObj op2,
         }
     }
     newIR->next = ir;
-    if (ir == branchIR) {
+    if (irTail == nullptr || ir == branchIR) {
         irTail = newIR;
     }
-    if (ir == irHead) {
+    if (irHead == nullptr || ir == irHead) {
         irHead = newIR;
     }
     structions.push_back(newIR);

@@ -109,7 +109,8 @@ vReg* processSymbol(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
     return val;
 }
 
-vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
+vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
+                  bool addr = false) {
     if (val != nullptr) {
         vReg* nReg = nullptr;
         if (val->regType == REG_IMM) {
@@ -117,7 +118,8 @@ vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
             ir->addASMFront(loadImmOp, nReg, {val}, nullptr, instr);
         } else if (val->ref || val->var) {
             nReg = new vReg();
-            auto loadInstr = ir->addASMFront(loadOp, nReg, {}, nullptr, instr);
+            auto loadInstr =
+                ir->addASMFront(addr ? "ld" : loadOp, nReg, {}, nullptr, instr);
             if (val->var != nullptr) {
                 val = processSymbol(val, ir, loadInstr);
             }
@@ -130,12 +132,13 @@ vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
     return val;
 }
 
-vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
+vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
+                   bool addr = false) {
     if (val != nullptr) {
         if (val->ref || val->var) {
             vReg* nReg = new vReg();
-            auto stInstr =
-                ir->addASMBack(storeOp, nullptr, {nReg}, nullptr, instr);
+            auto stInstr = ir->addASMBack(addr ? "sd" : storeOp, nullptr,
+                                          {nReg}, nullptr, instr);
             if (val->var != nullptr) {
                 val = processSymbol(val, ir, stInstr);
             }
@@ -147,18 +150,19 @@ vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
 }
 
 ASMInstr* addASM(string name, pSysYIR ir, vReg* des, vector<vReg*> ops,
-                 pBlock target = nullptr, bool noStore = false) {
+                 pBlock target = nullptr, bool noStore = false,
+                 bool addr = false) {
     vector<vReg*> src{};
     for (auto op : ops) {
         if (op) {
-            auto regOp = processLoad(op, ir);
+            auto regOp = processLoad(op, ir, nullptr, addr);
             src.push_back(regOp);
         }
     }
     auto mainInstr = new ASMInstr(name, des, {src.begin(), src.end()}, target);
     ir->addASMBack(mainInstr);
     if (des && !noStore) {
-        des = processStore(des, ir, mainInstr);
+        des = processStore(des, ir, mainInstr, addr);
         mainInstr->targetOp = des;
     }
     return mainInstr;
@@ -346,7 +350,9 @@ void RISCV::defineArchInfo() {
                  obj->regType = REG_M;
              } else {
                  arrObj = getVREG(toVal(ir->opt1));
-                 arrObj = processSymbol(arrObj, ir);
+                 if (toVal(ir->opt1)->isParam) {
+                     arrObj = processLoad(arrObj, ir, nullptr, true);
+                 }
                  offObj = getVREG(toVal(ir->opt2));
                  if (isImmInLimit(offObj, 12)) {
                      offObj = new vReg(offObj->value);
@@ -415,10 +421,11 @@ void RISCV::defineArchInfo() {
                         } else {
                             paramReg->regType = REG_M;
                             paramReg->regId = RISCV::sp;
-                            paramReg->value = 4 * (paramCnt - 8);
+                            paramReg->value = 8 * (paramCnt - 8);
+                            paramReg->ref = &func->stackCapacity;
                         }
                         addASM("mv", paramIr, paramReg,
-                               {getVREG(toVal(paramIr->opt1))});
+                               {getVREG(toVal(paramIr->opt1))}, nullptr, false, true);
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
@@ -456,8 +463,9 @@ void RISCV::prepareFuncPreRegs(pIRFunc f) {
             v->regId = a0 + i;
         } else {
             v->regType = REG_M;
-            v->value = memByteAlign * (i - paramRegCnt);
+            v->value = 8 * (i - paramRegCnt);
             v->regId = fp;
+            v->ref = v;
         }
         valRegs[f->params[i]] = v;
     }
@@ -468,8 +476,7 @@ void RISCV::prepareFuncPreRegs(pIRFunc f) {
 }
 
 // call after reg alloc
-void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
-                                   unordered_set<vReg*>& useStk) {
+void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs) {
     auto& initInstrs = func->initInstrs;
     auto& exitInstrs = func->exitInstrs;
     vector<int> stackRegs{};
@@ -504,7 +511,7 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs,
         initInstrs->addASMFront("sd", nullptr, {newReg(r), mReg});
         exitInstrs->addASMBack("ld", newReg(r), {mReg});
     }
-    func->stackCapacity.value += func->callerMaxStackSize * memByteAlign;
+    func->stackCapacity.value += func->callerMaxStackSize * 8;
     func->stackCapacity.value += regStackSize;
     // order: fifo (sp->s0, mem)
     func->stackCapacity.value =

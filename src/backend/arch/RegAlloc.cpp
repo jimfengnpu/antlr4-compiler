@@ -236,20 +236,20 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
 void RegAllocator::getVregClass(vReg* v) {
     if (v->regType == REG_R) {
         vals.insert(v);
-    } else if (v->regType == REG_M) {
-        if (v->ref == nullptr) {
-            if (v->var == nullptr) {
-                memVals.insert(v);
-            }
-        } else {
-            getVregClass(v->ref);
-        }
     }
+    // } else if (v->regType == REG_M) {
+    //     if (v->ref == nullptr) {
+    //         if (v->var == nullptr) {
+    //             memVals.insert(v);
+    //         }
+    //     } else {
+    //         getVregClass(v->ref);
+    //     }
+    // }
 }
 
 void RegAllocator::makeGraph(pIRFunc func) {
     vals.clear();
-    memVals.clear();
     conflictMap.clear();
     for (auto [v, mp] : regLive) {
         for (auto [b, r] : mp) {
@@ -360,7 +360,6 @@ void RegAllocator::allocReg(pIRFunc func) {
             curFunc->stackCapacity.value += memByteAlign;
             spilled->size = 1;
             setVregMem(spilled, func);
-            memVals.insert(spilled);
             for (auto b : func->blocks) {
                 for (auto ir = b->irHead; ir; ir = ir->next) {
                     for (auto s = ir->asmHead; s; s = s->next) {

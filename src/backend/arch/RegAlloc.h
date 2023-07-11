@@ -35,7 +35,7 @@ class RegAllocator : public IRProcessor {
     map<pBlock, pBlock> visitPath;
     map<pBlock, int> blockFreq;
     set<vReg*> vals{};
-    unordered_set<vReg*> memVals{};
+    // unordered_set<vReg*> memVals{};
     struct ValCostComparator {
         bool operator()(vReg* a, vReg* b) const {  // > 小顶
             if (a->regId != -1) return true;
@@ -62,7 +62,7 @@ class RegAllocator : public IRProcessor {
                     assert(v->regId != -1);
                     regUsed.insert(v->regId);
                 }
-                archInfo->prepareFuncInitExitAsm(func, regUsed, memVals);
+                archInfo->prepareFuncInitExitAsm(func, regUsed);
             }
         }
     }

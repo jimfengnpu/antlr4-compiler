@@ -72,8 +72,7 @@ class BaseArch {
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncPreRegs(pIRFunc func) = 0;
     virtual void prepareFuncInitExitAsm(pIRFunc func,
-                                        unordered_set<int>& useRegs,
-                                        unordered_set<vReg*>& useStk) = 0;
+                                        unordered_set<int>& useRegs) = 0;
 };
 
 class RISCV : public BaseArch {
@@ -155,7 +154,6 @@ class RISCV : public BaseArch {
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
     virtual void prepareFuncPreRegs(pIRFunc func);
     virtual void prepareFuncInitExitAsm(pIRFunc func,
-                                        unordered_set<int>& useRegs,
-                                        unordered_set<vReg*>& useStk);
+                                        unordered_set<int>& useRegs);
 };
 #endif

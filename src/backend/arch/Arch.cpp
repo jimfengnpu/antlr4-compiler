@@ -69,6 +69,7 @@ vReg* getVREG(pIRValObj obj) {
             v = new vReg();
             v->regType = REG_M;
             v->size = arr->size;
+            v->isAddr = true;
         }
         if (obj->scopeSymbols && obj->scopeSymbols->isGlobal) {
             v->var = obj;
@@ -109,8 +110,7 @@ vReg* processSymbol(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
     return val;
 }
 
-vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
-                  bool addr = false) {
+vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
     if (val != nullptr) {
         vReg* nReg = nullptr;
         if (val->regType == REG_IMM) {
@@ -119,7 +119,7 @@ vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
         } else if (val->ref || val->var) {
             nReg = new vReg();
             auto loadInstr =
-                ir->addASMFront(addr ? "ld" : loadOp, nReg, {}, nullptr, instr);
+                ir->addASMFront(val->isAddr ? "ld" : loadOp, nReg, {}, nullptr, instr);
             if (val->var != nullptr) {
                 val = processSymbol(val, ir, loadInstr);
             }
@@ -132,12 +132,11 @@ vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
     return val;
 }
 
-vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
-                   bool addr = false) {
+vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
     if (val != nullptr) {
         if (val->ref || val->var) {
             vReg* nReg = new vReg();
-            auto stInstr = ir->addASMBack(addr ? "sd" : storeOp, nullptr,
+            auto stInstr = ir->addASMBack(val->isAddr ? "sd" : storeOp, nullptr,
                                           {nReg}, nullptr, instr);
             if (val->var != nullptr) {
                 val = processSymbol(val, ir, stInstr);
@@ -150,19 +149,18 @@ vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr,
 }
 
 ASMInstr* addASM(string name, pSysYIR ir, vReg* des, vector<vReg*> ops,
-                 pBlock target = nullptr, bool noStore = false,
-                 bool addr = false) {
+                 pBlock target = nullptr, bool noStore = false) {
     vector<vReg*> src{};
     for (auto op : ops) {
         if (op) {
-            auto regOp = processLoad(op, ir, nullptr, addr);
+            auto regOp = processLoad(op, ir, nullptr);
             src.push_back(regOp);
         }
     }
     auto mainInstr = new ASMInstr(name, des, {src.begin(), src.end()}, target);
     ir->addASMBack(mainInstr);
     if (des && !noStore) {
-        des = processStore(des, ir, mainInstr, addr);
+        des = processStore(des, ir, mainInstr);
         mainInstr->targetOp = des;
     }
     return mainInstr;
@@ -350,8 +348,9 @@ void RISCV::defineArchInfo() {
                  obj->regType = REG_M;
              } else {
                  arrObj = getVREG(toVal(ir->opt1));
+                 arrObj = processSymbol(arrObj, ir);
                  if (toVal(ir->opt1)->isParam) {
-                     arrObj = processLoad(arrObj, ir, nullptr, true);
+                     arrObj = processLoad(arrObj, ir, nullptr);
                  }
                  offObj = getVREG(toVal(ir->opt2));
                  if (isImmInLimit(offObj, 12)) {
@@ -388,6 +387,7 @@ void RISCV::defineArchInfo() {
                         ir->addASMBack("add", obj, {arrObj, offObj});
                     }
                     obj->regType = REG_R;
+                    obj->isAddr = true;
                     return 1;
                 }});
     addMatchers(IRType::RET, {[](pSysYIR ir) -> int {
@@ -423,9 +423,10 @@ void RISCV::defineArchInfo() {
                             paramReg->regId = RISCV::sp;
                             paramReg->value = 8 * (paramCnt - 8);
                             paramReg->ref = &func->stackCapacity;
+                            paramReg->isAddr = true;
                         }
                         addASM("mv", paramIr, paramReg,
-                               {getVREG(toVal(paramIr->opt1))}, nullptr, false, true);
+                               {getVREG(toVal(paramIr->opt1))});
                         paramIr = paramIr->prev;
                         paramCnt++;
                     }
@@ -466,6 +467,7 @@ void RISCV::prepareFuncPreRegs(pIRFunc f) {
             v->value = 8 * (i - paramRegCnt);
             v->regId = fp;
             v->ref = v;
+            v->isAddr = true;
         }
         valRegs[f->params[i]] = v;
     }

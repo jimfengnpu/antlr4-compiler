@@ -114,7 +114,7 @@ bool splitVal(vReg* a, vReg* b) {
                                 inst->targetOp = nReg;
                             }
                         }
-                        if (i == s - 1) {
+                        if (i == s - 1 || s==0 && i == 0) {
                             auto newInst = ir->addASMFront(
                                 assignOp, nReg, {val}, nullptr, inst);
                             // inst->prev->next = newInst;
@@ -234,7 +234,7 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
 }
 
 void RegAllocator::getVregClass(vReg* v) {
-    if (v->regType == REG_R) {
+    if (v->regType == REG_R && v->var == nullptr) {
         vals.insert(v);
     }
     // } else if (v->regType == REG_M) {

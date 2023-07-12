@@ -103,6 +103,7 @@ class vReg : public Printable {
     vReg *ref = nullptr;
     int size = 1;
     bool fixed = false;
+    bool isAddr = false;
     shared_ptr<IRValObj> var = nullptr;
     vReg() = default;
     vReg(vReg *ref) : ref(ref) {}

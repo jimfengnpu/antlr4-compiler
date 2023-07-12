@@ -198,6 +198,7 @@ class ASMInstr {
             op.push_back(nOp);
         }
     }
+    void remove();
 };
 
 class IRArrValObj : public IRValObj {
@@ -478,9 +479,8 @@ class IRFunc : public IRObj {
     set<pIRFunc> callList;
     pSysYIR initInstrs;
     pSysYIR exitInstrs;
-    // deque<ASMInstr *> initInstrs;
-    // deque<ASMInstr *> exitInstrs;
     vReg stackCapacity;
+    int stackCapacitySize=0;
     int callerMaxStackSize=0;
 
     SymbolTable *symbolTable;

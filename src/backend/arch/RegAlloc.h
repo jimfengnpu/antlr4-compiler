@@ -5,6 +5,7 @@
 
 #include "Arch.h"
 #include "IRProcessor.h"
+#include "AsmModify.h"
 
 const int maxBlockASMId = 1024;
 const int blockLoopWeight = 10;
@@ -54,6 +55,8 @@ class RegAllocator : public IRProcessor {
     void makeBlockLiveRange(pBlock block);
     void makeGraph(pIRFunc func);
     virtual void apply(Prog& prog) {
+        triggers.push_back(new AsmModifier(archInfo));
+        addTriggers();
         for (auto func : prog.functions) {
             if (func->entry != nullptr) {
                 allocReg(func);

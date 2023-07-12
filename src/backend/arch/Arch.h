@@ -69,6 +69,7 @@ class BaseArch {
     }
     void setMemStackPosition(vReg* val, pIRFunc func) {}
     bool matchIR(pSysYIR ir);
+    virtual void processAsm(ASMInstr* s)=0;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncPreRegs(pIRFunc func) = 0;
     virtual void prepareFuncInitExitAsm(pIRFunc func,
@@ -151,6 +152,7 @@ class RISCV : public BaseArch {
         defineArchInfo();
     }
     virtual void defineArchInfo() override;
+    virtual void processAsm(ASMInstr* s);
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
     virtual void prepareFuncPreRegs(pIRFunc func);
     virtual void prepareFuncInitExitAsm(pIRFunc func,

@@ -46,9 +46,9 @@ inline bool isImmInLimit(vReg* val, int width) {
 }
 
 inline void setVregMem(vReg* val, pIRFunc func) {
-    func->stackCapacity.value += memByteAlign * val->size;
+    func->stackCapacitySize += memByteAlign * val->size;
     val->ref = &func->stackCapacity;
-    val->value = -func->stackCapacity.value;
+    val->value = -func->stackCapacitySize;
 }
 
 vReg* getVREG(pIRValObj obj) {
@@ -118,8 +118,8 @@ vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr) {
             ir->addASMFront(loadImmOp, nReg, {val}, nullptr, instr);
         } else if (val->ref || val->var) {
             nReg = new vReg();
-            auto loadInstr =
-                ir->addASMFront(val->isAddr ? "ld" : loadOp, nReg, {}, nullptr, instr);
+            auto loadInstr = ir->addASMFront(val->isAddr ? "ld" : loadOp, nReg,
+                                             {}, nullptr, instr);
             if (val->var != nullptr) {
                 val = processSymbol(val, ir, loadInstr);
             }
@@ -284,7 +284,7 @@ void RISCV::defineArchInfo() {
     frameByteAlign = 16;
     branchBlockASMLimit = 512;
     addRegs(genRegsId, {a0, a1, a2, a3, a4, a5,  a6,  a7, s1, s2, s3, s4,
-                        s5, s6, s7, s8, s9, s10, s11, t0, t1, t2, t3, ra});
+                        s5, s6, s7, s8, s9, s10, s11, t1, t2, t3, ra});
     addRegs(calleeSaveRegs, {s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addMatchers(IRType::ASSIGN,
                 {[](pSysYIR ir) -> int { return matchCalInstr("mv", ir); }});
@@ -456,6 +456,34 @@ void RISCV::defineArchInfo() {
                 }});
 }
 
+void RISCV::processAsm(ASMInstr* s) {
+    string op = s->name;
+    if (op == "addi") {
+        if (auto imm = s->op[1]) {
+            int v = imm->getValue();
+            if (v == 0) {
+                s->op.pop_back();
+                s->name = assignOp;
+            } else if (!isInLimit(v, 12)) {
+                auto r = newReg(t0);
+                s->ir->addASMFront(loadImmOp, r, {s->op[1]}, nullptr, s);
+                s->op[1] = r;
+                s->name = "add";
+            }
+        }
+    } else if (op == loadOp || op == storeOp || op == "ld" || op == "sd") {
+        if (auto m = s->op[1]) {
+            int off = m->getValue();
+            if (!isInLimit(off, 12)) {
+                auto r = newReg(t0);
+                s->ir->addASMFront(loadImmOp, r, {new vReg(off)}, nullptr, s);
+                s->ir->addASMFront("add", r, {r, s->op[1]}, nullptr, s);
+                s->op[1] = r;
+            }
+        }
+    }
+}
+
 void RISCV::prepareFuncPreRegs(pIRFunc f) {
     vReg* v = nullptr;
     for (int i = 0; i < f->params.size(); i++) {
@@ -495,14 +523,7 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs) {
         stackRegs.push_back(ra);
     }
     func->stackCapacity.regId = s0;
-    // vReg regStackSize = new vReg();  // func->stackCapacity.value;
     int regStackSize = 0;
-    // // max limit , avoid extra li in init & exit
-    // bool stackOver = false;
-    // if(func->stackCapacity.value > regStackLimit){
-    //     regStackSize = regStackLimit;
-    //     stackOver = true;
-    // }
     for (auto r : stackRegs) {
         vReg* mReg = new vReg();
         mReg->regType = REG_M;
@@ -513,18 +534,17 @@ void RISCV::prepareFuncInitExitAsm(pIRFunc func, unordered_set<int>& useRegs) {
         initInstrs->addASMFront("sd", nullptr, {newReg(r), mReg});
         exitInstrs->addASMBack("ld", newReg(r), {mReg});
     }
-    func->stackCapacity.value += func->callerMaxStackSize * 8;
-    func->stackCapacity.value += regStackSize;
+    func->stackCapacitySize += func->callerMaxStackSize * 8;
+    func->stackCapacitySize += regStackSize;
     // order: fifo (sp->s0, mem)
-    func->stackCapacity.value =
-        getAligned(func->stackCapacity.value, frameByteAlign);
-    if (func->stackCapacity.value) {
-        // todo check
+    func->stackCapacitySize =
+        getAligned(func->stackCapacitySize, frameByteAlign);
+    if (func->stackCapacitySize) {
         initInstrs->addASMFront("addi", newReg(sp),
                                 {newReg(sp), new vReg(-regStackSize)});
         initInstrs->addASMBack("addi", newReg(s0),
                                {newReg(sp), new vReg(regStackSize)});
-        int left_sp = func->stackCapacity.value - regStackSize;
+        int left_sp = func->stackCapacitySize - regStackSize;
         if (left_sp) {
             if (isInLimit(-left_sp, 12)) {
                 initInstrs->addASMBack("addi", newReg(sp),

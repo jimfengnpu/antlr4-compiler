@@ -21,13 +21,10 @@ class IRProcessors {
     IRProcessors(Prog& prog) : prog(prog) {}
     void apply() {
         while (processors.size()) {
-            // for(auto pr: processors){
-            //     cout << pr << " ";
-            // }
-            // cout << endl;
             auto proc = processors.front();
             processors.pop_front();
             proc->apply(prog);
+            delete proc;
 #ifdef VAL_IR
             cout << "IR:";
             cout << (prog.globalData.get());

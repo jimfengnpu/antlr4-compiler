@@ -156,6 +156,20 @@ ASMInstr *SysYIR::addASMFront(ASMInstr *instr, ASMInstr *before) {
     return instr;
 }
 
+void ASMInstr::remove() {
+    if (next) {
+        next->prev = prev;
+    } else {
+        ir->asmTail = prev;
+    }
+    if (prev) {
+        prev->next = next;
+    } else {
+        ir->asmHead = next;
+    }
+    delete this;
+}
+
 void IRBlock::print(std::ostream &os) const {
 #ifdef VAL_CFGDOM
     os << name << "[label=\"" << name << " |";

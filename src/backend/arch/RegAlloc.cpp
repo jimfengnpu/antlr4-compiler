@@ -10,9 +10,16 @@ inline void killRange(pBlock block, vReg* reg, int s) {
     }
 }
 
-inline bool isLive(pBlock block, vReg* reg, int p) {
+inline bool isLive(pBlock block, vReg* reg, int p, int* s = nullptr,
+                   int* e = nullptr) {
     for (auto lr : regLive[reg][block]) {
         if (p >= lr->start && p <= lr->end) {
+            if (s) {
+                *s = lr->start;
+            }
+            if (e) {
+                *e = lr->end;
+            }
             return true;
         }
     }
@@ -101,6 +108,7 @@ bool splitVal(vReg* a, vReg* b) {
 #endif
             if (intersectConflict(a, b, blk, &s, &e)) {
                 int i = 0;
+                isLive(blk, val==a? b: a, e, nullptr, &e);
                 for (auto ir = blk->irHead; ir; ir = ir->next) {
                     for (auto inst = ir->asmHead; inst;
                          inst = inst->next, i++) {
@@ -114,7 +122,7 @@ bool splitVal(vReg* a, vReg* b) {
                                 inst->targetOp = nReg;
                             }
                         }
-                        if (i == s - 1 || s==0 && i == 0) {
+                        if (i == s - 1 || s == 0 && i == 0) {
                             auto newInst = ir->addASMFront(
                                 assignOp, nReg, {val}, nullptr, inst);
                             // inst->prev->next = newInst;
@@ -357,7 +365,6 @@ void RegAllocator::allocReg(pIRFunc func) {
         if (checkList.size()) {
             auto spilled = checkList.top();
             spilled->regType = REG_M;
-            curFunc->stackCapacity.value += memByteAlign;
             spilled->size = 1;
             setVregMem(spilled, func);
             for (auto b : func->blocks) {

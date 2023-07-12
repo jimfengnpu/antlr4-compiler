@@ -28,7 +28,7 @@
 *.exe
 *.out
 *.app
-
+*.s
 .vscode/
 build/
 CMakeFiles/

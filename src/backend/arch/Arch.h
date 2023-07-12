@@ -5,7 +5,7 @@
 using namespace std;
 /*
  * rule:
- * storeOp use, memObj
+ * storeOp use, memObj(use)
  * loadOp def, memObj
  * callOp use... , target
  * others def, use...
@@ -69,7 +69,7 @@ class BaseArch {
     }
     void setMemStackPosition(vReg* val, pIRFunc func) {}
     bool matchIR(pSysYIR ir);
-    virtual void processAsm(ASMInstr* s)=0;
+    virtual void processAsm(ASMInstr* s) = 0;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
     virtual void prepareFuncPreRegs(pIRFunc func) = 0;
     virtual void prepareFuncInitExitAsm(pIRFunc func,

@@ -88,14 +88,16 @@ int main(int argc, char** argv) {
      * CodeCleaner [Optimizer]: del unused code & branch,
      *      trig<change>: BlockPruner;
      * SSAMaker [SSA]: transform SSA IR,
-     *      trig: LiveCalculator;
+     *      trig: LiveCalculator(ir);
      * SSAFinalizer [SSA]: remove phi ir
      *      trig: ---
      * IRRunner [IRRunner]: emulate ir execution
      *      trig: ---
      * InstrMatcher [InstrMatcher]: generate asm op
-     *      trig: ---
+     *      trig: LiveCalculator(reg);
      * RegAllocator [RegAllocator]: alloc reg
+     *      trig: AsmModifier;
+     * AsmModifier [AsmModify]: change illegal imm op
      *      trig: ---
      * AsmEmitter [AsmEmit]: process .data and print asm
      *      trig: ---

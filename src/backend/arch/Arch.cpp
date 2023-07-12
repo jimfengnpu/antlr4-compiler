@@ -394,11 +394,6 @@ void RISCV::defineArchInfo() {
                     vReg* retVal = nullptr;
                     if (ir->block->function->returnType != IR_VOID)
                         retVal = getVREG(toVal(ir->opt1));
-                    // if (retVal && isImm(retVal)) {
-                    //     vReg* r = newReg(a0);
-                    //     addASM("li", ir, r, {retVal});
-                    //     retVal = r;
-                    // }
                     addASM("ret", ir, nullptr, {retVal});
                     return 1;
                 }});

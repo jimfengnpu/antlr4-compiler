@@ -117,13 +117,14 @@ void AsmEmitter::emitFunc(pIRFunc func) {
                 printAsm(s);
             }
         }
-        if (block == func->exit) {
-            for (auto s = func->exitInstrs->asmHead; s; s = s->next) {
-                printAsm(s);
-            }
-        }
+        ASMInstr* s =nullptr;
         for (auto ir = block->irHead; ir; ir = ir->next) {
-            for (auto s = ir->asmHead; s; s = s->next) {
+            for (s = ir->asmHead; s; s = s->next) {
+                if (s->name == "ret" && block == func->exit) {
+                    for (auto s = func->exitInstrs->asmHead; s; s = s->next) {
+                        printAsm(s);
+                    }
+                }
                 printAsm(s);
             }
         }

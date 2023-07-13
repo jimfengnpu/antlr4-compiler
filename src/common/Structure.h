@@ -434,7 +434,16 @@ class IRBlock : public IRObj {  // Basic Block
     int size();    // block structions size (jump excluded)
     int asmLen();  // block asm length
     bool hasPhi();
-
+    bool dominate(pBlock block, bool strict=true){
+        if(block && strict){
+            block = block->domFa;
+        }
+        while(block){
+            if(block.get() == this)return true;
+            block = block->domFa;
+        }
+        return false;
+    }
     virtual void print(ostream &os) const override;
 
     virtual string getDefaultName(int type) {

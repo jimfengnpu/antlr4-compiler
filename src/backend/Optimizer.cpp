@@ -233,7 +233,11 @@ void CommonExp::applyBlock(pBlock block) {
             op2 = checkOp(op2);
             auto val = ops[ir->type][op1][op2];
             if (val != nullptr && val != toVal(ir->opt1) &&
+                val->ssaDef && val->defStruction->block->dominate(block) &&
                 checkUse(toVal(op1)) && checkUse(toVal(op2))) {
+                #ifdef VAL_IR
+                cout << ir.get() << endl;
+                #endif
                 clearUse(toVal(ir->opt1), ir);
                 clearUse(toVal(ir->opt2), ir);
                 ir->type = IRType::ASSIGN;

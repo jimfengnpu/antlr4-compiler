@@ -193,6 +193,68 @@ void ConstBroadcast::applyBlock(pBlock block) {
     }
 }
 
+void CommonExp::prepareTriggers() { triggers.push_back(new CodeCleaner()); }
+
+pIRObj CommonExp::checkOp(pIRObj val) {
+    auto s = toScal(val);
+    if (s && s->isConstant() && !s->isIdent) {
+        pIRObj imm = constMap[s->value];
+        if (imm) {
+            val = imm;
+        } else {
+            constMap[s->value] = val;
+        }
+    }
+    return val;
+}
+
+void clearUse(pIRValObj val, pSysYIR ir) {
+    if (val && val->ssaDef) {
+        val->useStructions.erase(ir);
+    }
+}
+
+bool checkUse(pIRValObj val) {
+    if (val && val->ssaDef) {
+        if (val->defStruction->type == IRType::PHI) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void CommonExp::applyBlock(pBlock block) {
+    for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
+        if (IRType::CALL != ir->type && IRType::PHI != ir->type &&
+            IRType::PARAM != ir->type && IRType::DEF != ir->type &&
+            IRType::ASSIGN != ir->type) {
+            pIRObj op1 = ir->opt1, op2 = ir->opt2;
+            op1 = checkOp(op1);
+            op2 = checkOp(op2);
+            auto val = ops[ir->type][op1][op2];
+            if (val != nullptr && val != toVal(ir->opt1) &&
+                checkUse(toVal(op1)) && checkUse(toVal(op2))) {
+                clearUse(toVal(ir->opt1), ir);
+                clearUse(toVal(ir->opt2), ir);
+                ir->type = IRType::ASSIGN;
+                ir->opt1 = val;
+                if (val->ssaDef) {
+                    val->useStructions.insert(ir);
+                }
+                ir->opt2 = nullptr;
+                changed = true;
+            } else {
+                ops[ir->type][op1][op2] = ir->target;
+            }
+        }
+    }
+}
+
+void CommonExp::applyFunc(pIRFunc func) {
+    constMap.clear();
+    ops.clear();
+}
+
 void CodeCleaner::prepareTriggers() { triggers.push_back(new BlockPruner()); }
 
 bool checkObjUseEmpty(pIRObj obj) {

@@ -107,6 +107,7 @@ int main(int argc, char** argv) {
     processors.add(new DomMaker());
     processors.add(new SSAMaker());
     processors.add(new ConstBroadcast());  // auto clean
+    processors.add(new CommonExp());
     processors.add(new SSAFinalizer());
 #ifdef VAL_RUN  // for emulate
     processors.add(new IRRunner(cin, cout));

@@ -8,6 +8,7 @@ class Optimizer : public IRProcessor {
     deque<pBlock> workList;
     map<pBlock, bool> visited;
     bool changed = false;
+    bool optimize_global = true;
     Optimizer() = default;
     virtual void applyBlock(pBlock block) = 0;
     virtual void applyNextBlock(pBlock block) {
@@ -20,7 +21,9 @@ class Optimizer : public IRProcessor {
     virtual void prepareTriggers() {}
     virtual void apply(Prog& prog) {
         bool triggerNeeded = false;
-        applyBlock(prog.globalData);
+        if (optimize_global) {
+            applyBlock(prog.globalData);
+        }
         for (auto& func : prog.functions) {
             if (func->entry) {
                 do {
@@ -28,7 +31,7 @@ class Optimizer : public IRProcessor {
                     visited.clear();
                     workList.push_back(func->entry);
                     changed = false;
-                    while (workList.size()) {
+                    while (!workList.empty()) {
                         // for(auto x: workList){
                         //     cout << x->name << " ";
                         // }
@@ -76,11 +79,16 @@ class ConstBroadcast : public Optimizer {
 };
 
 class CommonExp : public Optimizer {
-    map<IRType, map<IRObj, map<IRObj, IRValObj> > > ops;
+    map<IRType, map<pIRObj, map<pIRObj, pIRValObj> > > ops;
+    map<int, pIRObj> constMap;
 
    public:
-    CommonExp() {}
+    CommonExp(){
+        optimize_global = false;
+    }
+    pIRObj checkOp(pIRObj val);
     virtual void applyBlock(pBlock block) override;
+    virtual void applyFunc(pIRFunc func) override;
     virtual void prepareTriggers() override;
 };
 

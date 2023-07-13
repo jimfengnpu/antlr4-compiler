@@ -20,7 +20,7 @@ class IRProcessors {
     Prog& prog;
     IRProcessors(Prog& prog) : prog(prog) {}
     void apply() {
-        while (processors.size()) {
+        while (!processors.empty()) {
             auto proc = processors.front();
             processors.pop_front();
             proc->apply(prog);

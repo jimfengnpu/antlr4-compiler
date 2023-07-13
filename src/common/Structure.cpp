@@ -5,6 +5,7 @@ int IRBlock::masterId = 0;
 int IRBlock::branchId = 0;
 int IRBlock::loopId = 0;
 int IRStrValObj::constStrId = 0;
+static map<int, vReg *> specific_regs;
 
 int CalConstExp(IRType type, int exp1Val, int exp2Val) {
     int value = 0;
@@ -98,8 +99,12 @@ void IRStrValObj::print(std::ostream &os) const {
 }
 
 vReg *newReg(int id) {
-    vReg *v = new vReg();
-    v->regId = id;
+    vReg *v = specific_regs[id];
+    if (v == nullptr) {
+        v = new vReg();
+        v->regId = id;
+        specific_regs[id] = v;
+    }
     return v;
 }
 

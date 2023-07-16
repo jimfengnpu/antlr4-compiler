@@ -1,6 +1,7 @@
 #include "Dom.h"
 
 pBlock DomMaker::find(pBlock p) {
+    // 并不经典的并查集函数 (tarjan算法中的魔改版)
     if (setFa[p] == p) return p;
     pBlock r = find(setFa[p]);
     if (sdno[setV[setFa[p]]] < sdno[setV[p]]) setV[p] = setV[setFa[p]];
@@ -8,6 +9,7 @@ pBlock DomMaker::find(pBlock p) {
 }
 
 void DomMaker::makeDom(pIRFunc func) {
+    // tarjan 的 dom 树快速算法, 不明觉厉
     pBlock p;
     visitId = 0;
     dfn.clear();

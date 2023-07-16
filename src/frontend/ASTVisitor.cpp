@@ -237,6 +237,10 @@ std::any ASTVisitor::visitBlock(SysYParser::BlockContext* ctx) {
     return nullptr;
 }
 
+/**
+ * 每个CondContext存在一 branchs 属性,语义为条件为<F/T>时对应的BB
+ * 每一层的Cond branchs 由上面一层Context负责初始化
+ */
 std::any ASTVisitor::visitCond(SysYParser::CondContext* ctx) {
     if (auto logical = ctx->lop) {
         auto subLeftCond = ctx->cond(0);
@@ -316,9 +320,6 @@ std::any ASTVisitor::visitAssignStmt(SysYParser::AssignStmtContext* ctx) {
     visit(ctx->exp());
     auto lValObj = any_cast<pIRValObj>(visit(ctx->lVal()));
     insertIR(IRType::ASSIGN, lValObj, ctx->exp()->obj, nullptr);
-    // if(!lValObj->isTmp){
-    //     curBlock->defObj.push_back(lValObj);
-    // }
     return nullptr;
 }
 

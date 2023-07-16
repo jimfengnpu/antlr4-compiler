@@ -1,609 +1,106 @@
-// const int maxn = 18;
-// const int mod = 1000000007;
-// int dp[maxn][maxn][maxn][maxn][maxn][7];
-// int list[200];
+const int base = 16;
 
-// int equal(int a, int b) {
-//     if (a == b)
-//         return 1;
-//     return 0;
-// }
-
-// int dfs(int a, int b, int c, int d, int e, int last){
-//     if(dp[a][b][c][d][e][last] != -1)
-//         return dp[a][b][c][d][e][last];
-//     if(a + b + c + d + e == 0)
-//         return 1;
-//     int ans = 0;
-//     if (a) ans = (ans + (a - equal(last, 2)) * dfs(a - 1, b, c, d, e, 1)) % mod;
-//     if (b) ans = (ans + (b - equal(last, 3)) * dfs(a + 1, b - 1, c, d, e, 2)) % mod;
-//     if (c) ans = (ans + (c - equal(last, 4)) * dfs(a, b + 1, c - 1, d, e, 3)) % mod;
-//     if (d) ans = (ans + (d - equal(last, 5)) * dfs(a, b, c + 1, d - 1, e, 4)) % mod;
-//     if (e) ans = (ans + e * dfs(a, b, c, d + 1, e - 1, 5)) % mod;
-//     dp[a][b][c][d][e][last] = ans % mod;
-//     return dp[a][b][c][d][e][last];
-// }
-
-// int cns[20];
- 
-// int main(){
-//     int n = getint();
-//     int i = 0; 
-//     while (i < maxn) {
-//         int j = 0;
-//         while(j < maxn) {
-//             int k = 0;
-//             while(k < maxn) {
-//                 int l = 0;
-//                 while (l < maxn) {
-//                     int m = 0;
-//                     while (m < maxn) {
-//                         int h = 0;
-//                         while (h < 7) {
-//                             dp[i][j][k][l][m][h] = -1;
-//                             h = h + 1;
-//                         }
-//                         m = m + 1;
-//                     }
-//                     l = l + 1;
-//                 }
-//                 k = k + 1;
-//             }
-//             j = j + 1;
-//         }
-//         i = i + 1;
-//     }
-    
-//     i = 0;
-//     while (i < n) {
-//         list[i] = getint();
-//         cns[list[i]] = cns[list[i]] + 1;
-//         i = i + 1;
-//     }
-
-//     int ans = dfs(cns[1], cns[2], cns[3], cns[4], cns[5], 0);
-
-//     putint(ans);
-
-//     return ans;
-// }
-// int n;
-// int swap (int array[], int i, int j){
-//     int temp;
-//     temp = array[i];
-//     array[i] = array[j];
-//     array[j] = temp;
-//     return 0;  
-// }
-// int heap_ajust(int arr[], int start, int end) {  
-//     int dad;
-//     dad = start;  
-//     int son;
-//     son = dad * 2 + 1;  
-//     while (son < end + 1) { //   
-//         if (son < end && arr[son] < arr[son + 1])
-//             son = son + 1;  
-//         if (arr[dad] > arr[son])
-//             return 0;  
-//         else {
-//             dad = swap(arr,dad,son);  
-//             dad = son;  
-//             son = dad * 2 + 1;  
-//         }  
-//     }  
-//     return 0;  
-// }  
-// int heap_sort(int arr[], int len) {  
-//     int i;  
-//     int tmp;
-//     i = len / 2 - 1;
-//     while ( i > -1) {
-//         tmp = len - 1;
-//         tmp = heap_ajust(arr, i, tmp);  
-//         i = i - 1;
-//     }    
-//     i = len - 1;   
-//     while ( i > 0) {  
-//         int tmp0;
-//         tmp0 = 0;
-//         tmp = swap(arr,tmp0,i);
-//         tmp = i - 1;
-//         tmp = heap_ajust(arr, tmp0, tmp);  
-//         i = i-1;
-//     }  
-//     return 0;
-// }  
-
-// int main(){
-//     n = 10;
-//     int a[10];
-//     int b[20];
-//     a[0]=4;a[1]=3;a[2]=9;a[3]=2;a[4]=0;
-//     a[5]=1;a[6]=6;a[7]=5;a[8]=7;a[9]=8;
-//     int i;
-//     i = 0;
-//     // i = heap_sort(a, n);
-//     while (i < n) {
-//         int tmp;
-//         tmp = a[i];
-//         putint(tmp);
-//         tmp = 10;
-//         putch(tmp);
-//         i = i + 1;
-//     }
-//     b[1] = 5;
-//     return 0;
-// }
-//test array define
-// int main(){
-//     int a[4][2] = {};
-//     int b[4][2] = {1, 2, 3, 4, 5, 6, 7, 8};
-//     int c[4][2] = {{1, 2}, {3, 4}, {5, 6}, {7, 8}};
-//     int d[4][2] = {1, 2, {3}, {5}, 7 , 8};
-//     int e[4][2] = {{d[2][1], c[2][1]}, {3, 4}, {5, 6}, {7, 8}};
-//     return e[3][1] + e[0][0] + e[0][1] + a[2][0];
-// }
-// const int a[5]={0,1,2,3,4};
-
-// int main(){
-//     return a[4];
-// }
-// int defn(){
-//     return 4;
-// }
-
-// int main(){
-//     int a=defn();
-//     return a;
-// }
-// const int maxn = 18;
-// const int mod = 1000000007;
-// int dp[maxn][maxn][maxn][maxn][maxn][7];
-// int list[200];
-
-// int equal(int a, int b) {
-//     if (a == b)
-//         return 1;
-//     return 0;
-// }
-
-// int dfs(int a, int b, int c, int d, int e, int last){
-//     if(dp[a][b][c][d][e][last] != -1)
-//         return dp[a][b][c][d][e][last];
-//     if(a + b + c + d + e == 0)
-//         return 1;
-//     int ans = 0;
-//     if (a) ans = (ans + (a - equal(last, 2)) * dfs(a - 1, b, c, d, e, 1)) % mod;
-//     if (b) ans = (ans + (b - equal(last, 3)) * dfs(a + 1, b - 1, c, d, e, 2)) % mod;
-//     if (c) ans = (ans + (c - equal(last, 4)) * dfs(a, b + 1, c - 1, d, e, 3)) % mod;
-//     if (d) ans = (ans + (d - equal(last, 5)) * dfs(a, b, c + 1, d - 1, e, 4)) % mod;
-//     if (e) ans = (ans + e * dfs(a, b, c, d + 1, e - 1, 5)) % mod;
-//     dp[a][b][c][d][e][last] = ans % mod;
-//     return dp[a][b][c][d][e][last];
-// }
-
-// int cns[20];
- 
-// int main(){
-//     int n = getint();
-//     int i = 0; 
-//     while (i < maxn) {
-//         int j = 0;
-//         while(j < maxn) {
-//             int k = 0;
-//             while(k < maxn) {
-//                 int l = 0;
-//                 while (l < maxn) {
-//                     int m = 0;
-//                     while (m < maxn) {
-//                         int h = 0;
-//                         while (h < 7) {
-//                             dp[i][j][k][l][m][h] = -1;
-//                             h = h + 1;
-//                         }
-//                         m = m + 1;
-//                     }
-//                     l = l + 1;
-//                 }
-//                 k = k + 1;
-//             }
-//             j = j + 1;
-//         }
-//         i = i + 1;
-//     }
-    
-//     i = 0;
-//     while (i < n) {
-//         list[i] = getint();
-//         cns[list[i]] = cns[list[i]] + 1;
-//         i = i + 1;
-//     }
-
-//     int ans = dfs(cns[1], cns[2], cns[3], cns[4], cns[5], 0);
-
-//     putint(ans);
-
-//     return ans;
-// }
-int array[110];
-int n;
-void init(int n) {
-  int i = 1;
-  while (i <= n * n + 1) {
-    array[i] = -1;
-    i = i + 1;
-  }
-}
-
-int findfa(int a) {
-  if (array[a] == a)
-    return a;
-  else {
-    array[a] = findfa(array[a]);
-    return array[a];
-  }
-}
-void mmerge(int a, int b) {
-  int m = findfa(a);
-  int n = findfa(b);
-  if (m != n) array[m] = n;
-}
-int main() {
-  int t, m;
-  int a, b;
-  t = 1;
-  while (t) {
-    t = t - 1;
-    n = 4;
-    m = 10;
+int getMaxNum(int n, int arr[]){
+    int ret = 0;
     int i = 0;
-    int flag = 0;
-    init(n);
-    int k = n * n + 1;
-
-    while (i < m) {
-      a = getint();
-      b = getint();
-
-      if (!flag) {
-        int loc = n * (a - 1) + b;
-
-        array[loc] = loc;
-        if (a == 1) {
-          array[0] = 0;
-          mmerge(loc, 0);
-        }
-        if (a == n) {
-          array[k] = k;
-          mmerge(loc, k);
-        }
-        if (b < n && array[loc + 1] != -1) {
-          mmerge(loc, loc + 1);
-        }
-        if (b > 1 && array[loc - 1] != -1) {
-          mmerge(loc, loc - 1);
-        }
-        if (a < n && array[loc + n] != -1) {
-          mmerge(loc, loc + n);
-        }
-        if (a > 1 && array[loc - n] != -1) {
-          mmerge(loc, loc - n);
-        }
-
-        if (array[0] != -1 && array[k] != -1 && findfa(0) == findfa(k)) {
-          flag = 1;
-          int tmp = i + 1;
-          putint(tmp);
-          putch(10);
-        }
-      }
-
-      i = i + 1;
+    while (i < n){
+        if (arr[i] > ret) ret = arr[i];
+        i = i + 1;
     }
-    if (!flag) {
-      putint(-1);
-      putch(10);
-    }
-  }
-  return 0;
+    return ret;
 }
 
+int getNumPos(int num, int pos){
+    int tmp = 1;
+    int i = 0;
+    while (i < pos){
+        num = num / base;
+        i = i + 1;
+    }
+    return num % base;
+}
 
-// int M;
-// int L;
-// int N;
+void radixSort(int bitround, int a[], int l, int r){
+    int head[base] = {};
+    int tail[base] = {};
+    int cnt[base] = {};
 
+    if (bitround == -1 || l + 1 >= r) return;
 
-// int add(int a0[],int a1[], int a2[],int b0[],int b1[],int b2[],int c0[],int c1[],int c2[])
-// {
-//     int i;
-//     i=0;
-//     while(i<M)
-//     {
-//         c0[i]=a0[i]+b0[i];
-//         c1[i]=a1[i]+b1[i];
-//         c2[i]=a2[i]+b2[i];
-//         i=i+1;
-//     } 
+    {    
+        int i = l;
+        
+        while (i < r){
+            cnt[getNumPos(a[i], bitround)]
+                = cnt[getNumPos(a[i], bitround)] + 1;
+            i = i + 1;
+        }        
+        head[0] = l;
+        tail[0] = l + cnt[0];
 
-//     return 0;
+        i = 1;
+        while (i < base){
+            head[i] = tail[i - 1];
+            tail[i] = head[i] + cnt[i];
+            i = i + 1;
+        }
+        i = 0;
+        while (i < base){
+            while (head[i] < tail[i]){
+                int v = a[head[i]];
+                while (getNumPos(v, bitround) != i){
+                    int t = v;
+                    v = a[head[getNumPos(t, bitround)]];
+                    a[head[getNumPos(t, bitround)]] = t;
+                    head[getNumPos(t, bitround)] = head[getNumPos(t, bitround)] + 1;
+                }
+                a[head[i]] = v;
+                head[i] = head[i] + 1;
+            }
+            i = i + 1;
+        }
+    }
 
-// }
+    {
+        int i = l;
+        
+        head[0] = l;
+        tail[0] = l + cnt[0];
 
-// int main()
-// {
-//     N=3;
-//     M=3;
-//     L=3;
-//     int a0[3];int a1[3]; int a2[3];int b0[3];int b1[3];int b2[3];int c0[6];int c1[3];int c2[3];
-//     int i;
-//     i=0;
-//     while(i<M)
-//     {
-//         a0[i]=i;
-//         a1[i]=i;
-//         a2[i]=i;
-//         b0[i]=i;
-//         b1[i]=i;
-//         b2[i]=i;
-//         i=i+1;
-//     }
-//     i=add( a0, a1,  a2, b0, b1, b2, c0, c1, c2);
-//     int x;
-//     while(i<N)
-//     {
-//         x = c0[i];
-//         putint(x);
-//         i=i+1;
-//     }
-//     x = 10;
-//     putch(x);
-//     i=0;
-//     while(i<N)
-//     {
-//         x = c1[i];
-//         putint(x);
-//         i=i+1;
-//     }
-//     x = 10;
-//     putch(x);
-//     i=0;
-//     while(i<N)
-//     {
-//         x = c2[i];
-//         putint(x);
-//         i=i+1;
-//     }
-//     x = 10;
-//     putch(x);
+        i = 0;
+        while (i < base){
+            if (i > 0){
+                head[i] = tail[i - 1];
+                tail[i] = head[i] + cnt[i];
+            }
+            radixSort(bitround - 1, a, head[i], tail[i]);
+            i = i + 1;
+        }
+    }
 
-//     return 0;
-// }
-// int ints[10000];
-// int intt;
-// int chas[10000];
-// int chat;
-// int i=0, ii=1;
-// int c;
-// int get[10000];
-// int get2[10000];
+    return;
+}
 
-// int isdigit(int x) {
-//     if (x >= 48 && x <= 57)
-//         return 1;
-//     return 0;
-// }
+int a[30000010];
+int ans;
 
-// int power(int b, int a) {
-//     int result = 1;
-//     while (a != 0) {
-//         result = result * b;
-//         a = a - 1;
-//     }
-//     return result;
-// }
+int main(){
+    int n = getarray(a);
 
-// int getstr(int get[]) {
-//     int x = getch();
-//     int length = 0;
-//     while (x != 13 && x != 10) {
-//         get[length] = x;
-//         length = length + 1;
-//         x = getch();
-//     }
-//     return length;
-// }
+    starttime();
 
-// void intpush(int x)
-// {
-//     intt = intt + 1;
-//     ints[intt] = x;
-// }
-// void chapush(int x)
-// {
-//     chat = chat + 1;
-//     chas[chat] = x;
-// }
-// int intpop()
-// {
-//     intt = intt - 1;
-//     return ints[intt + 1];
-// }
-// int chapop()
-// {
-//     chat = chat - 1;
-//     return chas[chat + 1];
-// }
-// void intadd(int x)
-// {
-//     ints[intt] = ints[intt] * 10;
-//     ints[intt] = ints[intt] + x;
-// }
+    radixSort(8, a, 0, n);
 
-// int find()
-// {
-//     c = chapop();
-//     get2[ii] = 32;
-//     get2[ii + 1] = c;
-//     ii = ii + 2;
-//     if (chat == 0) return 0;
-//     return 1;
-// }
+    int i = 0;
+    while (i < n){
+        ans = ans + i * (a[i] % (2 + i));
+        i = i + 1;
+    }
 
-// int main()
-// {
-//     intt=0;
-//     chat=0;
-//     int lengets = getstr(get);
-//     while (i < lengets)
-//     {
-//         if (isdigit(get[i]) == 1)
-//         {
-//             get2[ii] = get[i];
-//             ii = ii + 1;
-//         }
-//         else
-//         {
-//             if(get[i] == 40) chapush(40);
-//             if(get[i] == 94) chapush(94);
-//             if(get[i] == 41)
-//             {
-//                 c = chapop();
-//                 while (c != 40)
-//                 {
-//                     get2[ii] = 32;
-//                     get2[ii + 1]=c;
-//                     ii = ii + 2;
-//                     c = chapop();
-//                 }
-//             }
-//             if (get[i] == 43)
-//             {
-//                 while (chas[chat] == 43 || chas[chat] == 45 || chas[chat] == 42 || chas[chat] == 47 || chas[chat] == 37 || chas[chat] == 94)
-//                 {
-//                     if (find()==0)break;
-//                 }
-//                 chapush(43);
-//             }
-//             if (get[i] == 45)
-//             {
-//                 while (chas[chat] == 43 || chas[chat] == 45 ||chas[chat] == 42 || chas[chat] == 47 || chas[chat] == 37 || chas[chat] == 94)
-//                 {
-//                     if(find()==0)break;
-//                 }
-//                 chapush(45);
-//             }
-//             if(get[i] == 42)
-//             {
-//                 while (chas[chat] == 42 || chas[chat] == 47 ||chas[chat] == 37 || chas[chat] == 94)
-//                 {
-//                     if (find()==0)break;
-//                 }
-//                 chapush(42);
-//             }
-//             if (get[i] == 47)
-//             {
-//                 while (chas[chat] == 42 || chas[chat] == 47 || chas[chat] == 37 || chas[chat] == 94)
-//                 {
-//                     if (find()==0)break;
-//                 }
-//                 chapush(47);
-//             }
-//             if (get[i] == 37)
-//             {
-//                 while (chas[chat] == 42 || chas[chat] == 47 || chas[chat] == 37 || chas[chat] == 94)
-//                 {
-//                     if (find()==0)break;
-//                 }
-//                 chapush(37);
-//             }
-//             get2[ii] = 32;
-//             ii = ii + 1;
-//         }
-//         i = i + 1;
-//     }
-//     while(chat > 0)
-//     {
-//         int c = chapop();
-//         get2[ii] = 32;
-//         get2[ii + 1]=c;
-//         ii = ii + 2;
-//     }
-//     get2[ii]= 64;
-//     i = 1;
-//     while (get2[i] != 64)
-//     {
-//         if (get2[i] == 43 || get2[i] == 45 || get2[i] == 42 || get2[i] == 47 || get2[i] == 37 || get2[i] == 94)
-//         {
-//             int a=intpop();int b=intpop();int c;
-//             if (get2[i] == 43) c = a + b;
-//             if (get2[i] == 45) c = b - a;
-//             if (get2[i] == 42) c = a * b;
-//             if (get2[i] == 47) c = b / a;
-//             if (get2[i] == 37) c = b % a;
-//             if (get2[i] == 94) c = power(b,a);
-//             intpush(c);
-//         }
-//         else
-//         {
-//             if(get2[i] != 32)
-//             {
-//                 intpush(get2[i] - 48);
-//                 ii=1;
-//                 while(get2[i+ii] != 32)
-//                 {
-//                     intadd(get2[i+ii] - 48);
-//                     ii = ii + 1;
-//                 }
-//                 i = i + ii-1;
-//             }
-//         }
-//         i = i + 1;
-//     }
-//     putint(ints[1]);
-//     return 0;
-// }
-
-
-// void move(int x, int y)
-// {
-//     putint(x); putch(32); putint(y); putch(44); putch(32);
-// }
-
-// void hanoi(int n, int one, int two, int three)
-// {
-//     if (n == 1)
-//         move(one, three);
-//     else {
-//         hanoi(n - 1, one, three, two);
-//         move(one, three);
-//         hanoi(n - 1, two, one, three);
-//     }
-// }
-
-// int main()
-// {
-//     int n = getint();
-//     while (n > 0) {
-//         hanoi(getint(), 1, 2, 3);
-//         putch(10);
-//         n = n - 1;
-//     }
-//     return 0;
-// }
-//test continue
-// int main(){
-//     int i;
-//     i = 0;
-//     int sum;
-//     sum = 0;
-//     while(i < 100){
-//         if(i == 50){
-//             i = i + 1;
-//             continue;
-//         }
-//         sum = sum + i;
-//         i = i + 1;
-//     }
-//     return sum;
-// }
+    if (ans < 0)
+        ans = -ans;
+    stoptime();
+    putint(ans);
+    putch(10);
+    return 0;
+}

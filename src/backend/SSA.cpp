@@ -43,20 +43,7 @@ void SSAMaker::fillSuccPhi(pBlock block, pBlock from) {
 
 pBlock SSAMaker::visit(pBlock block) {
     visitStack.push_back(block);
-    // for(auto& obj : block->phiOrigin){
-    //     if(!renamedObj[block][obj]){
-    //         pIRScalValObj targ = toScal(obj);
-    //         auto newObj = block->phiObj[obj] =
-    //         make_shared<IRScalValObj>(*targ.get()); newObj->name =
-    //         getNewName(obj);
-    //         // cout << "add "<< obj->name << " in "<< block<<endl;
-    //         renamedObj[block][obj] = newObj;
-    //         newObj->phiDef = true;
-    //         newObj->defStruction = block;
-    //     }
-    // }
     for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
-        // cout << *ir.get() << endl;
         if (ir->opt1) ir->opt1 = renameObj(ir->opt1, ir);
         if (ir->opt2) ir->opt2 = renameObj(ir->opt2, ir);
         if (ir->type == IRType::RET) {
@@ -77,7 +64,6 @@ pBlock SSAMaker::visit(pBlock block) {
             if (ir->type == IRType::PHI) {
                 phiOrigin[block][newObj] = targ;
             }
-            // cout << "add "<< targ->name << " in "<< block<<endl;
             renamedObj[block][targ] = newObj;
         }
     }

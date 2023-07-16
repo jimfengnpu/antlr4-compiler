@@ -7,7 +7,7 @@ using namespace std;
  * rule:
  * storeOp use, memObj(use)
  * loadOp def, memObj
- * callOp use... , target
+ * callOp ret(def), use... , target
  * others def, use...
  */
 #if EM_ARCH == EM_RISCV
@@ -20,6 +20,7 @@ using namespace std;
 #define loadImmOp "li"
 #define assignOp "mv"
 #define callOp "call"
+#define retOp "ret"
 #define framePtrRegId 8
 
 #define memByteAlign 4

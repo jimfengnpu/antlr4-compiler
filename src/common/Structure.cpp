@@ -113,10 +113,7 @@ void SysYIR::print(std::ostream &os) const {
     if (target != nullptr) os << " " << target.get()->name;
     if (opt1 != nullptr) os << ", " << opt1.get()->name;
     if (opt2 != nullptr) os << ", " << opt2.get()->name;
-    // if(auto scal=toScal(opt2)){
-    //     if(scal->constState==IR_CONST)
-    //     os << "(" << scal->value<<")";
-    // }
+
 }
 
 ASMInstr *SysYIR::addASMBack(ASMInstr *instr, ASMInstr *end) {
@@ -228,6 +225,7 @@ void IRBlock::print(std::ostream &os) const {
             assert(nextBranch != nullptr);
             os << " GOTO " << nextBranch.get()->name;
         }
+        #ifndef VAL_CFGDOM
         if (ir == irHead) {
             os << " << H";
         }
@@ -241,6 +239,7 @@ void IRBlock::print(std::ostream &os) const {
         } else {
             os << "--m";
         }
+        #endif
     }
 
     if (nullptr != nextNormal) {

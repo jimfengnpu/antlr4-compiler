@@ -77,7 +77,7 @@ void AsmEmitter::printAsm(ASMInstr* instr) {
     }
     fout << "\t" << opName;
     bool start = false;
-    if (opName != callOp && opName != "ret") {
+    if (opName != callOp && opName != retOp) {
         deque<vReg*> ops{};
         for (auto p : instr->op) {
             ops.push_back(p);
@@ -120,7 +120,7 @@ void AsmEmitter::emitFunc(pIRFunc func) {
         ASMInstr* s =nullptr;
         for (auto ir = block->irHead; ir; ir = ir->next) {
             for (s = ir->asmHead; s; s = s->next) {
-                if (s->name == "ret" && block == func->exit) {
+                if (s->name == retOp && block == func->exit) {
                     for (auto s = func->exitInstrs->asmHead; s; s = s->next) {
                         printAsm(s);
                     }

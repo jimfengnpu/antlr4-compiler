@@ -1,5 +1,6 @@
 #include "IRProcessor.h"
 
+#include "Arch.h"
 #include "Optimizer.h"
 
 void IRProcessor::addTriggers() {
@@ -13,7 +14,6 @@ void IRProcessor::addTriggers() {
 void checkLiveUse(pIRValObj obj, set<pIRValObj>& def, set<pIRValObj>& use) {
     if (!obj) return;
     if (obj->isConstant() && (!obj->isIdent)) {
-        // def.insert(obj);
         return;
     }
     if (def.find(obj) == def.end()) {
@@ -75,7 +75,7 @@ void LiveCalculator::makeLive(pIRFunc& func) {
                     for (auto v : s->op) {
                         if (v->regType == REG_R && v->var == nullptr &&
                             defRegs.find(v) == defRegs.end()) {
-                            if (s->name == "call") {
+                            if (s->name == callOp) {
                                 defRegs.insert(v);
                             } else {
                                 useRegs.insert(v);
@@ -96,9 +96,7 @@ void LiveCalculator::makeLive(pIRFunc& func) {
             auto& liveUse = block->useObj;
             auto& liveDef = block->defObj;
             pIRValObj op1, op2, targ;
-            // for(auto& obj: block->phiOrigin){
-            //     liveDef.insert(block->phiObj[obj]);
-            // }
+
             for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
                 targ = toVal(ir->target);
                 checkLiveUse(toVal(ir->opt1), liveDef, liveUse);

@@ -1,6 +1,11 @@
 #include "RegAlloc.h"
 
 inline void addNewRange(pBlock block, vReg* reg, int end) {
+    if (regLive[reg][block].size()) {
+        if (regLive[reg][block].back()->start <= end + 1) {
+            return;
+        }
+    }
     regLive[reg][block].push_back(new liveRange(block, 0, end));
 }
 
@@ -89,7 +94,8 @@ bool intersectConflict(vReg* a, vReg* b, pBlock block, int* s, int* e) {
 bool splitVal(vReg* a, vReg* b) {
     int s, e;
     if (a == b) return false;
-    assert(!(a->fixed && b->fixed));
+    // assert(!(a->fixed && b->fixed));
+    // cout << "assert";
     vReg* val = a->fixed ? b : a;
     vReg* nReg = new vReg();
     for (auto [blk, ra] : regLive[a]) {
@@ -108,7 +114,10 @@ bool splitVal(vReg* a, vReg* b) {
 #endif
             if (intersectConflict(a, b, blk, &s, &e)) {
                 int i = 0;
-                isLive(blk, val==a? b: a, e, nullptr, &e);
+                isLive(blk, val == a ? b : a, e, nullptr, &e);
+#ifdef VAL_REG
+                cout << "insert " << s - 1 << " " << e << endl;
+#endif
                 for (auto ir = blk->irHead; ir; ir = ir->next) {
                     for (auto inst = ir->asmHead; inst;
                          inst = inst->next, i++) {
@@ -122,16 +131,14 @@ bool splitVal(vReg* a, vReg* b) {
                                 inst->targetOp = nReg;
                             }
                         }
+                        // 最早s-1编号处的汇编定义了val的值
                         if (i == s - 1 || s == 0 && i == 0) {
                             auto newInst = ir->addASMFront(
                                 assignOp, nReg, {val}, nullptr, inst);
-                            // inst->prev->next = newInst;
-                            // newInst->prev = inst;
                         } else if (i == e) {
                             auto newInst = ir->addASMBack(assignOp, val, {nReg},
                                                           nullptr, inst);
-                            // inst->next->prev = newInst;
-                            // newInst->next = inst;
+                            // 向后添加汇编指令影响了遍历顺序,手动向后移动一位
                             inst = newInst;
                         }
                         if (i > e) {
@@ -142,7 +149,6 @@ bool splitVal(vReg* a, vReg* b) {
             }
         }
     }
-    // assert(0);
     return false;
 }
 
@@ -176,6 +182,8 @@ pBlock RegAllocator::visit(pBlock block) {
 }
 
 void RegAllocator::makeBlockLiveRange(pBlock block) {
+    // 所有活跃区间的定义为 一个BB之内, 定值点的下一条指令开始,
+    // 到最后一条(包含)结束
     int sid;
     vector<ASMInstr*> asmVec;
     sid = 0;
@@ -195,26 +203,6 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
     }
     int i = sid - 1;
     for (auto s = asmVec.rbegin(); i >= 0; i--, s++) {
-        if ((*s)->name == callOp) {
-            for (auto op : (*s)->op) {
-                if (vals.find(op) != vals.end()) {
-                    if (!isLive(block, op, i)) {
-                        addNewRange(block, op, i);
-                        liveNow.insert(op);
-                    }
-                    killRange(block, op, i - 1);
-                    liveNow.erase(op);
-                    if (liveNow.size()) {
-                        for (auto& v : liveNow) {
-                            conflictMap[v].insert(op);
-                            conflictMap[op].insert(v);
-                        }
-                    }
-                }
-            }
-            continue;
-        }
-        if ((*s)->op.size() == 0) continue;
         if ((*s)->targetOp != nullptr) {
             auto opDef = (*s)->targetOp;
             if (vals.find(opDef) != vals.end()) {
@@ -229,6 +217,39 @@ void RegAllocator::makeBlockLiveRange(pBlock block) {
                 valCost[opDef] += blockFreq[block];
             }
         }
+        if ((*s)->name == callOp) {
+            // 对于caller saved 寄存器r,
+            //(调用约定函数返回不保留值,手动添加r到当前活跃量的边,表示不能跨越call使用该寄存器)
+            // 对于
+            // 传参预着色与当前参数预着色冲突的问题，交由寄存器活跃区间分割处理
+            set<int> callDefReg(archInfo->callerSaveRegs);
+            for (auto op : (*s)->op) {
+                if (op->regType == REG_R) {
+                    callDefReg.erase(op->regId);
+                }
+            }
+            if ((*s)->targetOp) {
+                callDefReg.erase((*s)->targetOp->regId);
+            }
+            for (auto r : callDefReg) {
+                auto op = newReg(r);
+                op->fixed = true;
+                if (!isLive(block, op, i)) {
+                    addNewRange(block, op, i);
+                }
+            }
+            for (auto r : callDefReg) {
+                auto op = newReg(r);
+                killRange(block, op, i - 1);
+                if (liveNow.size()) {
+                    for (auto& v : liveNow) {
+                        conflictMap[v].insert(op);
+                        conflictMap[op].insert(v);
+                    }
+                }
+            }
+        }
+        if ((*s)->op.size() == 0) continue;
         for (auto op = (*s)->op.begin(); op != (*s)->op.end(); op++) {
             if (vals.find(*op) != vals.end()) {
                 if (!isLive(block, *op, i)) {
@@ -245,15 +266,6 @@ void RegAllocator::getVregClass(vReg* v) {
     if (v->regType == REG_R && v->var == nullptr) {
         vals.insert(v);
     }
-    // } else if (v->regType == REG_M) {
-    //     if (v->ref == nullptr) {
-    //         if (v->var == nullptr) {
-    //             memVals.insert(v);
-    //         }
-    //     } else {
-    //         getVregClass(v->ref);
-    //     }
-    // }
 }
 
 void RegAllocator::makeGraph(pIRFunc func) {
@@ -280,6 +292,9 @@ void RegAllocator::makeGraph(pIRFunc func) {
                 }
             }
         }
+    }
+    for (auto r : archInfo->callerSaveRegs) {
+        vals.insert(newReg(r));
     }
     for (pBlock block = func->entry; block; block = block->asmNextBlock) {
         makeBlockLiveRange(block);

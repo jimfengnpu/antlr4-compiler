@@ -197,12 +197,15 @@ void CommonExp::prepareTriggers() { triggers.push_back(new CodeCleaner()); }
 
 pIRObj CommonExp::checkOp(pIRObj val) {
     auto s = toScal(val);
-    if (s && s->isConstant() && !s->isIdent) {
-        pIRObj imm = constMap[s->value];
-        if (imm) {
-            val = imm;
-        } else {
-            constMap[s->value] = val;
+    if (s) {
+        // 数值相同的立即数会映射到相同IRObj
+        if (s->isConstant() && !s->isIdent) {
+            pIRObj imm = constMap[s->value];
+            if (imm) {
+                val = imm;
+            } else {
+                constMap[s->value] = val;
+            }
         }
     }
     return val;
@@ -225,30 +228,77 @@ bool checkUse(pIRValObj val) {
 
 void CommonExp::applyBlock(pBlock block) {
     for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
+        if (IRType::MUL == ir->type || IRType::DIV == ir->type) {
+            auto scal = toScal(ir->opt2);
+            if (scal->isConstant()) {
+                int v = scal->value;
+                // MUL / DIV +2^n, 改写为位运算
+                if (v > 0 && ((v & (-v)) == v)) {
+                    int n = 0;
+                    while ((v & 1) == 0) {
+                        v >>= 1;
+                        n++;
+                    }
+                    if (IRType::MUL == ir->type) {
+                        ir->type = IRType::SL;
+                    } else {
+                        ir->type = IRType::SR;
+                    }
+                    ir->opt2 = make_shared<IRScalValObj>(n);
+                }
+            }
+        }
+
         if (IRType::CALL != ir->type && IRType::PHI != ir->type &&
             IRType::PARAM != ir->type && IRType::DEF != ir->type &&
-            IRType::ASSIGN != ir->type) {
+            IRType::ASSIGN != ir->type &&
+            (!(ir->next && IRType::BR == ir->next->type))) {
             pIRObj op1 = ir->opt1, op2 = ir->opt2;
             op1 = checkOp(op1);
             op2 = checkOp(op2);
-            auto val = ops[ir->type][op1][op2];
-            if (val != nullptr && val != toVal(ir->opt1) &&
-                val->ssaDef && val->defStruction->block->dominate(block) &&
-                checkUse(toVal(op1)) && checkUse(toVal(op2))) {
-                #ifdef VAL_IR
-                cout << ir.get() << endl;
-                #endif
-                clearUse(toVal(ir->opt1), ir);
-                clearUse(toVal(ir->opt2), ir);
-                ir->type = IRType::ASSIGN;
-                ir->opt1 = val;
-                if (val->ssaDef) {
-                    val->useStructions.insert(ir);
+            if (op1 && op2) {
+                auto val = ops[ir->type][op1][op2];
+                if (val != nullptr && val != toVal(ir->opt1) && val->ssaDef &&
+                    val->defStruction->block->dominate(block, false)) {
+#ifdef VAL_IR
+                    cout << ir.get() << endl;
+#endif
+                    clearUse(toVal(ir->opt1), ir);
+                    clearUse(toVal(ir->opt2), ir);
+                    ir->type = IRType::ASSIGN;
+                    ir->opt1 = val;
+                    if (val->ssaDef) {
+                        val->useStructions.insert(ir);
+                    }
+                    ir->opt2 = nullptr;
+                    changed = true;
+                } else {
+                    ops[ir->type][op1][op2] = ir->target;
                 }
-                ir->opt2 = nullptr;
+            }
+        }
+        // copy fold, 如果传播到的copy use 存在于phi指令，不进行fold(swap 问题)
+        // ret 的use 同样不能改写(涉及后端固定的寄存器)
+        if (IRType::ASSIGN == ir->type && ir->target->ssaDef &&
+            toVal(ir->opt1)->fa == nullptr && ir->target->fa == nullptr) {
+            bool rm_ok = true;
+            for (auto u : ir->target->useStructions) {
+                if (u->type == IRType::PHI || u->type == IRType::RET) {
+                    rm_ok = false;
+                    break;
+                }
+            }
+            if (rm_ok) {
+                for (auto u : ir->target->useStructions) {
+                    if (u->opt1 == ir->target) {
+                        u->opt1 = ir->opt1;
+                    } else if (u->opt2 == ir->target) {
+                        u->opt2 = ir->opt1;
+                    }
+                }
+                ir->target->useStructions.clear();
+                block->remove(ir);
                 changed = true;
-            } else {
-                ops[ir->type][op1][op2] = ir->target;
             }
         }
     }

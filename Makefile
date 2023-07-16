@@ -5,7 +5,7 @@ ANTLR_GEN_DIR = src/frontend/generated
 TARGET_FILE = build/compiler
 TEST_INPUT = test_input.sy
 OUT_DOT = test.gv
-FUNC = main
+FUNC = eval
 
 all:clean  ${TARGET_FILE}
 	
@@ -34,7 +34,9 @@ run: ${TARGET_FILE}
 	./${TARGET_FILE} ${TEST_INPUT}
 
 run_asm: ${asm_demo}
-	/opt/riscv/bin/riscv64-unknown-linux-gnu-gcc -march=rv64gc out.s -L compiler2021/lib/riscv64/ -lsysy -o /tmp/test.x
+	sed -i 's/starttime/_sysy_starttime/g' out.s
+	sed -i 's/stoptime/_sysy_stoptime/g' out.s
+	/opt/riscv/bin/riscv64-unknown-linux-gnu-gcc -g -march=rv64gc out.s -L compiler2021/lib/riscv64/ -lsysy -o /tmp/test.x
 	qemu-riscv64 /tmp/test.x
 
 asm_demo: ${TEST_INPUT}

@@ -113,7 +113,6 @@ void SysYIR::print(std::ostream &os) const {
     if (target != nullptr) os << " " << target.get()->name;
     if (opt1 != nullptr) os << ", " << opt1.get()->name;
     if (opt2 != nullptr) os << ", " << opt2.get()->name;
-
 }
 
 ASMInstr *SysYIR::addASMBack(ASMInstr *instr, ASMInstr *end) {
@@ -225,7 +224,7 @@ void IRBlock::print(std::ostream &os) const {
             assert(nextBranch != nullptr);
             os << " GOTO " << nextBranch.get()->name;
         }
-        #ifndef VAL_CFGDOM
+#ifndef VAL_CFGDOM
         if (ir == irHead) {
             os << " << H";
         }
@@ -239,7 +238,7 @@ void IRBlock::print(std::ostream &os) const {
         } else {
             os << "--m";
         }
-        #endif
+#endif
     }
 
     if (nullptr != nextNormal) {
@@ -307,6 +306,9 @@ bool IRBlock::finishBB(pBlock next_normal, pBlock next_branch,
     if (irTail) {
         irTail->next = branchIR;
     }
+    if (!irHead) {
+        irHead = branchIR;
+    }
     return true;
 }
 
@@ -323,9 +325,9 @@ void IRBlock::remove(pSysYIR ir) {
     if (ir == irHead) {
         irHead = irHead->next;
     }
-    if (ir == branchIR) {
-        branchIR = nullptr;
-    }
+    // if (ir == branchIR) {
+    //     branchIR = nullptr;
+    // }
     ir->removedMask = true;
 }
 

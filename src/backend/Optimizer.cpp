@@ -65,6 +65,8 @@ bool BlockPruner::checkRemoveEmptyBlock(pBlock block) {
     fa->nextNormal = block->nextNormal;
     fa->nextBranch = block->nextBranch;
     fa->branchVal = block->branchVal;
+    fa->branchIR->opt1 = fa->branchVal;
+    fa->branchIR->type = IRType::BR;
     block->nextNormal->from.erase(block);
     block->nextNormal->from.insert(fa);
     changeErasePhiFrom(block->nextNormal, block, fa);
@@ -315,28 +317,36 @@ bool checkObjUseEmpty(pIRObj obj) {
     auto scalObj = toScal(obj);
     if (scalObj)
         if (scalObj->fa == nullptr)
-            if (auto defIr = scalObj->defStruction) {
+        {
+            if(scalObj->isConstant() && !scalObj->isIdent){
+                return true;
+            }
+            if(scalObj->ssaDef){
                 return scalObj->useStructions.empty();
             }
+        }
     return false;
 }
 
 void CodeCleaner::applyBlock(pBlock block) {
     for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
         if (IRType::CALL != ir->type && checkObjUseEmpty(ir->target)) {
-            if (ir->type == IRType::BR) {
-                if (0 != block->branchVal->value) {  // always branch
-                    block->nextNormal->from.erase(block);
-                    changeErasePhiFrom(block->nextNormal, block, nullptr);
-                    block->nextNormal = block->nextBranch;
-                } else {
-                    block->nextBranch->from.erase(block);
-                    changeErasePhiFrom(block->nextBranch, block, nullptr);
-                }
-                block->branchVal = nullptr;
-                block->nextBranch = nullptr;
-            }
             block->remove(ir);
+            changed = true;
+        }
+        if (ir->type == IRType::BR && checkObjUseEmpty(block->branchVal)) {
+            if (0 != block->branchVal->value) {  // always branch
+                block->nextNormal->from.erase(block);
+                changeErasePhiFrom(block->nextNormal, block, nullptr);
+                block->nextNormal = block->nextBranch;
+            } else {
+                block->nextBranch->from.erase(block);
+                changeErasePhiFrom(block->nextBranch, block, nullptr);
+            }
+            block->branchVal = nullptr;
+            block->nextBranch = nullptr;
+            block->branchIR->opt1 = nullptr;
+            block->branchIR->type = IRType::NOP;
             changed = true;
         }
     }
@@ -344,6 +354,8 @@ void CodeCleaner::applyBlock(pBlock block) {
         if (block->nextBranch == block->nextNormal) {
             block->branchVal = nullptr;
             block->nextBranch = nullptr;
+            block->branchIR->opt1 = nullptr;
+            block->branchIR->type = IRType::NOP;
             changed = true;
         }
     }

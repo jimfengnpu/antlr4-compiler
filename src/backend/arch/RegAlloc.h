@@ -42,6 +42,9 @@ static int liveLen(vReg* v) {
 }
 
 static double calCost(vReg* v) {
+    if (liveLen(v) == 0 || valCost[v] == 0) {
+        return 1 / 0.0;  // this means v is used in call, never spilled
+    }
     const double eps = 1e-8;
     double cost = (double)valCost[v];
     double range_fac = liveLen(v) + 1 - valAccCnt[v] + eps;
@@ -59,7 +62,7 @@ class RegAllocator : public IRProcessor {
     struct ValCostComparator {
         bool operator()(vReg* a, vReg* b) const {  // > 小顶
             if (a->regId != -1) return true;
-            if (liveLen(b) == 0) return false; // this means a is used in call, never spilled
+            // if (liveLen(b) == 0) return false;
             return calCost(a) > calCost(b);
         }
     };

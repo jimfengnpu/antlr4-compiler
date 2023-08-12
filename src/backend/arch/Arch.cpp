@@ -285,7 +285,7 @@ void RISCV::defineArchInfo() {
     branchBlockASMLimit = 512;
     // 这是一个vector, 同时定义了寄存器分配顺序
     addRegs(genRegsId, {a0, a1, a2, a3, a4, a5, a6, a7, t1,  t2,  t3, s1,
-                        s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, ra});
+                        s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addRegs(calleeSaveRegs, {s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addRegs(callerSaveRegs,
             {a0, a1, a2, a3, a4, a5, a6, a7, t0, t1, t2, t3, t4, t5, t6});
@@ -377,6 +377,8 @@ void RISCV::defineArchInfo() {
                     vReg* arrObj = getVREG(toVal(ir->opt1));
                     arrObj = processSymbol(arrObj, ir);
                     vReg* offObj = getVREG(toVal(ir->opt2));
+                    obj->regType = REG_R;
+                    obj->isAddr = true;
                     if (isImmInLimit(offObj, 12)) {
                         // 此处offset 应为参数offset + arr 相对arr寄存器的offset
                         offObj = new vReg(offObj->value);
@@ -389,8 +391,6 @@ void RISCV::defineArchInfo() {
                         ir->addASMBack("addi", offObj, {offObj, r});
                         ir->addASMBack("add", obj, {arrObj, offObj});
                     }
-                    obj->regType = REG_R;
-                    obj->isAddr = true;
                     return 1;
                 }});
     addMatchers(IRType::RET, {[](pSysYIR ir) -> int {

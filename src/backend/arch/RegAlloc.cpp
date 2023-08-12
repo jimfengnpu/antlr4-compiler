@@ -337,7 +337,6 @@ void RegAllocator::allocReg(pIRFunc func) {
             if (v->regId != -1) {
                 colored[v] = true;
                 regIds[v] = v->regId;
-                // regOrder.push_front(v);
             } else {
                 qvals.push(v);
             }
@@ -375,6 +374,11 @@ void RegAllocator::allocReg(pIRFunc func) {
                     }
                 }
                 checkList.push(v);
+#ifdef VAL_REG
+                cout << "cost: " << (double)valCost[v] << " " << liveLen(v)
+                     << " " << conflictMap[v].size() << " " << calCost(v)
+                     << endl;
+#endif
             } else {
                 for (auto adj : conflictMap[v]) {
                     if (colored[adj] && regIds[adj] == regIds[v]) {
@@ -395,7 +399,7 @@ void RegAllocator::allocReg(pIRFunc func) {
         if (needSpill) {
             auto spilled = checkList.top();
             spilled->regType = REG_M;
-            spilled->size = 1;
+            spilled->size = spilled->isAddr ? 2 : 1;
 #ifdef VAL_REG
             cout << "cost: " << (double)valCost[spilled] << " "
                  << liveLen(spilled) << " " << conflictMap[spilled].size()
@@ -404,8 +408,9 @@ void RegAllocator::allocReg(pIRFunc func) {
             setVregMem(spilled, func);
             for (auto b : func->blocks) {
 #ifdef VAL_REG
+                cout << b->name;
                 for (auto r : regLive[spilled][b]) {
-                    cout << "[" << r->start << "," << r->end << "] ";
+                    cout << " [" << r->start << "," << r->end << "] ";
                 }
                 cout << endl;
 #endif
@@ -415,19 +420,28 @@ void RegAllocator::allocReg(pIRFunc func) {
                         vReg* mreg = nullptr;
                         for (int i = 0; i < s->op.size(); i++) {
                             if (s->op[i] == spilled) {
-                                // cout << "add load before " << sid << endl;
+#ifdef VAL_REG
+                                cout << "add load before " << sid << endl;
+#endif
                                 mreg = new vReg(spilled);
                                 ir->addASMFront(
-                                    new ASMInstr(loadOp, mreg, {spilled}), s);
+                                    new ASMInstr(
+                                        spilled->isAddr ? loadDwOp : loadOp,
+                                        mreg, {spilled}),
+                                    s);
                                 s->op[i] = mreg;
                             }
                         }
                         if (s->targetOp && s->targetOp == spilled) {
                             mreg = new vReg(spilled);
-                            // cout << "add store after " << sid << endl;
+#ifdef VAL_REG
+                            cout << "add store after " << sid << endl;
+#endif
                             s->targetOp = mreg;
                             s = ir->addASMBack(
-                                new ASMInstr(storeOp, nullptr, {mreg, spilled}),
+                                new ASMInstr(
+                                    spilled->isAddr ? storeDwOp : storeOp,
+                                    nullptr, {mreg, spilled}),
                                 s);
                         }
                         sid++;

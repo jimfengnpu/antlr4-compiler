@@ -4,8 +4,8 @@
 #include <queue>
 
 #include "Arch.h"
-#include "IRProcessor.h"
 #include "AsmModify.h"
+#include "IRProcessor.h"
 
 const int maxBlockASMId = 1024;
 const int blockLoopWeight = 10;
@@ -21,6 +21,7 @@ class liveRange {
 
 static pIRFunc curFunc;
 static unordered_map<vReg*, int> valCost{};
+static unordered_map<vReg*, int> valAccCnt{};
 static unordered_map<vReg*, map<pBlock, vector<liveRange*> > > regLive;
 static unordered_map<vReg*, unordered_set<vReg*> > conflictMap;
 struct ValConflictComparator {
@@ -29,6 +30,24 @@ struct ValConflictComparator {
         return (conflictMap[a].size()) > (conflictMap[b].size());
     }
 };
+
+static int liveLen(vReg* v) {
+    int s = 0;
+    for (auto [b, vec] : regLive[v]) {
+        for (auto r : vec) {
+            s += (r->end - r->start + 1);
+        }
+    }
+    return s;
+}
+
+static double calCost(vReg* v) {
+    const double eps = 1e-8;
+    double cost = (double)valCost[v];
+    double range_fac = liveLen(v) + 1 - valAccCnt[v] + eps;
+    cost /= range_fac * conflictMap[v].size();
+    return cost;
+}
 
 class RegAllocator : public IRProcessor {
     BaseArch* archInfo;
@@ -40,8 +59,8 @@ class RegAllocator : public IRProcessor {
     struct ValCostComparator {
         bool operator()(vReg* a, vReg* b) const {  // > 小顶
             if (a->regId != -1) return true;
-            return ((double)valCost[a] / conflictMap[a].size()) >
-                   ((double)valCost[b] / conflictMap[b].size());
+            if (liveLen(b) == 0) return false; // this means a is used in call, never spilled
+            return calCost(a) > calCost(b);
         }
     };
     priority_queue<vReg*, vector<vReg*>, ValCostComparator> checkList;
@@ -59,6 +78,7 @@ class RegAllocator : public IRProcessor {
         addTriggers();
         for (auto func : prog.functions) {
             if (func->entry != nullptr) {
+                visit(func->entry);
                 allocReg(func);
                 unordered_set<int> regUsed{};
                 for (auto v : vals) {

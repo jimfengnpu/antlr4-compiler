@@ -284,8 +284,8 @@ void RISCV::defineArchInfo() {
     frameByteAlign = 16;
     branchBlockASMLimit = 512;
     // 这是一个vector, 同时定义了寄存器分配顺序
-    addRegs(genRegsId, {a0, a1, a2, a3, a4, a5,  a6,  a7, s1, s2, s3, s4,
-                        s5, s6, s7, s8, s9, s10, s11, t1, t2, t3, ra});
+    addRegs(genRegsId, {a0, a1, a2, a3, a4, a5, a6, a7, t1,  t2,  t3, s1,
+                        s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, ra});
     addRegs(calleeSaveRegs, {s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addRegs(callerSaveRegs,
             {a0, a1, a2, a3, a4, a5, a6, a7, t0, t1, t2, t3, t4, t5, t6});
@@ -430,12 +430,14 @@ void RISCV::defineArchInfo() {
                     }
                     ir->block->function->callerMaxStackSize = max(
                         ir->block->function->callerMaxStackSize, paramCnt - 8);
-                    if (paramCnt == 0 && func->returnType != IR_VOID) {
-                        vReg* paramReg = new vReg();
-                        paramReg->regId = a0;
-                        paramReg->fixed = true;
-                        paramRegs.push_back(paramReg);
-                        retVal = paramReg;
+                    if (func->returnType != IR_VOID) {
+                        if (retVal == nullptr) {
+                            retVal = new vReg();
+                            retVal->regId = a0;
+                            retVal->fixed = true;
+                        }
+                    } else {
+                        retVal = nullptr;
                     }
                     ir->addASMBack(callOp, retVal,
                                    {paramRegs.begin(), paramRegs.end()}, func);

@@ -304,6 +304,7 @@ void CommonExp::applyBlock(pBlock block) {
             }
         }
     }
+    ops.clear();
 }
 
 void CommonExp::applyFunc(pIRFunc func) {
@@ -316,12 +317,11 @@ void CodeCleaner::prepareTriggers() { triggers.push_back(new BlockPruner()); }
 bool checkObjUseEmpty(pIRObj obj) {
     auto scalObj = toScal(obj);
     if (scalObj)
-        if (scalObj->fa == nullptr)
-        {
-            if(scalObj->isConstant() && !scalObj->isIdent){
+        if (scalObj->fa == nullptr) {
+            if (scalObj->isConstant() && !scalObj->isIdent) {
                 return true;
             }
-            if(scalObj->ssaDef){
+            if (scalObj->ssaDef) {
                 return scalObj->useStructions.empty();
             }
         }
@@ -331,6 +331,8 @@ bool checkObjUseEmpty(pIRObj obj) {
 void CodeCleaner::applyBlock(pBlock block) {
     for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
         if (IRType::CALL != ir->type && checkObjUseEmpty(ir->target)) {
+            clearUse(toVal(ir->opt1), ir);
+            clearUse(toVal(ir->opt2), ir);
             block->remove(ir);
             changed = true;
         }

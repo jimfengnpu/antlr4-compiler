@@ -47,20 +47,13 @@ void AsmEmitter::emitData(SymbolTable* table) {
 }
 
 string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
+    int regId = -1;
+    int off = reg->getValue(&regId);
     if (reg->regType == REG_IMM) {
         return to_string(reg->getValue());
     }
     if (reg->var) {
         return reg->var->name;
-    }
-    int regId = -1;
-    int off = 0;
-    for (auto v = reg; v; v = v->ref) {
-        off += v->value;
-        regId = v->regId;
-        if (regId != -1) {
-            break;
-        }
     }
     string s =
         archInfo->regs[regId == -1 ? (framePtrRegId) : regId];
@@ -78,6 +71,7 @@ void AsmEmitter::printAsm(ASMInstr* instr) {
     fout << "\t" << opName;
     bool start = false;
     if (opName != callOp && opName != retOp) {
+        // call 后面只有label, ret 没有参数
         deque<vReg*> ops{};
         for (auto p : instr->op) {
             ops.push_back(p);
@@ -86,8 +80,7 @@ void AsmEmitter::printAsm(ASMInstr* instr) {
         if (instr->targetOp) {
             ops.push_front(instr->targetOp);
         }
-        if (opName == storeOp || opName == storeDwOp || opName == loadOp ||
-            opName == loadDwOp) {
+        if (IS_MEM_OP(opName)) {
             // ops.push_back(instr->targetOp);
             memTypeIdx = 1;
         }

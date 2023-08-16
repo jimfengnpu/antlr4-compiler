@@ -284,8 +284,8 @@ void RISCV::defineArchInfo() {
     frameByteAlign = 16;
     branchBlockASMLimit = 512;
     // 这是一个vector, 同时定义了寄存器分配顺序
-    addRegs(genRegsId, {a0, a1, a2, a3, a4, a5, a6, a7, t1,  t2,  t3, s1,
-                        s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
+    addRegs(genRegsId, {a0, a1, a2, a3, a4, a5, a6, a7, t1, t2,  t3,
+                        s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addRegs(calleeSaveRegs, {s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11});
     addRegs(callerSaveRegs,
             {a0, a1, a2, a3, a4, a5, a6, a7, t0, t1, t2, t3, t4, t5, t6});
@@ -339,39 +339,41 @@ void RISCV::defineArchInfo() {
                 {[](pSysYIR ir) -> int { return matchCalInstr("neg", ir); }});
     addMatchers(
         IRType::IDX,
-        {// opt1: arr, opt2: scal, offset
-         [](pSysYIR ir) -> int {
-             vReg *offObj = nullptr, *arrObj = nullptr;
-             vReg* obj = getVREG(ir->target);
-             if (checkDoubleOpImm(ir, offObj, arrObj, true,
-                                  [](vReg* imm) -> bool { return true; }) &&
-                 (arrObj->regType == REG_M && arrObj->var == nullptr &&
-                  !(toVal(ir->opt1)->isParam))) {
-                 obj->value = offObj->value;
-                 obj->regType = REG_M;
-             } else {
-                 arrObj = getVREG(toVal(ir->opt1));
-                 arrObj = processSymbol(arrObj, ir);
-                 if (toVal(ir->opt1)->isParam) {
-                     arrObj = processLoad(arrObj, ir, nullptr);
-                 }
-                 offObj = getVREG(toVal(ir->opt2));
-                 if (isImmInLimit(offObj, 12)) {
-                     offObj = new vReg(offObj->value);
-                     offObj->ref = arrObj;
-                     ir->addASMBack("addi", obj, {arrObj, offObj});
-                 } else {
-                     offObj = processLoad(offObj, ir);
-                     vReg* r = new vReg(0);
-                     vReg* off = new vReg();
-                     r->ref = arrObj;
-                     ir->addASMBack("addi", off, {offObj, r});
-                     ir->addASMBack("add", obj, {arrObj, off});
-                 }
-             }
-             obj->ref = arrObj;
-             return 1;
-         }});
+        {[](pSysYIR ir) -> int {  // opt1: arr, opt2: scal, offset
+            vReg *offObj = nullptr, *arrObj = nullptr;
+            vReg* obj = getVREG(ir->target);
+            if (checkDoubleOpImm(ir, offObj, arrObj, true,
+                                 [](vReg* imm) -> bool { return true; }) &&
+                (arrObj->regType == REG_M && arrObj->var == nullptr &&
+                 !(toVal(ir->opt1)->isParam))) {
+                // arr 不来自参数,也不是全局变量，即为当前栈帧内分配的数组
+                // 此时将引用的标量转为mem类型并通过value指定offset
+                // getVREG调用时仍认为是寄存器标量,保证没有分配实际栈空间
+                obj->value = offObj->value;
+                obj->regType = REG_M;
+            } else {
+                arrObj = getVREG(toVal(ir->opt1));
+                arrObj = processSymbol(arrObj, ir);
+                if (toVal(ir->opt1)->isParam) {
+                    arrObj = processLoad(arrObj, ir, nullptr);
+                }
+                offObj = getVREG(toVal(ir->opt2));
+                if (isImmInLimit(offObj, 12)) {
+                    offObj = new vReg(offObj->value);
+                    offObj->ref = arrObj;
+                    ir->addASMBack("addi", obj, {arrObj, offObj});
+                } else {
+                    offObj = processLoad(offObj, ir);
+                    vReg* r = new vReg(0);
+                    vReg* off = new vReg();
+                    r->ref = arrObj;
+                    ir->addASMBack("addi", off, {offObj, r});
+                    ir->addASMBack("add", obj, {arrObj, off});
+                }
+            }
+            obj->ref = arrObj;
+            return 1;
+        }});
     addMatchers(IRType::ARR, {[](pSysYIR ir) -> int {
                     vReg* obj = getVREG(ir->target);
                     vReg* arrObj = getVREG(toVal(ir->opt1));
@@ -463,10 +465,9 @@ void RISCV::processAsm(ASMInstr* s) {
                 s->name = "add";
             }
         }
-    } else if (op == loadOp || op == storeOp || op == loadDwOp ||
-               op == storeDwOp) {
+    } else if (IS_MEM_OP(op)) {
         int memIdx = 0;
-        if (op == storeOp || op == storeDwOp) memIdx = 1;
+        if (IS_STORE_OP(op)) memIdx = 1;
         if (auto m = s->op[memIdx]) {
             int off = m->getValue();
             if (!isInLimit(off, 12)) {

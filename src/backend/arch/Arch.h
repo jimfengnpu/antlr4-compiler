@@ -37,6 +37,10 @@ using namespace std;
 
 #endif
 
+#define IS_STORE_OP(s) ((s == storeOp) || (s == storeDwOp))
+#define IS_LOAD_OP(s) ((s == loadOp) || (s == loadDwOp))
+#define IS_MEM_OP(s) (IS_STORE_OP(s) || IS_LOAD_OP(s))
+
 void setVregMem(vReg* val, pIRFunc func);
 
 class BaseArch {

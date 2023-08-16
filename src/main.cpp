@@ -80,10 +80,12 @@ int main(int argc, char** argv) {
      *      trig<$Condition or True>: trigger processors;...
      *
      * DomMaker [Dom]: generate dom tree in pBlock,
-     *      trig: LiveCalculator;
+     *      trig: LiveCalculator(ir);
      * BlockPruner [Optimizer]: remove dead & empty block,
      *      trig<change>: ConstBroadcast;CodeCleaner;DomMaker;
      * ConstBroadcast [Optimizer]: const spread,
+     *      trig<change>: CodeCleaner;
+     * CommonExp [Optimizer]: common subexpr fold, arithmatic optimization
      *      trig<change>: CodeCleaner;
      * CodeCleaner [Optimizer]: del unused code & branch,
      *      trig<change>: BlockPruner;

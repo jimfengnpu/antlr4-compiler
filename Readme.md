@@ -1,9 +1,13 @@
-# SysY Compiler With Antlr4
+# SysY Compiler Via Antlr4
 ### Author
 jimfengnpu@qq.com
 ## Introduction
 SysY: subSet of C (no for, goto, struct, no operators like: ++,--, ^, &, etc.)
-## Develop Notes
+detailed feature:
++ constant: int(dec/oct/hex)
++ statement: empty;regular;if/if-else;while[break;continue];return;
++ 
+## Developement Notes
 
 + Frontend: antlr4.12.0 (visitor)
 + IR: customized linear
@@ -22,12 +26,15 @@ DIV z, x, 2**y(+imm) => {...}
 ```
 + Backend
     - Instr matcher:
+format: ir... => asm{op(condition)\<side effect\>}...(多个汇编)
+注：
+    1. 
 ```
-//risc-v ir=>asm
+//risc-v:
 NOP, 
 ASSIGN, => mv
 ADD, => addi((op1|op2)=imm); add;
-SUB, => addi(op2=imm, imm:v=>-v); sub; 
+SUB, => addi(op2=imm)<imm=-imm>; sub; 
 MUL, => mul;
 DIV, => div;
 MOD, => rem;
@@ -37,14 +44,13 @@ OR, => ori((op1|op2)=imm); or;
 SL, => slli(op2=imm); sll;
 SR, => srai(op2=imm); sra;
 NOT,BR => beqz;
-EQ, BR => beq; beqz(op1|op2=imm(0));
-NEQ, BR => bne; bnez(op1|op2=imm(0));
-GT, BR => bgt; bgtz[op2=imm(0)]; bltz[op1=imm(0)];
-LT, BR => blt; bltz[op2=imm(0)]; bgtz[op1=imm(0)];
-GE, BR => bge; bgez[op2=imm(0)]; blez[op1=imm(0)];
-LE, BR => ble; blez[op2=imm(0)]; bgez[op1=imm(0)];
+EQ, BR => beq; beqz(op1|op2=0);
+NEQ, BR => bne; bnez(op1|op2=0);
+GT, BR => bgt; bgtz(op2=0); bltz(op1=0);
+LT, BR => blt; bltz(op2=0); blez(op1=0);
+LE, BR => ble; blez(op2=0); bgez(op1=0);
 ARR, => add
-IDX, => add 
+IDX, => ; add
 CALL, => call
 PARAM, .skip
 RET, .skip

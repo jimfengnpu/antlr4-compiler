@@ -37,9 +37,6 @@ class Optimizer : public IRProcessor {
                         // }
                         // cout << endl;
                         auto block = workList.front();
-                        // if(block->name == "M3"){
-                        //     cout << "break";
-                        // }
                         workList.pop_front();
                         if (!visited[block]) {
                             visited[block] = true;

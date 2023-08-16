@@ -234,8 +234,13 @@ void CommonExp::applyBlock(pBlock block) {
             auto scal = toScal(ir->opt2);
             if (scal->isConstant()) {
                 int v = scal->value;
-                // MUL / DIV +2^n, 改写为位运算
-                if (v > 0 && ((v & (-v)) == v)) {
+                bool neg = false;
+                // MUL / DIV 2^n, 改写为位运算
+                if (v < 0) {
+                    neg = true;
+                    v = -v;
+                }
+                if (v >= 0 && ((v & (-v)) == v)) {
                     int n = 0;
                     while ((v & 1) == 0) {
                         v >>= 1;
@@ -245,6 +250,12 @@ void CommonExp::applyBlock(pBlock block) {
                         ir->type = IRType::SL;
                     } else {
                         ir->type = IRType::SR;
+                    }
+                    if (neg) {
+                        auto tmpScal = make_shared<IRScalValObj>(false, "");
+                        ir->block->insertIR(IRType::NEG, ir->target, tmpScal,
+                                            nullptr, ir->next);
+                        ir->target = tmpScal;
                     }
                     ir->opt2 = make_shared<IRScalValObj>(n);
                 }

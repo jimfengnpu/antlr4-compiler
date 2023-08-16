@@ -16,6 +16,7 @@
 
 using namespace std;
 
+// macro for debug
 // #define VAL_IR 1
 // #define VAL_LIVE 1
 // #define VAL_CFGDOM 1
@@ -91,7 +92,7 @@ class vReg : public Printable {
      * REG_M: data usually in mem (.data or stack)
      *
      * vReg actually a value (getValue func return)
-     * in backend procedure, ref is used to refer dynamic value 
+     * in backend procedure, ref is used to refer dynamic value
      * if regId != -1 it means this->value + $regId (value as offset)
      * regId == -1,
      * and if ref != nullptr ,value = this->value + ref->getValue()
@@ -110,13 +111,18 @@ class vReg : public Printable {
     vReg(int immVal) : regType(REG_IMM) { this->value = immVal; }
     vReg(pIRValObj obj) : regType(REG_M), var(obj) {}
     virtual void print(ostream &os) const {}
-    int getValue() {
+    int getValue(int *regId = nullptr) {
         int v = 0;
+        int reg = -1;
         for (vReg *r = this; r; r = r->ref) {
             v += r->value;
+            reg = r->regId;
             if (r->regId != -1) {
                 break;
             }
+        }
+        if (regId != nullptr) {
+            *regId = reg;
         }
         return v;
     }
@@ -434,12 +440,12 @@ class IRBlock : public IRObj {  // Basic Block
     int size();    // block structions size (jump excluded)
     int asmLen();  // block asm length
     bool hasPhi();
-    bool dominate(pBlock block, bool strict=true){
-        if(block && strict){
+    bool dominate(pBlock block, bool strict = true) {
+        if (block && strict) {
             block = block->domFa;
         }
-        while(block){
-            if(block.get() == this)return true;
+        while (block) {
+            if (block.get() == this) return true;
             block = block->domFa;
         }
         return false;
@@ -489,8 +495,8 @@ class IRFunc : public IRObj {
     pSysYIR initInstrs;
     pSysYIR exitInstrs;
     vReg stackCapacity;
-    int stackCapacitySize=0;
-    int callerMaxStackSize=0;
+    int stackCapacitySize = 0;
+    int callerMaxStackSize = 0;
 
     SymbolTable *symbolTable;
     // table == nullptr : lib function

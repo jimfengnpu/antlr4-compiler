@@ -230,9 +230,15 @@ bool checkUse(pIRValObj val) {
 
 void CommonExp::applyBlock(pBlock block) {
     for (auto ir = block->irHead; ir != nullptr; ir = ir->next) {
-        if (IRType::MUL == ir->type || IRType::DIV == ir->type) {
-            auto scal = toScal(ir->opt2);
-            if (scal->isConstant()) {
+        // arithmatic
+        if (IRType::ADD == ir->type || IRType::MUL == ir->type) {
+            if (toScal(ir->opt1)->isConstant()) {
+                swap(ir->opt1, ir->opt2);
+            }
+        }
+        auto scal = toScal(ir->opt2);
+        if (scal && scal->isConstant()) {
+            if (IRType::MUL == ir->type || IRType::DIV == ir->type) {
                 int v = scal->value;
                 bool neg = false;
                 // MUL / DIV 2^n, 改写为位运算
@@ -240,24 +246,37 @@ void CommonExp::applyBlock(pBlock block) {
                     neg = true;
                     v = -v;
                 }
-                if (v >= 0 && ((v & (-v)) == v)) {
+                if (v > 0 && ((v & (-v)) == v)) {
                     int n = 0;
                     while ((v & 1) == 0) {
                         v >>= 1;
                         n++;
                     }
-                    if (IRType::MUL == ir->type) {
-                        ir->type = IRType::SL;
+                    if (n > 0) {
+                        if (IRType::MUL == ir->type) {
+                            ir->type = IRType::SL;
+                        } else {
+                            ir->type = IRType::SR;
+                        }
+                        if (neg) {
+                            auto tmpScal = make_shared<IRScalValObj>(false, "");
+                            ir->block->insertIR(IRType::NEG, ir->target,
+                                                tmpScal, nullptr, ir->next);
+                            ir->target = tmpScal;
+                        }
+                        ir->opt2 = make_shared<IRScalValObj>(n);
                     } else {
-                        ir->type = IRType::SR;
+                        // MUL/DIV 1 改写为赋值
+                        // op2 = 1
+                        ir->type = IRType::ASSIGN;
+                        ir->opt2 = nullptr;
                     }
-                    if (neg) {
-                        auto tmpScal = make_shared<IRScalValObj>(false, "");
-                        ir->block->insertIR(IRType::NEG, ir->target, tmpScal,
-                                            nullptr, ir->next);
-                        ir->target = tmpScal;
-                    }
-                    ir->opt2 = make_shared<IRScalValObj>(n);
+                }
+            }
+            if (IRType::ADD == ir->type || IRType::SUB == ir->type) {
+                if (scal->value == 0) {
+                    ir->type = IRType::ASSIGN;
+                    ir->opt2 = nullptr;
                 }
             }
         }

@@ -292,8 +292,9 @@ void RISCV::processAsm(ASMInstr* s) {
 void RISCV::prepareFuncPreRegs(pIRFunc f) {
     vReg* v = nullptr;
     for (int i = 0; i < f->params.size(); i++) {
-        v = new vReg();
+        v = getVREG(f->params[i]);
         if (i < paramRegCnt) {
+            v->regType = REG_R;
             v->regId = a0 + i;
         } else {
             v->regType = REG_M;
@@ -305,9 +306,9 @@ void RISCV::prepareFuncPreRegs(pIRFunc f) {
         valRegs[f->params[i]] = v;
     }
     if (f->returnType != IR_VOID) {
-        v = new vReg();
+        v = getVREG(f->returnVal);
+        v->regType = REG_R;
         v->regId = a0;
-        valRegs[f->returnVal] = v;
     }
 }
 

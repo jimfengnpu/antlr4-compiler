@@ -43,7 +43,8 @@ static int liveLen(vReg* v) {
 
 static double calCost(vReg* v) {
     if (liveLen(v) == 0 || valCost[v] == 0) {
-        return 1 / 0.0;  // this means v is used in call, never spilled
+        return 1 / 0.0;
+        // this means v is used in call, never spilled, cost inf
     }
     const double eps = 1e-8;
     double cost = (double)valCost[v];

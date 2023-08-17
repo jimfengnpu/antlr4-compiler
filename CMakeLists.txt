@@ -19,7 +19,8 @@ target_include_directories(compiler PRIVATE
     ${SOURCE_DIR}/frontend/generated/
     ${SOURCE_DIR}/common/
     ${SOURCE_DIR}/backend/
-    ${SOURCE_DIR}/backend/arch/
+    ${SOURCE_DIR}/backend/mach/
+    ${SOURCE_DIR}/backend/mach/arch/
 )
 
 target_link_libraries(compiler antlr4-runtime)

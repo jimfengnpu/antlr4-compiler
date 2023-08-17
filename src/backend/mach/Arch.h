@@ -26,6 +26,8 @@ using namespace std;
 #define memByteAlign 4
 #define paramRegCnt 8
 
+#define commonCalImmBit 12
+
 #define SEC_RO ".section .rodata"
 #define SEC_RW ".data"
 #define SEC_RX ".text"
@@ -41,7 +43,62 @@ using namespace std;
 #define IS_LOAD_OP(s) ((s == loadOp) || (s == loadDwOp))
 #define IS_MEM_OP(s) (IS_STORE_OP(s) || IS_LOAD_OP(s))
 
-void setVregMem(vReg* val, pIRFunc func);
+static unordered_map<pIRValObj, vReg*> valRegs;
+
+inline bool isImm(pIRScalValObj scal) {
+    if (!scal) return false;
+    if (!scal->isConstant()) return false;
+    return true;
+}
+
+inline bool isInLimit(int val, int width) {
+    int lim = 1 << width;
+    int v = val + lim / 2;
+    return v >= 0 && v < lim;
+}
+
+inline int getAligned(int x, int align) {
+    return ((x + align - 1) / align) * align;
+}
+
+inline bool isImm(pIRObj obj) { return isImm(toScal(obj)); }
+
+inline bool isImm(vReg* val) { return val->regType == REG_IMM; }
+
+inline bool isImmInLimit(vReg* val, int width) {
+    if (isImm(val)) {
+        return isInLimit(val->getValue(), width);
+    }
+    return false;
+}
+
+inline void setVregMem(vReg* val, pIRFunc func) {
+    func->stackCapacitySize += memByteAlign * val->size;
+    val->ref = &func->stackCapacity;
+    val->value = -func->stackCapacitySize;
+}
+
+vReg* getVREG(pIRValObj obj);
+bool checkDoubleOpImm(
+    pSysYIR ir, vReg*& immScal, vReg*& regObj, bool checkSecOnly = false,
+    bool (*check)(vReg*) = [](vReg* r) -> bool { return true; });
+vReg* processSymbol(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr);
+vReg* processLoad(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr);
+vReg* processStore(vReg* val, pSysYIR ir, ASMInstr* instr = nullptr);
+ASMInstr* addASM(string name, pSysYIR ir, vReg* des, vector<vReg*> ops,
+                 pBlock target = nullptr, bool noStore = false);
+
+int matchCalImmInstr(
+    string name, pSysYIR ir, bool checkSecOnly = false,
+    bool (*check)(vReg*) = [](vReg* r) -> bool {
+        if (isImmInLimit(r, commonCalImmBit)) {
+            return true;
+        }
+        r->regType = REG_R;
+        return false;
+    });
+
+int matchCalInstr(string name, pSysYIR ir);
 
 class BaseArch {
    public:
@@ -55,6 +112,7 @@ class BaseArch {
     int frameByteAlign = 16;
     int branchBlockASMLimit = 512;
     BaseArch() = default;
+    virtual ~BaseArch() = default;
     virtual void defineArchInfo() = 0;
     void addMatchers(IRType type,
                      initializer_list<int (*)(pSysYIR)> newMatchers) {
@@ -72,7 +130,6 @@ class BaseArch {
             regSet.insert(r);
         }
     }
-    void setMemStackPosition(vReg* val, pIRFunc func) {}
     bool matchIR(pSysYIR ir);
     virtual void processAsm(ASMInstr* s) = 0;
     virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks) = 0;
@@ -81,86 +138,4 @@ class BaseArch {
                                         unordered_set<int>& useRegs) = 0;
 };
 
-class RISCV : public BaseArch {
-    enum REG {
-        zero,
-        ra,
-        sp,
-        gp,
-        tp,
-        t0,
-        t1,
-        t2,
-        s0 = 8,
-        fp = 8,
-        s1,
-        a0,
-        a1,
-        a2,
-        a3,
-        a4,
-        a5,
-        a6,
-        a7,
-        s2,
-        s3,
-        s4,
-        s5,
-        s6,
-        s7,
-        s8,
-        s9,
-        s10,
-        s11,
-        t3,
-        t4,
-        t5,
-        t6,
-        pc
-    };
-
-   public:
-    RISCV() {
-        regs[zero] = REG_STR(zero);
-        regs[ra] = REG_STR(ra);
-        regs[sp] = REG_STR(sp);
-        regs[gp] = REG_STR(gp);
-        regs[tp] = REG_STR(tp);
-        regs[t0] = REG_STR(t0);
-        regs[t1] = REG_STR(t1);
-        regs[t2] = REG_STR(t2);
-        regs[s0] = REG_STR(s0);
-        regs[s1] = REG_STR(s1);
-        regs[a0] = REG_STR(a0);
-        regs[a1] = REG_STR(a1);
-        regs[a2] = REG_STR(a2);
-        regs[a3] = REG_STR(a3);
-        regs[a4] = REG_STR(a4);
-        regs[a5] = REG_STR(a5);
-        regs[a6] = REG_STR(a6);
-        regs[a7] = REG_STR(a7);
-        regs[s2] = REG_STR(s2);
-        regs[s3] = REG_STR(s3);
-        regs[s4] = REG_STR(s4);
-        regs[s5] = REG_STR(s5);
-        regs[s6] = REG_STR(s6);
-        regs[s7] = REG_STR(s7);
-        regs[s8] = REG_STR(s8);
-        regs[s9] = REG_STR(s9);
-        regs[s10] = REG_STR(s10);
-        regs[s11] = REG_STR(s11);
-        regs[t3] = REG_STR(t3);
-        regs[t4] = REG_STR(t4);
-        regs[t5] = REG_STR(t5);
-        regs[t6] = REG_STR(t6);
-        regs[pc] = REG_STR(pc);
-        defineArchInfo();
-    }
-    virtual void defineArchInfo() override;
-    virtual void processAsm(ASMInstr* s);
-    virtual void matchBlockEnd(pBlock block, vector<pBlock>& nextBlocks);
-    virtual void prepareFuncPreRegs(pIRFunc func);
-    virtual void prepareFuncInitExitAsm(pIRFunc func,
-                                        unordered_set<int>& useRegs);
-};
 #endif

@@ -50,7 +50,7 @@ string AsmEmitter::printAsmOp(vReg* reg, bool memType = false) {
     int regId = -1;
     int off = reg->getValue(&regId);
     if (reg->regType == REG_IMM) {
-        return to_string(reg->getValue());
+        return to_string(off);
     }
     if (reg->var) {
         return reg->var->name;

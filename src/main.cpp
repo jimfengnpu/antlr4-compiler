@@ -8,6 +8,7 @@
 #include "IRRunner.h"
 #include "InstrMatcher.h"
 #include "Optimizer.h"
+#include "RISCV.h"
 #include "RegAlloc.h"
 #include "SSA.h"
 #include "SysYLexer.h"
@@ -71,9 +72,9 @@ int main(int argc, char** argv) {
     // process models ,`apply` will execute all the processors added in the
     // queue including triggers during execution
     IRProcessors processors(prog);
-    #if EM_ARCH == EM_RISCV
+#if EM_ARCH == EM_RISCV
     RISCV target_arch;
-    #endif
+#endif
     /**
      * Processor List:
      * $processorName [$defineFile]: $description,
